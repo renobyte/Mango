@@ -143,7 +143,7 @@ public class Favorite implements Serializable
         @Override
         protected String doInBackground(String... params)
         {
-            return MangoHttp.downloadData(params[0], bmRef.mReference);
+            return MangoHttp.downloadHtml(params[0], bmRef.mReference);
         }
 
         @Override

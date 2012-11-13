@@ -22,7 +22,6 @@ import java.util.zip.GZIPInputStream;
 public class MangoHttp
 {
     private static final int BUFFER_SIZE = 8192;
-    private static boolean _offlineMode;
 
     public static boolean isOfflineMode()
     {
@@ -37,14 +36,11 @@ public class MangoHttp
         return info.isConnected();
     }
 
-    public static void setOfflineMode(boolean offlineMode)
-    {
-        _offlineMode = offlineMode;
-    }
+    //public static MangoHttpResponse
 
-    public static String downloadData(String url, Context context)
+    public static String downloadHtml(String url, Context context)
     {
-        url = url.replace("%SERVER_URL%", Mango.getSharedPreferences().getString("serverUrl", "174.137.55.109"));
+        url = url.replace("%SERVER_URL%", Mango.getSharedPreferences().getString("serverUrl", "konata.leetsoft.net"));
 
         InputStream is = null;
         InputStreamReader isr;
@@ -130,7 +126,7 @@ public class MangoHttp
         }
         catch (OutOfMemoryError oom)
         {
-            Mango.log("MangoHttp", "OutOfMemoryError in downloadData.  Calling System.gc.");
+            Mango.log("MangoHttp", "OutOfMemoryError in downloadHtml.  Calling System.gc.");
             System.gc();
             return "Exception: OutOfMemoryError!  Mango is running low on heap memory... try restarting the app.";
         }
@@ -155,7 +151,7 @@ public class MangoHttp
 
     public static Object downloadBitmap(String url, Context context)
     {
-        url = url.replace("%SERVER_URL%", Mango.getSharedPreferences().getString("serverUrl", "174.137.55.109"));
+        url = url.replace("%SERVER_URL%", Mango.getSharedPreferences().getString("serverUrl", "konata.leetsoft.net"));
 
         InputStream is = null;
         BufferedInputStream bis = null;
@@ -268,7 +264,7 @@ public class MangoHttp
     {
         if (url == null)
             url = "";
-        url = url.replace("%SERVER_URL%", Mango.getSharedPreferences().getString("serverUrl", "174.137.55.109"));
+        url = url.replace("%SERVER_URL%", Mango.getSharedPreferences().getString("serverUrl", "konata.leetsoft.net"));
 
         InputStream is = null;
         BufferedInputStream bis = null;

@@ -222,7 +222,7 @@ public class MainMenuActivity extends MangoActivity
                 else if (itemId == 50)
                 {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
-                    String url = MangoHttp.downloadData("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, MainMenuActivity.this);
+                    String url = MangoHttp.downloadHtml("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, MainMenuActivity.this);
                     if (url.startsWith("Exception"))
                         url = "http://Mango.leetsoft.net/install-android.php";
                     intent.setData(Uri.parse(url));
@@ -554,7 +554,7 @@ public class MainMenuActivity extends MangoActivity
         @Override
         protected String doInBackground(String... params)
         {
-            return MangoHttp.downloadData(params[0], activity);
+            return MangoHttp.downloadHtml(params[0], activity);
         }
 
         @Override

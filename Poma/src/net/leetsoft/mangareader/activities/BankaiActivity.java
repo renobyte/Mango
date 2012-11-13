@@ -66,7 +66,7 @@ public class BankaiActivity extends MangoActivity
             public void onClick(View v)
             {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(Uri.parse("http://" + Mango.getSharedPreferences().getString("serverUrl", "174.137.55.109") + "/buyBankai.aspx?did=" + Mango.getPin()));
+                intent.setData(Uri.parse("http://" + Mango.getSharedPreferences().getString("serverUrl", "konata.leetsoft.net") + "/buyBankai.aspx?did=" + Mango.getPin()));
                 startActivity(intent);
                 overridePendingTransition(R.anim.fadein, R.anim.expandout);
             }
@@ -149,7 +149,7 @@ public class BankaiActivity extends MangoActivity
             @Override
             public void run()
             {
-                final String retval = MangoHttp.downloadData("http://%SERVER_URL%/registerbankai.aspx?pin=" + Mango.getPin() + "&order=" + mOrderNumberText.getText().toString(), BankaiActivity.this);
+                final String retval = MangoHttp.downloadHtml("http://%SERVER_URL%/registerbankai.aspx?pin=" + Mango.getPin() + "&order=" + mOrderNumberText.getText().toString(), BankaiActivity.this);
                 if (!retval.startsWith("okay"))
                 {
                     mRetrieveView.post(new Runnable()

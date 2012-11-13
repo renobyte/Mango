@@ -748,7 +748,7 @@ public class FilteredMangaActivity extends MangoActivity
         @Override
         protected String doInBackground(String... params)
         {
-            return MangoHttp.downloadData(params[0], activity);
+            return MangoHttp.downloadHtml(params[0], activity);
         }
 
         @Override

@@ -1875,7 +1875,7 @@ public class OfflinePagereaderActivity extends MangoActivity
 
         if (!url.toLowerCase().endsWith("jpg") && !url.toLowerCase().endsWith("png") && !url.toLowerCase().endsWith("gif"))
         {
-            String html = MangoHttp.downloadData(url, this);
+            String html = MangoHttp.downloadHtml(url, this);
             url = magic(html);
 
             if (url.contains("Exception"))

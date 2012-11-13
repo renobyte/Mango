@@ -117,7 +117,7 @@ public class TermsDialog extends Dialog
         @Override
         protected String doInBackground(String... params)
         {
-            return MangoHttp.downloadData(params[0], dialog.getContext());
+            return MangoHttp.downloadHtml(params[0], dialog.getContext());
         }
 
         @Override

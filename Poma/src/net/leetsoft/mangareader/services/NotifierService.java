@@ -233,7 +233,7 @@ public class NotifierService extends Service
                             Chapter c = null;
                             mNotificationViews.setTextViewText(R.id.ChapterNotifierText, "Checking " + n[i].mangaTitle + " (" + (n.length - (i + 1)) + " more)");
                             mNotificationManager.notify(1340, mNotification);
-                            String response = MangoHttp.downloadData(
+                            String response = MangoHttp.downloadHtml(
                                     "http://%SERVER_URL%/getchapterlist.aspx?pin=" + Mango.getPin() + "&url=" + n[i].mangaId + "&site=" + n[i].siteId + "&latest=true", NotifierService.this);
 
                             SAXParserFactory saxFactory = SAXParserFactory.newInstance();
@@ -271,7 +271,7 @@ public class NotifierService extends Service
                                     reader = parser.getXMLReader();
                                     ChaptersSaxHandler chandler = new ChaptersSaxHandler();
                                     reader.setContentHandler(chandler);
-                                    reader.parse(new InputSource(new StringReader(MangoHttp.downloadData(
+                                    reader.parse(new InputSource(new StringReader(MangoHttp.downloadHtml(
                                             "http://%SERVER_URL%/getchapterlist.aspx?pin=" + Mango.getPin() + "&url=" + n[i].mangaId + "&site=" + n[i].siteId, NotifierService.this))));
                                     int mangasize = chandler.getAllChapters().size();
 

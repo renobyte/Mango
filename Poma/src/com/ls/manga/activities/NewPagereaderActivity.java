@@ -1278,7 +1278,7 @@
 //            @Override
 //            protected String doInBackground(String... params)
 //            {
-//                return MangoHttp.downloadData(params[0], downloader.get().activity.get());
+//                return MangoHttp.downloadHtml(params[0], downloader.get().activity.get());
 //            }
 //
 //            @Override
@@ -2000,7 +2000,7 @@
 //        {
 //            if (activity == null || activity.get() == null)
 //                return "Exception: loader's activity reference was null. (screen was rotated?)";
-//            return MangoHttp.downloadData(params[0], activity.get());
+//            return MangoHttp.downloadHtml(params[0], activity.get());
 //        }
 //
 //        @Override

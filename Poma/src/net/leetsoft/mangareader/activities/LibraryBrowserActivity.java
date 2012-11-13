@@ -1792,7 +1792,7 @@ public class LibraryBrowserActivity extends MangoActivity
 
             if (!url.toLowerCase().endsWith("jpg") && !url.toLowerCase().endsWith("png") && !url.toLowerCase().endsWith("gif"))
             {
-                String html = MangoHttp.downloadData(url, activity);
+                String html = MangoHttp.downloadHtml(url, activity);
                 url = magic(html);
 
                 if (url.contains("Exception"))

@@ -378,7 +378,7 @@ public class DownloaderService extends Service
         {
             if (service == null || service.get() == null)
                 return "Exception: loader's service reference was null.";
-            return MangoHttp.downloadData(params[0], service.get());
+            return MangoHttp.downloadHtml(params[0], service.get());
         }
 
         @Override
@@ -956,7 +956,7 @@ public class DownloaderService extends Service
             @Override
             protected String doInBackground(String... params)
             {
-                return MangoHttp.downloadData(params[0], downloader.get().service.get());
+                return MangoHttp.downloadHtml(params[0], downloader.get().service.get());
             }
 
             @Override

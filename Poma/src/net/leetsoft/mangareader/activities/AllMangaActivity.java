@@ -640,7 +640,7 @@ public class AllMangaActivity extends MangoActivity
         protected String doInBackground(String... params)
         {
             Mango.log("doInBackground " + params[0]);
-            return MangoHttp.downloadData(params[0], activity);
+            return MangoHttp.downloadHtml(params[0], activity);
         }
 
         @Override

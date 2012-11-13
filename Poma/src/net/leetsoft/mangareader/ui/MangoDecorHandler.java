@@ -115,7 +115,7 @@ public class MangoDecorHandler
 
     public void downloadDecorXml(Context c)
     {
-        String xmlData = MangoHttp.downloadData("http://mango.leetsoft.net/backgrounds/android/decorindex.xml", c);
+        String xmlData = MangoHttp.downloadHtml("http://mango.leetsoft.net/backgrounds/android/decorindex.xml", c);
         if (xmlData.startsWith("Exception"))
         {
             Mango.getSharedPreferences().edit().putLong("nextDecorCheck", System.currentTimeMillis() + (1000 * 60)).commit();
