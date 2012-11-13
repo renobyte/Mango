@@ -15,13 +15,17 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.util.EntityUtils;
 
 import java.io.*;
 import java.util.zip.GZIPInputStream;
 
 public class MangoHttp
 {
-    private static final int BUFFER_SIZE = 8192;
+    private static int BUFFER_SIZE = 8192;
+    private static int CONNECTION_TIMEOUT = 10000;
+    private static int SOCKET_TIMEOUT = 6000;
+
 
     public static boolean isOfflineMode()
     {
@@ -36,7 +40,70 @@ public class MangoHttp
         return info.isConnected();
     }
 
-    //public static MangoHttpResponse
+    public static MangoHttpResponse downloadData(String url, Context c)
+    {
+        MangoHttpResponse response = new MangoHttpResponse();
+        url = url.replace("%SERVER_URL%", Mango.getSharedPreferences().getString("serverUrl", "konata.leetsoft.net"));
+        url = cleanString(url);
+
+        if (url.contains("mangable") && !url.endsWith("?mango"))
+            url += "?mango";
+
+        try
+        {
+            response.requestUri = url;
+            Mango.log("MangoHttp", "Requesting '" + url + "' [" + url.hashCode() + "]...");
+
+            if (!MangoHttp.checkConnectivity(c))
+                throw new Exception("No connection to the Internet is available.  Check your mobile data or WiFi connection.");
+            if (isOfflineMode())
+                throw new Exception("Mango is in offline mode. To disable offline mode, return to the main menu and press the Back key, then restart the app.");
+
+            HttpGet httpGet = new HttpGet(url);
+            HttpParams httpParameters = new BasicHttpParams();
+            HttpConnectionParams.setConnectionTimeout(httpParameters, CONNECTION_TIMEOUT);
+            HttpConnectionParams.setSoTimeout(httpParameters, SOCKET_TIMEOUT);
+            HttpConnectionParams.setSocketBufferSize(httpParameters, BUFFER_SIZE);
+
+            DefaultHttpClient httpClient = new DefaultHttpClient(httpParameters);
+            HttpResponse httpResponse = httpClient.execute(httpGet);
+            HttpEntity entity = httpResponse.getEntity();
+
+            Header contentEncoding = httpResponse.getFirstHeader("Content-Encoding");
+            if (contentEncoding != null && contentEncoding.getValue().equalsIgnoreCase("gzip"))
+                throw new Exception("The server's response was gzip-encoded, which is not currently supported.  Please contact the developer.");
+
+            response.responseCode = httpResponse.getStatusLine().getStatusCode();
+            if (response.responseCode != 200)
+                throw new Exception("HTTP " + response.responseCode + ": " + (response.responseCode == 404 ? "Not Found\nThe requested file wasn't found on the server." : "Mango couldn't access the requested file because the server returned an error.") + "Url: " + url);
+            if (httpResponse.containsHeader("Content-Type"))
+                response.contentType = httpResponse.getFirstHeader("Content-Type").getValue();
+            if (httpResponse.containsHeader("Content-Length"))
+                response.contentLength = Integer.parseInt(httpResponse.getFirstHeader("Content-Type").getValue());
+
+            response.charset = EntityUtils.getContentCharSet(entity);
+            if (response.charset == null)
+                response.charset = "UTF-8";
+            response.data = EntityUtils.toByteArray(entity);
+        }
+        catch (Exception ex)
+        {
+            Mango.log("MangoHttp", "Exception: " + ex.getMessage() +" [" + url.hashCode() + "]");
+            response.data = ex.getMessage().getBytes();
+            response.exception = true;
+        }
+        catch (OutOfMemoryError oom)
+        {
+            Mango.log("MangoHttp", "Ran into an OutOfMemoryError. [" + url.hashCode() + "]");
+            System.gc();
+            response.data = "Mango has run out of heap memory and can't download this data.  Please try restarting the app.".getBytes();
+            response.exception = true;
+        }
+        finally
+        {
+            return response;
+        }
+    }
 
     public static String downloadHtml(String url, Context context)
     {
