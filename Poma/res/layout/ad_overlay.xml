@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/prAdOverlayLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#88000000"
+    android:clickable="true" >
+
+    <LinearLayout
+        android:id="@+id/prAdBanner"
+        android:layout_width="300dip"
+        android:layout_height="250dip"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_marginBottom="7dp"
+        android:layout_marginTop="7dp" >
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/prAdTextview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/prAdBanner"
+        android:layout_centerHorizontal="true"
+        android:text="Loading chapter..."
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    <TextView
+        android:id="@+id/prAdExplainText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:clickable="true"
+        android:gravity="center"
+        android:paddingTop="20dp"
+        android:text="Uwaa!!  Why&apos;s there an ad here??"
+        android:textSize="12dp"
+        android:textStyle="bold" />
+
+</RelativeLayout>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="40dp"
+	android:minHeight="10dp"
+	android:padding="3dp">
+	<ProgressBar
+		android:id="@+id/queueItemProgress"
+		android:layout_marginTop="2sp"
+		android:layout_marginBottom="2sp"
+		android:indeterminateOnly="false"
+		android:progressDrawable="@android:drawable/progress_horizontal"
+		android:indeterminateDrawable="@android:drawable/progress_indeterminate_horizontal"
+		android:layout_height="fill_parent"
+		android:layout_width="fill_parent"
+		android:maxHeight="20dp"
+		android:minHeight="20dp"
+		android:layout_below="@+id/queueItemText"
+		android:layout_toRightOf="@+id/queueItemStatus"
+		android:layout_marginLeft="5dp"></ProgressBar>
+	<TextView
+		android:text="status"
+		android:layout_width="wrap_content"
+		android:id="@+id/queueItemStatus"
+		android:layout_height="wrap_content"
+		android:textSize="14sp"
+		android:textColor="#666666"
+		android:layout_below="@+id/queueItemText"></TextView>
+	<TextView
+		android:textSize="16sp"
+		android:text="text"
+		android:layout_width="wrap_content"
+		android:id="@+id/queueItemText"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true"></TextView>
+</RelativeLayout>

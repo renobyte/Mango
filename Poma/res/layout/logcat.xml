@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="vertical">
+    <ScrollView
+            android:layout_height="fill_parent"
+            android:layout_width="fill_parent">
+        <RelativeLayout
+                android:layout_gravity="center_horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/LogcatInfoText"
+                    android:textSize="15sp"
+                    android:text="This screen displays the diagnostic information Mango has written to the system log.\n\nTo send this data, please go to Send Feedback and choose 'I'm having an issue'."></TextView>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_below="@+id/LogcatInfoText"
+                    android:id="@+id/LogcatSend"
+                    android:layout_height="wrap_content"
+                    android:text="Send Log"
+                    android:maxWidth="200sp"
+                    android:layout_centerHorizontal="true"
+                    android:minWidth="150sp"></Button>
+            <TextView
+                    android:id="@+id/LogcatLogHeader"
+                    android:layout_width="wrap_content"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:text="Log Data"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/LogcatSend"></TextView>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/LogcatLogHeader"
+                    android:id="@+id/LogcatLogText"
+                    android:textSize="12sp"
+                    android:text="Generating... please wait."></TextView>
+        </RelativeLayout>
+    </ScrollView>
+</LinearLayout>

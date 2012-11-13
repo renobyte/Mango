@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="net.leetsoft.mangareader"
+          android:installLocation="auto"
+          android:versionCode="184"
+          android:versionName="1.6.184">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.READ_LOGS"/>
+
+    <application
+            android:name=".Mango"
+            android:hardwareAccelerated="true"
+            android:icon="@drawable/icon"
+            android:label="@string/app_name"
+            android:largeHeap="true">
+        <activity
+                android:name="net.leetsoft.mangareader.activities.StartupActivity"
+                android:label="@string/app_name"
+                android:theme="@style/Theme.Mango_Light">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.MainMenuActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.AboutActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.ContactActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.BrowseByActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.SiteSelectorActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.FavoritesActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.LibraryBrowserActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.HistoryActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.AllMangaActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.FilteredMangaActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.GenreActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.ArtistActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.NewReleasesActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.SearchActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.SearchResultsActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.PreferencesActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.NotifierPrefsActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.SettingsMenuActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.TutorialActivity"
+                android:theme="@style/Theme.Mango_Dark"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.BankaiActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.LogcatActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.SharedPrefsActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.DownloaderActivity"
+                android:launchMode="singleTop"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.ChaptersActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.PagereaderActivity"
+                android:theme="@style/Theme.Mango_Dark">
+        </activity>
+        <activity
+                android:name="net.leetsoft.mangareader.activities.OfflinePagereaderActivity"
+                android:theme="@style/Theme.Mango_Dark">
+        </activity>
+
+        <service
+                android:name="net.leetsoft.mangareader.services.DownloaderService"
+                android:enabled="true"/>
+        <service
+                android:name="net.leetsoft.mangareader.services.NotifierService"
+                android:enabled="true"/>
+        <service
+                android:name="net.leetsoft.mangareader.services.SyncService"
+                android:enabled="true"/>
+
+        <receiver android:name="net.leetsoft.mangareader.services.BootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+
+        <meta-data
+                android:name="com.mobclix.APPLICATION_ID"
+                android:value="2B6CFCDD-41CE-4509-9CE1-146C48DC218B"/>
+        <meta-data
+                android:name="ADMOB_PUBLISHER_ID"
+                android:value="a14d419d563ddaf"/>
+
+        <activity
+                android:name="com.mobclix.android.sdk.MobclixBrowserActivity"
+                android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
+        <activity android:name="com.google.ads.AdActivity"
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"/>
+        <!-- AppBrain SDK -->
+        <activity android:configChanges="keyboard|keyboardHidden|orientation"
+                  android:name="com.appbrain.AppBrainActivity" />
+        <service android:name="com.appbrain.AppBrainService" />
+        <receiver android:exported="true" android:name="com.appbrain.ReferrerReceiver" >
+            <intent-filter>
+                <action android:name="com.android.vending.INSTALL_REFERRER" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+    <uses-sdk
+            android:minSdkVersion="7"
+            android:targetSdkVersion="14"/>
+
+</manifest>

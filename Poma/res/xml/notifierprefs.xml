@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+        xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+            android:title="Configuration">
+        <CheckBoxPreference
+                android:title="Enable Notifications"
+                android:defaultValue="false"
+                android:summary="Notifies you when new chapters of your favorite manga are available"
+                android:key="notifierEnabled"/>
+        <Preference
+                android:title="Next Update Check"
+                android:enabled="false"
+                android:shouldDisableView="true"
+                android:summary="uninstantiated"
+                android:key="notifierNextRun"/>
+        <ListPreference
+                android:entryValues="@array/notifierinterval_values"
+                android:dialogTitle="Update Interval"
+                android:entries="@array/notifierinterval"
+                android:summary="Sets how often Mango should check for new chapters"
+                android:key="notifierInterval"
+                android:title="Update Interval"></ListPreference>
+        <CheckBoxPreference
+                android:title="Auto-Download New Chapters"
+                android:defaultValue="false"
+                android:summary="Automatically saves new chapters to My Library so you can read them later"
+                android:key="notifierAutoDownload"/>
+        <CheckBoxPreference
+                android:title="Auto-Download on Wi-Fi Only"
+                android:defaultValue="false"
+                android:summary="Causes Mango to only save new chapters to My Library when you're connected to Wi-Fi"
+                android:key="notifierAutoDownloadWifi"/>
+    </PreferenceCategory>
+    <PreferenceCategory
+            android:title="Notification Options">
+        <RingtonePreference
+                android:title="Notification Ringtone"
+                android:showSilent="true"
+                android:ringtoneType="notification"
+                android:showDefault="true"
+                android:key="notifierRingtone">
+        </RingtonePreference>
+        <CheckBoxPreference
+                android:title="Enable LED Flash"
+                android:defaultValue="false"
+                android:summary="Flashes the phone's notification LED or trackball when new chapters are available"
+                android:key="notifierLED"/>
+        <CheckBoxPreference
+                android:title="Hide Notification"
+                android:defaultValue="false"
+                android:summary="Disables the status bar notification (updates will still be shown on the Favorites screen)"
+                android:key="notifierHide"/>
+    </PreferenceCategory>
+</PreferenceScreen>

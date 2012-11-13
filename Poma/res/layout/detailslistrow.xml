@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:minHeight="90dp"
+	android:layout_height="wrap_content">
+	<ImageView
+	android:id="@+id/coverartthumb"
+	android:layout_height="wrap_content"
+	android:paddingTop="2dp"
+	android:paddingLeft="2dp"
+	android:layout_width="wrap_content"
+	android:minHeight="90dp"
+	android:src="@drawable/coverart_overlay"
+	android:scaleType="fitCenter"
+	android:minWidth="80dp" />
+	<TextView
+		android:id="@+id/artistlabel"
+		android:layout_height="wrap_content"
+		android:layout_width="wrap_content"
+		android:layout_toRightOf="@+id/coverartthumb"
+		android:singleLine="true"
+		android:text="Art and story by Nagi Sanzenin"
+		android:ellipsize="marquee"
+		android:textSize="16sp"
+		android:marqueeRepeatLimit="marquee_forever"
+		android:scrollHorizontally="true"
+		android:textStyle="italic" />
+	<TextView
+		android:id="@+id/summarylabel"
+		android:layout_height="wrap_content"
+		android:layout_width="wrap_content"
+		android:layout_toRightOf="@+id/coverartthumb"
+		android:layout_below="@+id/artistlabel"
+		android:maxLines="3"
+		android:textSize="14sp"
+		android:text="Ichigo Kurosaki has always been able to see ghosts, but this ability doesn't change his life nearly as much as his close encounter with Rukia Kuchiki, a Shinigami and member of the mysterious Soul Society." />
+	<TextView
+		android:id="@+id/seemorelabel"
+		android:layout_height="wrap_content"
+		android:layout_width="wrap_content"
+		android:layout_toRightOf="@+id/coverartthumb"
+		android:layout_below="@+id/summarylabel"
+		android:ellipsize="end"
+		android:maxLines="3"
+		android:textSize="14sp"
+		android:text="Tap to view more details."
+		android:textColor="#666666" />
+</RelativeLayout>

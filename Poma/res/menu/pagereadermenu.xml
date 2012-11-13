@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/menuAddBookmark"
+        android:icon="@drawable/ic_action_add"
+        android:orderInCategory="1"
+        android:showAsAction="always"
+        android:title="Add Bookmark"
+        android:titleCondensed="Add Bookmark">
+    </item>
+    <item
+        android:id="@+id/menuJumpToPage"
+        android:icon="@drawable/ic_action_jump"
+        android:orderInCategory="2"
+        android:showAsAction="ifRoom"
+        android:title="Jump-to-Page"
+        android:titleCondensed="Jump-to-Page">
+    </item>
+    <item
+        android:id="@+id/menuChapterList"
+        android:icon="@drawable/ic_action_chapterlist"
+        android:orderInCategory="3"
+        android:title="Chapter List"
+        android:titleCondensed="Chapter List">
+    </item>
+    <item
+        android:id="@+id/menuBookmarksLst"
+        android:icon="@drawable/ic_action_favorite"
+        android:orderInCategory="4"
+        android:title="My Favorites"
+        android:titleCondensed="My Favorites">
+    </item>
+    <item
+        android:id="@+id/menuRefreshPage"
+        android:icon="@drawable/ic_action_refresh"
+        android:orderInCategory="5"
+        android:title="Reload"
+        android:titleCondensed="Reload">
+    </item>
+    <item
+        android:id="@+id/menuShare"
+        android:icon="@drawable/ic_action_share"
+        android:orderInCategory="6"
+        android:showAsAction="ifRoom"
+        android:title="Share"
+        android:titleCondensed="Share">
+    </item>
+    <item
+        android:id="@+id/menuPreviousChapter"
+        android:icon="@drawable/ic_action_backward"
+        android:orderInCategory="7"
+        android:title="Previous Chapter"
+        android:titleCondensed="Previous Chapter">
+    </item>
+    <item
+        android:id="@+id/menuNextChapter"
+        android:icon="@drawable/ic_action_forward"
+        android:orderInCategory="8"
+        android:title="Next Chapter"
+        android:titleCondensed="Next Chapter">
+    </item>
+    <item
+        android:id="@+id/menuSaveToLibrary"
+        android:icon="@drawable/ic_action_downloadmore"
+        android:orderInCategory="9"
+        android:title="Download this chapter"
+        android:titleCondensed="Download this chapter">
+    </item>
+    <item
+        android:id="@+id/menuSavePage"
+        android:orderInCategory="10"
+        android:title="Save this page"
+        android:titleCondensed="Save this page">
+    </item>
+
+</menu>

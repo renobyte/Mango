@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_height="wrap_content"
+	android:layout_width="fill_parent"
+	android:layout_gravity="center_horizontal">
+	<ScrollView
+		android:layout_height="fill_parent"
+		android:layout_width="fill_parent">
+		<RelativeLayout
+			android:layout_gravity="center_horizontal"
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent">
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textStyle="bold"
+				android:layout_centerInParent="true"
+				android:id="@+id/JumpToPageHeader"
+				android:textSize="25sp"
+				android:layout_alignParentTop="true"
+				android:text="Jump-to-Page"></TextView>
+			<View
+				android:layout_width="fill_parent"
+				android:layout_height="1sp"
+				android:background="#999999"
+				android:layout_below="@+id/JumpToPageHeader"
+				android:id="@+id/JumpToPageDivider" />
+			<Gallery
+				android:id="@+id/JumpToPageGallery"
+				android:layout_width="fill_parent"
+				android:layout_below="@+id/JumpToPageDivider"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="25dp"
+				android:spacing="40dp"
+				android:paddingBottom="25dp"></Gallery>
+		</RelativeLayout>
+	</ScrollView>
+
+</LinearLayout>

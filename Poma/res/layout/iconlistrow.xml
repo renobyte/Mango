@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rowHolder"
+    android:layout_width="fill_parent"
+    android:layout_height="52dp"
+    android:minHeight="52dp" >
+
+    <ImageView
+        android:id="@+id/icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:adjustViewBounds="true"
+        android:maxHeight="26dp"
+        android:maxWidth="26dp"
+        android:paddingLeft="2dp"
+        android:paddingTop="2dp"
+        android:src="@drawable/ic_book_closed" />
+
+    <TextView
+        android:id="@+id/label"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_toRightOf="@+id/icon"
+        android:maxLines="2"
+        android:paddingLeft="3dp"
+        android:paddingRight="20dp"
+        android:text="Text"
+        android:textSize="18sp" />
+
+    <ImageView
+        android:id="@+id/star"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:clickable="true"
+        android:adjustViewBounds="true"
+        android:maxHeight="26dp"
+        android:maxWidth="26dp"
+        android:paddingTop="2dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/ic_error" />
+
+</RelativeLayout>

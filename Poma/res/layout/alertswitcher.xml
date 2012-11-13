@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:id="@+id/alertLayout">
+	<ImageView
+		android:id="@+id/alertIcon"
+		android:src="@drawable/ic_error"
+		android:layout_height="wrap_content"
+		android:paddingTop="2dp"
+		android:paddingLeft="2dp"
+		android:paddingRight="3dp"
+		android:layout_width="wrap_content"
+		android:layout_centerVertical="true" />
+	<TextSwitcher
+		xmlns:android="http://schemas.android.com/apk/res/android"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:id="@+id/alertSwitcher"
+		android:layout_toRightOf="@+id/alertIcon">
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:textSize="16sp"
+			android:id="@+id/alertText1"
+			android:text="Alert1"></TextView>
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Alert2"
+			android:id="@+id/alertText2"
+			android:textSize="16sp"></TextView>
+	</TextSwitcher>
+</RelativeLayout>
+
+

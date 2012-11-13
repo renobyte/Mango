@@ -1,0 +1,185 @@
+package net.leetsoft.mangareader.activities;
+
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.preference.*;
+import android.preference.Preference.OnPreferenceChangeListener;
+import android.text.format.DateFormat;
+import android.widget.Toast;
+import com.flurry.android.FlurryAgent;
+import net.leetsoft.mangareader.*;
+import net.leetsoft.mangareader.services.NotifierService;
+import net.leetsoft.mangareader.services.NotifierService.NotifierBinder;
+
+import java.util.Date;
+import java.util.HashMap;
+
+public class NotifierPrefsActivity extends PreferenceActivity
+{
+    private CheckBoxPreference mNotificationsEnabled;
+    private ListPreference mInterval;
+    private CheckBoxPreference mAutoDownload;
+    private CheckBoxPreference mDownloadOnWifi;
+    private RingtonePreference mRingtone;
+    private CheckBoxPreference mLedFlash;
+    private CheckBoxPreference mHideNotification;
+    private Preference mNextRun;
+
+    private NotifierService mService;
+    private boolean mBound;
+    private ServiceConnection mConnection = new ServiceConnection()
+    {
+
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service)
+        {
+            NotifierBinder binder = (NotifierBinder) service;
+            mService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0)
+        {
+            mBound = false;
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        addPreferencesFromResource(R.xml.notifierprefs);
+        setTitle("Notification Preferences");
+
+        mNotificationsEnabled = (CheckBoxPreference) this.getPreferenceScreen().findPreference("notifierEnabled");
+        mAutoDownload = (CheckBoxPreference) this.getPreferenceScreen().findPreference("notifierAutoDownload");
+        mDownloadOnWifi = (CheckBoxPreference) this.getPreferenceScreen().findPreference("notifierAutoDownloadWifi");
+        mLedFlash = (CheckBoxPreference) this.getPreferenceScreen().findPreference("notifierLED");
+        mHideNotification = (CheckBoxPreference) this.getPreferenceScreen().findPreference("notifierHide");
+        mRingtone = (RingtonePreference) this.getPreferenceScreen().findPreference("notifierRingtone");
+        mInterval = (ListPreference) this.getPreferenceScreen().findPreference("notifierInterval");
+        mNextRun = this.getPreferenceScreen().findPreference("notifierNextRun");
+
+        updateNextRunView();
+
+        Intent intent = new Intent(NotifierPrefsActivity.this, NotifierService.class);
+        intent.setAction("CONFIGURE");
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+
+        mNotificationsEnabled.setOnPreferenceChangeListener(new OnPreferenceChangeListener()
+        {
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object newValue)
+            {
+                if (!mBound)
+                {
+                    Toast.makeText(NotifierPrefsActivity.this, "NotifierService is not bound!", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                if (((Boolean) newValue).booleanValue())
+                {
+                    mService.scheduleNextRun();
+                    updateNextRunView();
+                    MangoSqlite db = null;
+                    Favorite[] n = null;
+
+                    try
+                    {
+                        db = new MangoSqlite(NotifierPrefsActivity.this);
+                        db.open();
+                        n = db.getAllFavorites("notificationsEnabled = 1");
+                        db.close();
+                    } catch (Exception e)
+                    {
+                        Mango.log("Unable to check notificationsEnabled count! " + e.toString());
+                        return true;
+                    }
+
+                    if (n.length == 0)
+                        Mango.alert(
+                                "You've enabled notifications, but you haven't told Mango which Favorites you want it to check!\n\nGo to the Favorites screen, press Menu, and press Notifications.  Then you can mark the Favorites you want Mango to check by tapping on them!",
+                                "Hey, wait!", NotifierPrefsActivity.this);
+                }
+                else
+                {
+                    mService.cancelAlarm();
+                    updateNextRunView();
+                }
+                return true;
+            }
+        });
+        mInterval.setOnPreferenceChangeListener(new OnPreferenceChangeListener()
+        {
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object newValue)
+            {
+                if (!mBound)
+                {
+                    Toast.makeText(NotifierPrefsActivity.this, "NotifierService is not bound!", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                Mango.getSharedPreferences().edit().putString("notifierInterval", (String) newValue).commit();
+                if (Mango.getSharedPreferences().getBoolean("notifierEnabled", false))
+                {
+                    mService.scheduleNextRun();
+                    updateNextRunView();
+                }
+                return true;
+            }
+        });
+    }
+
+    private void updateNextRunView()
+    {
+        int len = 0;
+        try
+        {
+            MangoSqlite db = new MangoSqlite(NotifierPrefsActivity.this);
+            db.open();
+            len = db.getAllFavorites("notificationsEnabled = 1").length;
+            db.close();
+        } catch (Exception e)
+        {
+            Mango.log("Unable to check notificationsEnabled count! " + e.toString());
+            len = -1;
+        }
+
+        long nextrun = Mango.getSharedPreferences().getLong("notifierNextRun", -2);
+        if (nextrun > 0)
+            mNextRun.setSummary(DateFormat.getMediumDateFormat(this).format(new Date(nextrun)) + " " + DateFormat.getTimeFormat(this).format(new Date(nextrun)) + " (" + len + " favorite" + (len == 1 ? "" : "s") + ")");
+        else
+            mNextRun.setSummary("Never");
+    }
+
+    @Override
+    public void onStop()
+    {
+        if (Mango.getSharedPreferences().getBoolean("analyticsEnabled", false) && MangoHttp.checkConnectivity(getApplicationContext()))
+        {
+            FlurryAgent.onStartSession(this, "AD7A4MA54PHHGYQN8TWW");
+            HashMap<String, String> parameters = new HashMap<String, String>();
+            parameters.put("NotificationsEnabled", Boolean.toString(Mango.getSharedPreferences().getBoolean("notifierEnabled", false)));
+            parameters.put("Interval", Mango.getSharedPreferences().getString("notifierInterval", "3"));
+            parameters.put("AutoDownload", Boolean.toString(Mango.getSharedPreferences().getBoolean("notifierAutoDownload", false)));
+            parameters.put("AutoDownloadWifi", Boolean.toString(Mango.getSharedPreferences().getBoolean("notifierAutoDownloadWifi", false)));
+            FlurryAgent.onEvent("Close Notifier Preferences", parameters);
+            FlurryAgent.onEndSession(this);
+        }
+        try
+        {
+            unbindService(mConnection);
+            Intent intent = new Intent(NotifierPrefsActivity.this, NotifierService.class);
+            intent.setAction("CONFIGURE");
+            stopService(intent);
+        } catch (Exception e)
+        {
+            // TODO: handle exception
+        }
+        super.onStop();
+    }
+}
