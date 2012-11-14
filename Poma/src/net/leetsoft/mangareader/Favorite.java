@@ -92,12 +92,11 @@ public class Favorite implements Serializable
         dl.execute("http://%SERVER_URL%/getchapterlist.aspx?pin=" + Mango.getPin() + "&url=" + mangaId + "&site=" + Mango.getSiteId());
     }
 
-    private void callback(String data)
+    private void callback(MangoHttpResponse data)
     {
-        if (data.startsWith("Exception") || data.startsWith("error"))
+        if (data.exception || data.toString().startsWith("error"))
         {
-            data = "Mango wasn't able to download more information about this favorite. If your phone's 3G/4G/WiFi connection is fine, " + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n"
-                    + data;
+            data.data = ("Mango wasn't able to download more information about this favorite. If your phone's 3G/4G/WiFi connection is fine, " + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
             ((FavoritesActivity) mReference).pendingItemFailed(data);
             return;
         }
@@ -111,27 +110,26 @@ public class Favorite implements Serializable
             XMLReader reader = parser.getXMLReader();
             ChaptersSaxHandler handler = new ChaptersSaxHandler();
             reader.setContentHandler(handler);
-            reader.parse(new InputSource(new StringReader(data)));
+            reader.parse(new InputSource(new StringReader(data.toString())));
             chapterArrayList.addAll(handler.getAllChapters());
             if (chapterArrayList.size() == 0)
                 throw new Exception("Mango Service returned an empty chapter list.");
             mangaObject.details = handler.getDetails();
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
-            data = "Mango received invalid data about this favorite from the server. If you phone's 3G/4G/WiFi connection is fine, " + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n"
-                    + data;
+            data.data = ("Mango wasn't able to download more information about this favorite. If your phone's 3G/4G/WiFi connection is fine, " + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
             ((FavoritesActivity) mReference).pendingItemFailed(data);
             return;
         }
 
         mangaObject.chapters = new Chapter[chapterArrayList.size()];
         chapterArrayList.toArray(mangaObject.chapters);
-        chapterArrayList = null;
 
         ((FavoritesActivity) mReference).loadPendingFavorite(this);
     }
 
-    private class ChapterDownloader extends AsyncTask<String, Void, String>
+    private class ChapterDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         Favorite bmRef;
 
@@ -141,13 +139,13 @@ public class Favorite implements Serializable
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadHtml(params[0], bmRef.mReference);
+            return MangoHttp.downloadData(params[0], bmRef.mReference);
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             bmRef.callback(data);
             bmRef = null;

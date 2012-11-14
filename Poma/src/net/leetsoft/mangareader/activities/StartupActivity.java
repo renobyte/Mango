@@ -16,6 +16,7 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 import net.leetsoft.mangareader.Mango;
 import net.leetsoft.mangareader.MangoHttp;
+import net.leetsoft.mangareader.MangoHttpResponse;
 import net.leetsoft.mangareader.R;
 import net.leetsoft.mangareader.ui.MangoDecorHandler;
 
@@ -66,8 +67,9 @@ public class StartupActivity extends SherlockActivity
             @Override
             public void run()
             {
-                String serverurl = MangoHttp.downloadHtml("http://www.leetsoft.net/mangoweb/serverurl.txt", StartupActivity.this);
-                if (serverurl.contains("Exception"))
+                MangoHttpResponse resp =  MangoHttp.downloadData("http://www.leetsoft.net/mangoweb/serverurl.txt", StartupActivity.this);
+                String serverurl = resp.toString();
+                if (resp.exception)
                     serverurl = "konata.leetsoft.net";
                 Mango.getSharedPreferences().edit().putString("serverUrl", serverurl).commit();
             }
@@ -139,7 +141,7 @@ public class StartupActivity extends SherlockActivity
             @Override
             public void run()
             {
-                String response = MangoHttp.downloadHtml("http://%SERVER_URL%/getbankaistatus.aspx?did=" + Mango.getPin(), StartupActivity.this);
+                String response = MangoHttp.downloadData("http://%SERVER_URL%/getbankaistatus.aspx?did=" + Mango.getPin(), StartupActivity.this).toString();
                 String target = Mango.getPin() + "asalt";
                 String lol = "I ain't even mad.";
                 lol = lol.toUpperCase();
@@ -151,7 +153,7 @@ public class StartupActivity extends SherlockActivity
                 }
                 catch (Exception e)
                 {
-                    throw new RuntimeException("Oh god what happen", e);
+                    throw new RuntimeException(lol, e);
                 }
 
                 StringBuilder hex = new StringBuilder(bhash.length * 2);
@@ -178,11 +180,12 @@ public class StartupActivity extends SherlockActivity
         t.start();
     }
 
-    public void callback(String data)
+    public void callback(MangoHttpResponse mhr)
     {
+        String data = mhr.toString();
         String errorText = null;
 
-        if (data.startsWith("Exception"))
+        if (mhr.exception)
         {
             statusLabel.setText("Connection failed! :'(");
             errorText = "Mango couldn't connect to the internet. Check your mobile data connectivity and try again.\n" + data;
@@ -250,8 +253,9 @@ public class StartupActivity extends SherlockActivity
                     public void onClick(DialogInterface dialog, int which)
                     {
                         Intent intent = new Intent(Intent.ACTION_VIEW);
-                        String url = MangoHttp.downloadHtml("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, StartupActivity.this);
-                        if (url.startsWith("Exception"))
+                        MangoHttpResponse resp = MangoHttp.downloadData("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, StartupActivity.this);
+                        String url = resp.toString();
+                        if (resp.exception)
                             url = "http://Mango.leetsoft.net/install-android.php";
                         intent.setData(Uri.parse(url));
                         startActivity(intent);
@@ -281,7 +285,7 @@ public class StartupActivity extends SherlockActivity
         }
     }
 
-    private class ConnectionTask extends AsyncTask<String, Void, String>
+    private class ConnectionTask extends AsyncTask<String, Void, MangoHttpResponse>
     {
         StartupActivity activity = null;
 
@@ -291,13 +295,13 @@ public class StartupActivity extends SherlockActivity
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadHtml(params[0], activity);
+            return MangoHttp.downloadData(params[0], activity);
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             if (activity == null)
             {

@@ -582,45 +582,28 @@ public class ChaptersActivity extends MangoActivity
         refreshMenu();
     }
 
-    private void callback(String data)
+    private void callback(MangoHttpResponse data)
     {
         Mango.DIALOG_DOWNLOADING.dismiss();
         removeDialog(0);
-        if (data.startsWith("Exception"))
+        if (data.exception)
         {
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data, "Connectivity Problem! T__T", this,
-                    new DialogInterface.OnClickListener()
-                    {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which)
-                        {
-                            mListview.setAdapter(new ArrayAdapter<String>(ChaptersActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                                    "Download failed! Press the back key and try again."}));
-                            return;
-                        }
-                    });
+            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
             return;
         }
-        if (data.startsWith("error"))
+        if (data.toString().startsWith("error"))
         {
-            Mango.alert("The Mango Service gave the following error:\n\n" + data, "Problem! T__T", this, new DialogInterface.OnClickListener()
-            {
-                @Override
-                public void onClick(DialogInterface dialog, int which)
-                {
-                    mListview.setAdapter(new ArrayAdapter<String>(ChaptersActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                            "Download failed! Press the back key and try again."}));
-                    return;
-                }
-            });
+            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
             return;
         }
-        parseXml(data);
+        parseXml(data.toString());
     }
 
-    public void callbackCoverArt(Object img)
+    public void callbackCoverArt(MangoHttpResponse img)
     {
-        if (img != null && !img.getClass().equals(Bitmap.class))
+        if (img.exception)
         {
             Mango.log("Failed to download cover art bitmap." + img.toString());
             setCoverArt(BitmapFactory.decodeResource(getResources(), R.drawable.placeholder_error), true);
@@ -629,7 +612,7 @@ public class ChaptersActivity extends MangoActivity
 
         try
         {
-            setCoverArt((Bitmap) img, false);
+            setCoverArt(img.toBitmap(), false);
         }
         catch (final Exception e)
         {
@@ -1266,7 +1249,7 @@ public class ChaptersActivity extends MangoActivity
 
     }
 
-    private class XmlDownloader extends AsyncTask<String, Void, String>
+    private class XmlDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         ChaptersActivity activity = null;
 
@@ -1276,13 +1259,13 @@ public class ChaptersActivity extends MangoActivity
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadHtml(params[0], activity);
+            return MangoHttp.downloadData(params[0], activity);
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             if (activity == null)
             {
@@ -1306,7 +1289,7 @@ public class ChaptersActivity extends MangoActivity
         }
     }
 
-    private class BitmapDownloader extends AsyncTask<String, Void, Object>
+    private class BitmapDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         ChaptersActivity activity = null;
 
@@ -1316,13 +1299,13 @@ public class ChaptersActivity extends MangoActivity
         }
 
         @Override
-        protected Object doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadBitmap(params[0], activity);
+            return MangoHttp.downloadData(params[0], activity);
         }
 
         @Override
-        protected void onPostExecute(Object img)
+        protected void onPostExecute(MangoHttpResponse img)
         {
             if (activity == null)
             {

@@ -24,6 +24,8 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.*;
 import java.lang.ref.WeakReference;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -266,7 +268,8 @@ public class DownloaderService extends Service
                 Mango.log("DownloaderService", "Removing " + i + " from queue (status " + mDownloadQueue.get(i).statusCode + ")");
                 removeFromQueue(i);
                 doChapterCallback();
-            } catch (ArrayIndexOutOfBoundsException e)
+            }
+            catch (ArrayIndexOutOfBoundsException e)
             {
                 Mango.log("DownloaderService", "cancelAll encountered an ArrayIndexOutOfBoundsException.");
 
@@ -364,7 +367,7 @@ public class DownloaderService extends Service
         mXmlTask.execute(url);
     }
 
-    private class XmlDownloader extends AsyncTask<String, Void, String>
+    private class XmlDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         WeakReference<DownloaderService> service = null;
 
@@ -374,24 +377,27 @@ public class DownloaderService extends Service
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
             if (service == null || service.get() == null)
-                return "Exception: loader's service reference was null.";
-            return MangoHttp.downloadHtml(params[0], service.get());
+            {
+                Mango.log("DownloaderService", "XmlDownloader's service WeakReference was null.  Perhaps the service was collected by the OS?");
+                MangoHttpResponse errorResponse = new MangoHttpResponse();
+                errorResponse.requestUri = params[0];
+                errorResponse.exception = true;
+                return errorResponse;
+            }
+
+            return MangoHttp.downloadData(params[0], service.get());
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             if (service == null || service.get() == null)
-            {
                 Mango.log("DownloaderService", "AsyncTask skipped onPostExecute because no DownloaderService is attached!");
-            }
             else
-            {
                 service.get().callback(data);
-            }
         }
 
         void detach()
@@ -405,16 +411,16 @@ public class DownloaderService extends Service
         }
     }
 
-    private void callback(String data)
+    private void callback(MangoHttpResponse data)
     {
-        if (data.startsWith("Exception") || data.startsWith("error"))
+        if (data.exception)
         {
-            Mango.log("DownloaderService", "Unable to download pagelist. (" + data + ")");
+            Mango.log("DownloaderService", "Unable to download pagelist.");
             if (mPagelistRetries > 3)
             {
                 mFailedChapters++;
                 mFailedPages++;
-                mReportText.append(mTargetChapter.manga.title + " " + mTargetChapter.chapter.id + " failed. (Unable to download pagelist)\n\n");
+                mReportText.append(mTargetChapter.manga.title + " " + mTargetChapter.chapter.id + " pagelist download failed. (" + data.toString() + ")\n\n");
                 chapterCompleted(true);
             }
             else
@@ -426,9 +432,9 @@ public class DownloaderService extends Service
 
                 mXmlTask.execute(url);
             }
-            return;
         }
-        parseXml(data);
+
+        parseXml(data.toString());
     }
 
     private void parseXml(String data)
@@ -454,7 +460,8 @@ public class DownloaderService extends Service
             mSubstringAltStart.replace("&lt;", "<");
             mSubstringAltStart.replace("&gt;", ">");
             mPageUrlPrefix = handler.getImageUrlPrefix();
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             Mango.log("DownloaderService", "Error parsing xml. " + ex.toString());
             mReportText.append(mTargetChapter.manga.title + " " + mTargetChapter.chapter.id + " failed. (" + getExceptionText(ex.toString()) + ")\n\n");
@@ -530,7 +537,8 @@ public class DownloaderService extends Service
             {
                 mNotificationViews.setTextViewText(R.id.NotificationText, mTargetChapter.manga.title + " " + mTargetChapter.chapter.id + "\nWaiting for cooldown... ("
                         + ((cooldown - System.currentTimeMillis()) / 1000) + " seconds)");
-            } catch (NullPointerException e)
+            }
+            catch (NullPointerException e)
             {
                 mCooldownTimer.cancel();
                 return;
@@ -734,14 +742,44 @@ public class DownloaderService extends Service
         int currentIndex = -1;
         int retries = 0;
         private Page currentPage;
-        private BitmapDownloader bitmapTask;
-        private HtmlDownloader htmlTask;
+        private DownloaderTask downloaderTask;
         private WeakReference<DownloaderService> service;
         private String currentUrl;
         private boolean modifiedUrl;
         private Timer resumeChecker;
 
         private boolean downloading = false;
+
+        private class DownloaderTask extends AsyncTask<String, Void, MangoHttpResponse>
+        {
+            WeakReference<ImageBackgroundDownloader> downloader;
+
+            DownloaderTask(ImageBackgroundDownloader ref)
+            {
+                downloader = new WeakReference<ImageBackgroundDownloader>(ref);
+            }
+
+            @Override
+            protected MangoHttpResponse doInBackground(String... params)
+            {
+                return MangoHttp.downloadData(params[0], downloader.get().service.get());
+            }
+
+            @Override
+            protected void onPostExecute(MangoHttpResponse data)
+            {
+                downloading = false;
+                if (downloader.get().service.get() != null)
+                {
+                    if (data.exception)
+                        callbackError(data);
+                    else if (data.contentType.contains("text"))
+                        callbackHtml(data);
+                    else
+                        callbackImage(data);
+                }
+            }
+        }
 
         public ImageBackgroundDownloader(DownloaderService context)
         {
@@ -750,6 +788,7 @@ public class DownloaderService extends Service
 
         public void startPauseTimer()
         {
+            Mango.log("DownloaderService", "We've lost connectivity, downloading will be paused until connectivity is re-established.");
             if (resumeChecker == null)
             {
                 resumeChecker = new Timer();
@@ -766,7 +805,7 @@ public class DownloaderService extends Service
         {
             if (downloading || index == -1)
             {
-                Mango.log("DownloaderService", "Returning. (downloading is true or index is -1)");
+                Mango.log("DownloaderService", "downloadImage was called, but this loader is busy.");
                 return;
             }
 
@@ -791,7 +830,7 @@ public class DownloaderService extends Service
 
             if (mIsPaused)
             {
-                Mango.log("DownloaderService", "Returning.");
+                Mango.log("DownloaderService", "Downloading is paused, ImageBackgroundDownloader.downloadImage is returning.");
                 return;
             }
 
@@ -802,65 +841,32 @@ public class DownloaderService extends Service
                 return;
             }
 
-            if (!currentUrl.toLowerCase().contains(".jpg") && !currentUrl.toLowerCase().endsWith("jpg") && !currentUrl.toLowerCase().contains(".png") && !currentUrl.toLowerCase().endsWith("png") && !currentUrl.toLowerCase().contains(".gif") && !currentUrl.toLowerCase().endsWith("gif"))
-            {
-                htmlTask = new HtmlDownloader(this);
-                htmlTask.execute(currentUrl);
-            }
-            else
-            {
-                bitmapTask = new BitmapDownloader(this);
-                bitmapTask.execute(currentUrl);
-            }
+            downloaderTask = new DownloaderTask(this);
+            downloaderTask.execute(currentUrl);
             downloading = true;
         }
 
-        public void callbackHtml(String data)
+        public void callbackHtml(MangoHttpResponse data)
         {
-            downloading = false;
-            if (data == null)
-                data = "Exception: MangoHttp returned no data.";
-            if (data.startsWith("Exception"))
+            String newUrl = extractUrlFromHtml(data.toString());
+            try
             {
-                if (data.contains("Network unreachable"))
-                {
-                    setForcePause(true);
-                    startPauseTimer();
-                    return;
-                }
-                Mango.log("DownloaderService", "EXCEPTION: Downloader callbackHtml (index " + String.valueOf(currentIndex) + ") >> " + data);
-                retries++;
-                if (retries >= 3)
-                {
-                    Mango.log("DownloaderService", "Page " + currentPage.id + " failed to download after three tries. Skipping.");
-                    mFailedPages++;
-                    mReportText.append(mTargetChapter.manga.title + " " + mTargetChapter.chapter.id + " page " + currentPage.id + " failed. (" + getExceptionText(data) + ")\n");
-                    service.get().pageDownloadedCallback(currentIndex, currentChapter);
-                    currentIndex = -1;
-                    retries = 0;
-                    return;
-                }
-                Mango.log("DownloaderService", "Page " + currentPage.id + " failed to download, retrying.");
-                downloadImage(currentUrl, currentPage, currentIndex, currentChapter);
+                URL url = new URL(newUrl);
+            }
+            catch (MalformedURLException e)
+            {
+                Mango.log("DownloaderService", "Extracted URL was not valid.");
+                data.exception = true;
+                data.data = new String("Extracted URL was not valid.").getBytes();
+                callbackError(data);
                 return;
             }
-
-            currentUrl = doMagic(data);
-
-            if (currentUrl.contains("Exception"))
-            {
-                Mango.log(currentUrl + " when parsing url (try loading it again)");
-                callbackHtml("Exception: couldn't parse url from HTML (" + currentUrl + ")");
-                return;
-            }
+            currentUrl = newUrl;
 
             downloadImage(currentUrl, currentPage, currentIndex, currentChapter);
         }
 
-        // does some crazy voodoo magic shit to extract a url from the HTML
-        // without using regex. some sites require more crazy voodoo shit than
-        // others (ie. mangable)
-        private String doMagic(String data)
+        private String extractUrlFromHtml(String data)
         {
             try
             {
@@ -875,45 +881,47 @@ public class DownloaderService extends Service
                 int srcStart = data.indexOf(service.get().mSubstringStart, substringOffset) + service.get().mSubstringStart.length();
                 int srcEnd = data.indexOf("\"", srcStart);
                 return data.substring(srcStart, srcEnd);
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 return ex.getClass().getSimpleName();
             }
         }
 
-        public void callbackImage(String status)
+        public void callbackError(MangoHttpResponse data)
         {
-            downloading = false;
+            if (!MangoHttp.checkConnectivity(service.get()))
+            {
+                setForcePause(true);
+                startPauseTimer();
+                return;
+            }
+
+            retries++;
+            if (retries >= 3)
+            {
+                Mango.log("DownloaderService", "Page " + currentPage.id + " failed to download after three tries.");
+                mFailedPages++;
+                mReportText.append(mTargetChapter.manga.title + " " + mTargetChapter.chapter.id + " page " + currentPage.id + " failed. (" + data.toString() + ")\n");
+                service.get().pageDownloadedCallback(currentIndex, currentChapter);
+                currentIndex = -1;
+                retries = 0;
+                return;
+            }
+
+            Mango.log("DownloaderService", "Page " + currentPage.id + " failed to download, retrying.");
+            downloadImage(currentUrl, currentPage, currentIndex, currentChapter);
+        }
+
+        public void callbackImage(MangoHttpResponse data)
+        {
             if (currentChapter != service.get().mChapterHashCode)
             {
                 Mango.log("DownloaderService", "Dropping page because we've changed chapters.");
                 return;
             }
-            if (!status.equals("ok"))
-            {
-                if (status.contains("Network unreachable"))
-                {
-                    setForcePause(true);
-                    startPauseTimer();
-                    return;
-                }
-                Mango.log("DownloaderService", "EXCEPTION: Downloader callbackImage (index " + String.valueOf(currentIndex) + ") >> " + status);
-                retries++;
-                if (retries >= 3)
-                {
-                    Mango.log("DownloaderService", "Page " + currentPage.id + " failed to download after three tries.");
-                    mFailedPages++;
-                    mReportText.append(mTargetChapter.manga.title + " " + mTargetChapter.chapter.id + " page " + currentPage.id + " failed. (" + getExceptionText(status) + ")\n");
-                    service.get().pageDownloadedCallback(currentIndex, currentChapter);
-                    currentIndex = -1;
-                    retries = 0;
-                    return;
-                }
 
-                Mango.log("DownloaderService", "Page " + currentPage.id + " failed to download, retrying.");
-                downloadImage(currentUrl, currentPage, currentIndex, currentChapter);
-                return;
-            }
+            data.writeEncodedImageToCache(1, mTargetChapter.path, currentPage.id);
 
             mSuccessfulPages++;
             if (resumeChecker != null)
@@ -941,55 +949,6 @@ public class DownloaderService extends Service
                     setPause(false);
                     downloadImage(currentUrl, currentPage, currentIndex, currentChapter);
                 }
-            }
-        }
-
-        private class HtmlDownloader extends AsyncTask<String, Void, String>
-        {
-            WeakReference<ImageBackgroundDownloader> downloader;
-
-            HtmlDownloader(ImageBackgroundDownloader ref)
-            {
-                downloader = new WeakReference<ImageBackgroundDownloader>(ref);
-            }
-
-            @Override
-            protected String doInBackground(String... params)
-            {
-                return MangoHttp.downloadHtml(params[0], downloader.get().service.get());
-            }
-
-            @Override
-            protected void onPostExecute(String data)
-            {
-                if (downloader.get().service.get() != null)
-                    downloader.get().callbackHtml(data);
-            }
-        }
-
-        private class BitmapDownloader extends AsyncTask<String, Void, String>
-        {
-            WeakReference<ImageBackgroundDownloader> downloader;
-
-            BitmapDownloader(ImageBackgroundDownloader ref)
-            {
-                downloader = new WeakReference<ImageBackgroundDownloader>(ref);
-            }
-
-            @Override
-            protected String doInBackground(String... params)
-            {
-                String status = MangoHttp.downloadEncodedImage(params[0], mTargetChapter.path, downloader.get().currentPage.id, 1, downloader.get().service.get());
-                if (status == null)
-                    status = "Exception: downloadEncodedImage returned null.";
-                return status;
-            }
-
-            @Override
-            protected void onPostExecute(String status)
-            {
-                if (downloader.get().service.get() != null)
-                    downloader.get().callbackImage(status);
             }
         }
     }
@@ -1070,6 +1029,7 @@ public class DownloaderService extends Service
                 }
             }
         }
+
     }
 
     @Override
@@ -1234,17 +1194,20 @@ public class DownloaderService extends Service
             Mango.log("DownloaderService", "Writing to disk...");
             out.flush();
             Mango.log("DownloaderService", "Done!");
-        } catch (Exception ioe)
+        }
+        catch (Exception ioe)
         {
             Mango.log("DownloaderService", "Queue backup failed: " + ioe.toString());
-        } finally
+        }
+        finally
         {
             try
             {
                 if (out != null)
                     out.close();
                 out = null;
-            } catch (IOException e)
+            }
+            catch (IOException e)
             {
 
             }
@@ -1287,17 +1250,20 @@ public class DownloaderService extends Service
                 initializeChapter(mDownloadQueue.get(0));
 
             doChapterCallback();
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             Mango.log("DownloaderService", "Queue restore failed: " + e.toString());
-        } finally
+        }
+        finally
         {
             try
             {
                 if (in != null)
                     in.close();
                 in = null;
-            } catch (IOException e)
+            }
+            catch (IOException e)
             {
 
             }

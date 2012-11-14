@@ -1790,20 +1790,26 @@ public class LibraryBrowserActivity extends MangoActivity
             else
                 url += ".jpg";
 
-            if (!url.toLowerCase().endsWith("jpg") && !url.toLowerCase().endsWith("png") && !url.toLowerCase().endsWith("gif"))
+            MangoHttpResponse response = MangoHttp.downloadData(url, activity);
+            if (response.exception)
+                return false;
+
+            if (response.contentType.contains("text"))
             {
-                String html = MangoHttp.downloadHtml(url, activity);
-                url = magic(html);
+                url = magic(response.toString());
 
                 if (url.contains("Exception"))
                     return false;
+
+                response = MangoHttp.downloadData(url, activity);
+                if (response.exception)
+                    return false;
             }
+            response.writeEncodedImageToCache(1, path, page.id);
 
             Mango.log(path + ", " + page.id);
 
-            if (MangoHttp.downloadEncodedImage(url, path, page.id, 1, activity).equals("ok"))
-                return true;
-            return false;
+            return true;
         }
 
         private String magic(String data)

@@ -1873,18 +1873,26 @@ public class OfflinePagereaderActivity extends MangoActivity
         else
             url += ".jpg";
 
-        if (!url.toLowerCase().endsWith("jpg") && !url.toLowerCase().endsWith("png") && !url.toLowerCase().endsWith("gif"))
+        MangoHttpResponse response = MangoHttp.downloadData(url, this);
+        if (response.exception)
+            return false;
+
+        if (response.contentType.contains("text"))
         {
-            String html = MangoHttp.downloadHtml(url, this);
-            url = magic(html);
+            url = magic(response.toString());
 
             if (url.contains("Exception"))
                 return false;
-        }
 
-        if (MangoHttp.downloadEncodedImage(url, path, page.id, 1, this).equals("ok"))
-            return true;
-        return false;
+            response = MangoHttp.downloadData(url, this);
+            if (response.exception)
+                return false;
+        }
+        response.writeEncodedImageToCache(1, path, page.id);
+
+        Mango.log(path + ", " + page.id);
+
+        return true;
     }
 
     private String magic(String data)

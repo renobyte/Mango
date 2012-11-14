@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.os.Environment;
 import net.leetsoft.mangareader.Mango;
 import net.leetsoft.mangareader.MangoHttp;
+import net.leetsoft.mangareader.MangoHttpResponse;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -28,9 +29,8 @@ public class MangoDecorHandler
             MangoBackground mangoBackground = (MangoBackground) iterator.next();
             if (mangoBackground.downloaded == false)
             {
-                String status = MangoHttp.downloadEncodedImage(mangoBackground.url, null, mangoBackground.name, 2, c);
-                if (status.equals("ok") == false)
-                    Mango.log("downloadMissingBackgrounds: " + status);
+                MangoHttpResponse resp = MangoHttp.downloadData(mangoBackground.url, c);
+                resp.writeEncodedImageToCache(2, null, mangoBackground.name);
             }
         }
 
@@ -61,9 +61,10 @@ public class MangoDecorHandler
                 if (delete == true)
                     f[i].delete();
             }
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
-            Mango.log("DecorHandler", "yum, swallowed exception! " + e.toString());
+            Mango.log("MangoDecorHandler", "yum, swallowed exception! " + e.toString());
         }
     }
 
@@ -95,17 +96,20 @@ public class MangoDecorHandler
 
                 out = new FileOutputStream(file);
                 out.write(img);
-            } catch (IOException ioe)
+            }
+            catch (IOException ioe)
             {
-                Mango.log("writeDecorImageToDisk: Problem! (" + String.valueOf(file.getAbsolutePath()) + ", " + name + ", " + ioe.getMessage() + ")");
-            } finally
+                Mango.log("MangoDecorHandler", "writeDecorImageToDisk: Problem! (" + String.valueOf(file.getAbsolutePath()) + ", " + name + ", " + ioe.getMessage() + ")");
+            }
+            finally
             {
                 try
                 {
                     if (out != null)
                         out.close();
                     out = null;
-                } catch (IOException e)
+                }
+                catch (IOException e)
                 {
 
                 }
@@ -115,11 +119,12 @@ public class MangoDecorHandler
 
     public void downloadDecorXml(Context c)
     {
-        String xmlData = MangoHttp.downloadHtml("http://mango.leetsoft.net/backgrounds/android/decorindex.xml", c);
-        if (xmlData.startsWith("Exception"))
+        MangoHttpResponse resp = MangoHttp.downloadData("http://mango.leetsoft.net/backgrounds/android/decorindex.xml", c);
+        String xmlData = resp.toString();
+        if (resp.exception)
         {
             Mango.getSharedPreferences().edit().putLong("nextDecorCheck", System.currentTimeMillis() + (1000 * 60)).commit();
-            Mango.log("downloadDecorXml: " + xmlData);
+            Mango.log("MangoDecorHandler", "downloadDecorXml: " + xmlData);
             return;
         }
 
@@ -136,19 +141,22 @@ public class MangoDecorHandler
                 file.createNewFile();
                 out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
                 out.write(xmlData);
-            } catch (IOException ioe)
+            }
+            catch (IOException ioe)
             {
                 Mango.getSharedPreferences().edit().putLong("nextDecorCheck", System.currentTimeMillis() + (1000 * 60)).commit();
-                Mango.log("downloadDecorXml: " + ioe.toString());
+                Mango.log("MangoDecorHandler", "downloadDecorXml: " + ioe.toString());
                 return;
-            } finally
+            }
+            finally
             {
                 try
                 {
                     if (out != null)
                         out.close();
                     out = null;
-                } catch (IOException e)
+                }
+                catch (IOException e)
                 {
 
                 }
@@ -178,17 +186,19 @@ public class MangoDecorHandler
                 if (bm == null)
                     throw new Exception("Couldn't decode file " + file.getAbsolutePath() + ", not a valid bitmap or file couldn't be accessed.");
                 return bm;
-            } catch (Exception ioe)
+            }
+            catch (Exception ioe)
             {
-                Mango.log("Exception when reading decor bitmap! " + ioe.getMessage() + ")");
-            } catch (OutOfMemoryError oom)
+                Mango.log("MangoDecorHandler", "Exception when reading decor bitmap! " + ioe.getMessage() + ")");
+            }
+            catch (OutOfMemoryError oom)
             {
-                Mango.log("OutOfMemory when reading decor bitmap");
+                Mango.log("MangoDecorHandler", "OutOfMemory when reading decor bitmap");
             }
         }
         else
         {
-            Mango.log("Couldn't read decor bitmap because SD card is locked.");
+            Mango.log("MangoDecorHandler", "Couldn't read decor bitmap because SD card is locked.");
         }
         return null;
     }
@@ -216,18 +226,21 @@ public class MangoDecorHandler
                     buffer = new char[8192];
                 }
                 return builder.toString();
-            } catch (IOException ioe)
+            }
+            catch (IOException ioe)
             {
-                Mango.log("readDecorXml: " + ioe.toString());
+                Mango.log("MangoDecorHandler", "readDecorXml: " + ioe.toString());
                 return null;
-            } finally
+            }
+            finally
             {
                 try
                 {
                     if (br != null)
                         br.close();
                     br = null;
-                } catch (IOException e)
+                }
+                catch (IOException e)
                 {
 
                 }
@@ -304,7 +317,8 @@ public class MangoDecorHandler
             reader.setContentHandler(handler);
             reader.parse(new InputSource(new StringReader(data)));
             decor.addAll(handler.getAllDecor());
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             // TODO: handle exception
         }

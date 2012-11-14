@@ -177,7 +177,7 @@ public class SearchResultsActivity extends MangoActivity
             if (mGotData)
             {
                 showDialog(0);
-                callback("", true);
+                callback(new MangoHttpResponse(), true);
                 return;
             }
             else
@@ -238,30 +238,29 @@ public class SearchResultsActivity extends MangoActivity
         return super.onCreateDialog(id);
     }
 
-    private void callback(final String data, final boolean save)
+    private void callback(final MangoHttpResponse data, final boolean save)
     {
-        if (data.startsWith("Exception"))
+        if (data.exception)
         {
             Mango.DIALOG_DOWNLOADING.dismiss();
             removeDialog(0);
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data, "Connectivity Problem! T__T", this);
-            mListview.setAdapter(new ArrayAdapter<String>(SearchResultsActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                    "Download failed! Press the back key and try again."}));
+            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
             return;
         }
         Mango.getSharedPreferences().edit().putLong("searchCooldown", System.currentTimeMillis() + (1000 * 10)).commit();
-        if (data.startsWith("error"))
+        if (data.toString().startsWith("error"))
         {
             Mango.DIALOG_DOWNLOADING.dismiss();
             removeDialog(0);
-            if (!data.contains("any records"))
-                Mango.alert("The Mango Service gave the following error:\n\n" + data, "Problem! T__T", this);
-            mListview.setAdapter(new ArrayAdapter<String>(SearchResultsActivity.this, android.R.layout.simple_list_item_1, new String[]{"No results."}));
+            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
             return;
         }
+
         showDialog(1);
         mParserTask = new XmlParser(this);
-        mParserTask.execute(new String[]{data, String.valueOf(save)});
+        mParserTask.execute(new String[]{data.toString(), String.valueOf(save)});
     }
 
     private void parseCallback(Object data)
@@ -332,15 +331,18 @@ public class SearchResultsActivity extends MangoActivity
             reader.parse(new InputSource(new StringReader(data)));
             mangaArrayList.addAll(handler.getAllManga());
             handler.getAllManga().get(0).title.toString();
-        } catch (SQLException ex)
+        }
+        catch (SQLException ex)
         {
             throw ex;
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             if (!data.contains("mangalist"))
                 throw new NullPointerException(data);
             throw ex;
-        } finally
+        }
+        finally
         {
             db.close();
         }
@@ -359,7 +361,8 @@ public class SearchResultsActivity extends MangoActivity
                         m.bookmarked = true;
                     else if (m.title.equals(fav.mangaTitle))
                         m.bookmarked = true;
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     Mango.log(e.toString());
                     Mango.log("EXCEPTION in parseXml when setting bookmarked flag");
@@ -556,10 +559,12 @@ public class SearchResultsActivity extends MangoActivity
                             vh.star.setImageResource(android.R.drawable.btn_star_big_on);
                         }
                         getManga(position).bookmarked = !getManga(position).bookmarked;
-                    } catch (SQLException ex)
+                    }
+                    catch (SQLException ex)
                     {
 
-                    } finally
+                    }
+                    finally
                     {
                         db.close();
                     }
@@ -586,7 +591,7 @@ public class SearchResultsActivity extends MangoActivity
         }
     }
 
-    private class XmlDownloader extends AsyncTask<String, Void, String>
+    private class XmlDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         SearchResultsActivity activity = null;
 
@@ -596,13 +601,13 @@ public class SearchResultsActivity extends MangoActivity
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadHtml(params[0], activity);
+            return MangoHttp.downloadData(params[0], activity);
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             if (activity == null)
             {
@@ -642,7 +647,8 @@ public class SearchResultsActivity extends MangoActivity
             try
             {
                 return parseXml(data);
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 return ex;
             }

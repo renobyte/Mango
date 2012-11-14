@@ -1,30 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/menuPauseResume"
-        android:icon="@drawable/ic_action_pause"
-        android:orderInCategory="1"
-        android:showAsAction="always"
-        android:title="Pause"
-        android:titleCondensed="Pause">
+            android:id="@+id/menuPauseResume"
+            android:icon="@drawable/ic_action_pause"
+            android:orderInCategory="1"
+            android:showAsAction="always"
+            android:title="Pause"
+            android:titleCondensed="Pause">
     </item>
     <item
-        android:id="@+id/menuCancelDownloads"
-        android:icon="@drawable/ic_action_clear"
-        android:orderInCategory="2"
-        android:showAsAction="always"
-        android:title="Cancel Downloads"
-        android:titleCondensed="Cancel">
+            android:id="@+id/menuCancelDownloads"
+            android:icon="@drawable/ic_action_clear"
+            android:orderInCategory="2"
+            android:showAsAction="always"
+            android:title="Cancel Downloads"
+            android:titleCondensed="Cancel">
     </item>
-    
-        <item
-        android:id="@+id/menuViewReport"
-        android:icon="@drawable/ic_action_about"
-        android:orderInCategory="3"
-        android:showAsAction="always"
-        android:title="View Report"
-        android:titleCondensed="Report">
+    <item
+            android:id="@+id/menuViewReport"
+            android:icon="@drawable/ic_action_about"
+            android:orderInCategory="3"
+            android:showAsAction="always"
+            android:title="View Report"
+            android:titleCondensed="Report">
     </item>
-
+    <item
+            android:id="@+id/menuGoToMyLibrary"
+            android:icon="@drawable/ic_action_restore"
+            android:orderInCategory="4"
+            android:showAsAction="always"
+            android:title="My Library"
+            android:titleCondensed="Library">
+    </item>
 </menu>

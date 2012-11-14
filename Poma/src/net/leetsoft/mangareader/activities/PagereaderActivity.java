@@ -48,6 +48,8 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.*;
 import java.lang.ref.WeakReference;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -918,38 +920,38 @@ public class PagereaderActivity extends MangoActivity
         db.close();
     }
 
-    private void callback(String data)
+    private void callback(MangoHttpResponse data)
     {
-        if (data.startsWith("Exception"))
+        if (data.exception)
         {
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data, "Connectivity Problem! T__T", this,
+            clearStatus();
+            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this,
                     new DialogInterface.OnClickListener()
                     {
                         @Override
                         public void onClick(DialogInterface dialog, int which)
                         {
-                            clearStatus();
                             finish();
                             return;
                         }
                     });
             return;
         }
-        if (data.startsWith("error"))
+        if (data.toString().startsWith("error"))
         {
-            Mango.alert("The Mango Service gave the following error:\n\n" + data, "Problem! T__T", this, new DialogInterface.OnClickListener()
+            clearStatus();
+            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this, new DialogInterface.OnClickListener()
             {
                 @Override
                 public void onClick(DialogInterface dialog, int which)
                 {
-                    clearStatus();
                     finish();
                     return;
                 }
             });
             return;
         }
-        parseXml(data);
+        parseXml(data.toString());
     }
 
     private void parseXml(String data)
@@ -1111,11 +1113,40 @@ public class PagereaderActivity extends MangoActivity
         int currentIndex = -1;
         int retries = 0;
         private Page currentPage;
-        private BitmapDownloader bitmapTask;
-        private HtmlDownloader htmlTask;
+        private DownloaderTask downloaderTask;
         private WeakReference<PagereaderActivity> activity;
         private String currentUrl;
         private boolean modifiedUrl;
+
+        private class DownloaderTask extends AsyncTask<String, Void, MangoHttpResponse>
+        {
+            WeakReference<ImageDownloader> downloader;
+
+            DownloaderTask(ImageDownloader ref)
+            {
+                downloader = new WeakReference<ImageDownloader>(ref);
+            }
+
+            @Override
+            protected MangoHttpResponse doInBackground(String... params)
+            {
+                return MangoHttp.downloadData(params[0], downloader.get().activity.get());
+            }
+
+            @Override
+            protected void onPostExecute(MangoHttpResponse data)
+            {
+                if (downloader.get().activity.get() != null)
+                {
+                    if (data.exception)
+                        callbackError(data);
+                    else if (data.contentType.contains("text"))
+                        callbackHtml(data);
+                    else
+                        callbackImage(data);
+                }
+            }
+        }
 
         public ImageDownloader(PagereaderActivity context)
         {
@@ -1124,7 +1155,7 @@ public class PagereaderActivity extends MangoActivity
 
         public void setReference(PagereaderActivity context)
         {
-            Mango.log("Loader 0x" + Integer.toHexString(this.hashCode()) + ": Changing PagereaderActivity reference from 0x" + Integer.toHexString(activity.get().hashCode()) + " to 0x"
+            Mango.log("ImageDownloader", "Loader 0x" + Integer.toHexString(this.hashCode()) + ": Changing activity reference from 0x" + Integer.toHexString(activity.get().hashCode()) + " to 0x"
                     + Integer.toHexString(context.hashCode()));
             activity = new WeakReference<PagereaderActivity>(context);
         }
@@ -1149,57 +1180,28 @@ public class PagereaderActivity extends MangoActivity
                     url += ".jpg";
             }
             currentUrl = url;
-            if (!currentUrl.toLowerCase().contains(".jpg") && !currentUrl.toLowerCase().endsWith("jpg") && !currentUrl.toLowerCase().contains(".png") && !currentUrl.toLowerCase().endsWith("png") && !currentUrl.toLowerCase().contains(".gif") && !currentUrl.toLowerCase().endsWith("gif"))
-            {
-                htmlTask = new HtmlDownloader(this);
-                htmlTask.execute(currentUrl);
-            }
-            else
-            {
-                bitmapTask = new BitmapDownloader(this);
-                bitmapTask.execute(currentUrl);
-            }
+
+            downloaderTask = new DownloaderTask(this);
+            downloaderTask.execute(currentUrl);
         }
 
-        public void callbackHtml(String data)
+        public void callbackHtml(MangoHttpResponse data)
         {
-            if (data.startsWith("Exception"))
+            String newUrl = extractImageUrlFromHtml(data.toString());
+            try
             {
-                Mango.log("EXCEPTION: Pagereader callbackHtml (index " + String.valueOf(currentIndex) + ") >> " + data);
-                retries++;
-                if (currentIndex == activity.get().mPendingPage && retries >= 3)
-                {
-                    Mango.alert("Mango couldn't download page " + currentPage.id + " after three attempts. Try again in a moment, or switch to another manga site.\n\n" + data
-                            + "\nAttempted URL: " + currentUrl + "\n\n", PagereaderActivity.this);
-                    activity.get().displayImage(null, currentIndex);
-                    activity.get().cancelPageLoad(currentIndex);
-                    currentIndex = -1;
-                    retries = 0;
-                    return;
-                }
-                else if (retries >= 3)
-                {
-                    currentIndex = -1;
-                    retries = 0;
-                    return;
-                }
-                if (currentIndex == activity.get().mPendingPage)
-                    activity.get().setStatus("Retrying page " + activity.get().mActiveManga.chapters[currentChapter].pages[currentIndex].id + "... (attempt " + String.valueOf(retries + 1) + ")");
-
-                downloadImage(currentUrl, currentPage, currentIndex, currentChapter);
+                URL url = new URL(newUrl);
+            }
+            catch (MalformedURLException e)
+            {
+                Mango.log("ImageDownloader", "Could not parse a valid image url from the downloaded HTML.");
+                data.exception = true;
+                data.data = new String("Could not parse a valid image url from the downloaded HTML.").getBytes();
+                callbackError(data);
                 return;
             }
+            currentUrl = newUrl;
 
-            currentUrl = extractImageUrlFromHtml(data);
-
-            if (currentUrl.contains("Exception"))
-            {
-                Mango.log(currentUrl + " when parsing url (try loading it again)");
-                callbackHtml("Exception: couldn't parse url from HTML (" + currentUrl + ")");
-                return;
-            }
-
-            // Mango.Log("Parsed url " + currentUrl + " from html, initializing download.");
             downloadImage(currentUrl, currentPage, currentIndex, currentChapter);
         }
 
@@ -1228,44 +1230,47 @@ public class PagereaderActivity extends MangoActivity
             }
             catch (Exception ex)
             {
-                Mango.log("extractImageUrlFromHtml Exception " + ex.toString());
+                Mango.log("ImageDownloader", "extractImageUrlFromHtml: " + ex.toString());
                 return ex.getClass().getSimpleName();
             }
         }
 
-        public void callbackImage(String status)
+        public void callbackError(MangoHttpResponse data)
+        {
+            Mango.log("ImageDownloader", "Failed to download Page " + currentPage.id + ". " + data.toString());
+            retries++;
+            if (currentIndex == activity.get().mPendingPage && retries >= 3)
+            {
+                Mango.log("ImageDownloader", "Page " + currentPage.id + " failed to download after three tries!");
+                Mango.alert("Mango wasn't able to download page " + currentPage.id + " after three attempts.  Assuming your device is connected to the Internet, this issue could be caused by technical difficulties with " + Mango.getSiteName(Mango.getSiteId()) + ".\n\nError message:\n\t" + data
+                        + "\nAttempted URL:\n\t" + currentUrl, PagereaderActivity.this);
+                activity.get().displayImage(null, currentIndex);
+                activity.get().cancelPageLoad(currentIndex);
+                currentIndex = -1;
+                retries = 0;
+                return;
+            }
+            else if (retries >= 3)
+            {
+                currentIndex = -1;
+                retries = 0;
+                return;
+            }
+            if (currentIndex == activity.get().mPendingPage)
+                activity.get().setStatus("Retrying page " + activity.get().mActiveManga.chapters[currentChapter].pages[currentIndex].id + "... (Attempt #" + String.valueOf(retries + 1) + ")");
+
+            downloadImage(currentUrl, currentPage, currentIndex, currentChapter);
+        }
+
+        public void callbackImage(MangoHttpResponse data)
         {
             if (currentChapter != activity.get().mChapterIndex)
             {
-                Mango.log("We've changed chapters, drop the download.");
+                Mango.log("ImageDownloader", "Dropping a completed page download because the active chapter has changed.");
                 return;
             }
-            if (!status.equals("ok"))
-            {
-                Mango.log("EXCEPTION: Pagereader callbackImage (index " + String.valueOf(currentIndex) + ") >> " + status);
-                retries++;
-                if (currentIndex == activity.get().mPendingPage && retries >= 3)
-                {
-                    Mango.alert("Mango couldn't download page " + currentPage.id + " after three attempts. Try again in a moment, or switch to another manga site.\n\n" + status
-                            + "\nAttempted URL: " + currentUrl + "\n\n", PagereaderActivity.this);
-                    activity.get().displayImage(null, currentIndex);
-                    activity.get().cancelPageLoad(currentIndex);
-                    currentIndex = -1;
-                    retries = 0;
-                    return;
-                }
-                else if (retries >= 3)
-                {
-                    currentIndex = -1;
-                    retries = 0;
-                    return;
-                }
-                if (currentIndex == activity.get().mPendingPage)
-                    activity.get().setStatus("Retrying page " + activity.get().mActiveManga.chapters[currentChapter].pages[currentIndex].id + "... (attempt " + String.valueOf(retries + 1) + ")");
 
-                downloadImage(currentUrl, currentPage, currentIndex, currentChapter);
-                return;
-            }
+            data.writeEncodedImageToCache(0, "page/", activity.get().generateFileName(currentPage.id));
 
             if (activity.get().mPendingPage == currentIndex && activity.get().mBusy)
             {
@@ -1273,8 +1278,12 @@ public class PagereaderActivity extends MangoActivity
 
                 currentIndex = -1;
                 Bitmap bm = MangoCache.readBitmapFromCache("page/", activity.get().generateFileName(currentPage.id), 1);
+
+                //If readBitmapFromCache returns null, we're running into OOM errors. Try killing the process and restarting the
+                //pagereader.
                 if (bm == null)
                 {
+                    Mango.log("ImageDownloader", "readBitmapFromCache did not return a value.  Attempting to restart process...");
                     Intent intent = new Intent(activity.get().getIntent());
                     intent.putExtra("initialpage", (activity.get().mPageIndex == -1 ? activity.get().mInitialPage : activity.get().mPageIndex));
                     intent.putExtra("chapterid", activity.get().mChapterId);
@@ -1286,56 +1295,6 @@ public class PagereaderActivity extends MangoActivity
                 activity.get().mPendingPage = -1;
             }
             currentIndex = -1;
-        }
-
-        private class HtmlDownloader extends AsyncTask<String, Void, String>
-        {
-            WeakReference<ImageDownloader> downloader;
-
-            HtmlDownloader(ImageDownloader ref)
-            {
-                downloader = new WeakReference<ImageDownloader>(ref);
-            }
-
-            @Override
-            protected String doInBackground(String... params)
-            {
-                return MangoHttp.downloadHtml(params[0], downloader.get().activity.get());
-            }
-
-            @Override
-            protected void onPostExecute(String data)
-            {
-                if (downloader.get().activity.get() != null)
-                    downloader.get().callbackHtml(data);
-            }
-        }
-
-        private class BitmapDownloader extends AsyncTask<String, Void, String>
-        {
-            WeakReference<ImageDownloader> downloader;
-
-            BitmapDownloader(ImageDownloader ref)
-            {
-                downloader = new WeakReference<ImageDownloader>(ref);
-            }
-
-            @Override
-            protected String doInBackground(String... params)
-            {
-                String status = MangoHttp.downloadEncodedImage(params[0], "page/", downloader.get().activity.get().generateFileName(downloader.get().currentPage.id), 0,
-                        downloader.get().activity.get());
-                if (status == null)
-                    status = "Exception: downloadEncodedImage returned null.";
-                return status;
-            }
-
-            @Override
-            protected void onPostExecute(String status)
-            {
-                if (downloader.get().activity.get() != null)
-                    downloader.get().callbackImage(status);
-            }
         }
     }
 
@@ -2015,7 +1974,7 @@ public class PagereaderActivity extends MangoActivity
         return super.dispatchKeyEvent(event);
     }
 
-    private class XmlDownloader extends AsyncTask<String, Void, String>
+    private class XmlDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         WeakReference<PagereaderActivity> activity = null;
 
@@ -2025,15 +1984,20 @@ public class PagereaderActivity extends MangoActivity
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
             if (activity == null || activity.get() == null)
-                return "Exception: loader's activity reference was null. (screen was rotated?)";
-            return MangoHttp.downloadHtml(params[0], activity.get());
+            {
+                MangoHttpResponse errorResponse = new MangoHttpResponse();
+                errorResponse.requestUri = params[0];
+                errorResponse.exception = true;
+                return errorResponse;
+            }
+            return MangoHttp.downloadData(params[0], activity.get());
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             if (activity == null || activity.get() == null)
             {

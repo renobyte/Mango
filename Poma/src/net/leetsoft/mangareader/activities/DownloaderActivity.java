@@ -220,6 +220,13 @@ public class DownloaderActivity extends MangoActivity
             cancelAllClicked();
             return true;
         }
+        else if (item.getItemId() == R.id.menuGoToMyLibrary)
+        {
+            Intent myIntent = new Intent();
+            myIntent.setClass(Mango.CONTEXT, LibraryBrowserActivity.class);
+            startActivity(myIntent);
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -271,7 +278,7 @@ public class DownloaderActivity extends MangoActivity
         if (mQueueArray.length == 0)
         {
             mEmptyView.setVisibility(View.VISIBLE);
-            mEmptyView.setText("The download queue is empty!\n\nTo read downloaded chapters, go to the My Library screen.");
+            mEmptyView.setText("The download queue is empty!\n\nTo read downloaded chapters, go to the My Library screen.  You can quickly get there by tapping on the folder icon in the Action Bar.");
             checkForSavedQueue();
         }
         else

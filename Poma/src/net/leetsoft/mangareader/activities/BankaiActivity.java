@@ -149,7 +149,7 @@ public class BankaiActivity extends MangoActivity
             @Override
             public void run()
             {
-                final String retval = MangoHttp.downloadHtml("http://%SERVER_URL%/registerbankai.aspx?pin=" + Mango.getPin() + "&order=" + mOrderNumberText.getText().toString(), BankaiActivity.this);
+                final String retval = MangoHttp.downloadData("http://%SERVER_URL%/registerbankai.aspx?pin=" + Mango.getPin() + "&order=" + mOrderNumberText.getText().toString(), BankaiActivity.this).toString();
                 if (!retval.startsWith("okay"))
                 {
                     mRetrieveView.post(new Runnable()

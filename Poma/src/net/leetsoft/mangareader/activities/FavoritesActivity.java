@@ -1003,9 +1003,10 @@ public class FavoritesActivity extends MangoActivity
                     while (mPendingDownloads.size() > 0)
                     {
                         int index = mPendingDownloads.get(0).intValue();
-                        String ret = MangoHttp.downloadEncodedImage(mFavorites[index].coverArtUrl, "cover/", mFavorites[index].coverArtUrl, 0, activity);
-                        if (ret.equals("ok"))
+                        MangoHttpResponse ret = MangoHttp.downloadData(mFavorites[index].coverArtUrl, activity);
+                        if (!ret.exception)
                         {
+                            ret.writeEncodedImageToCache(0, "cover/", mFavorites[index].coverArtUrl);
                             mCoverCache.remove(mFavorites[index].coverArtUrl);
                         }
 
@@ -1357,12 +1358,12 @@ public class FavoritesActivity extends MangoActivity
             // set progress text
             if (mFavorites[position].progressChapterId != null)
             {
-                holder.progress.setText("My Progress: " + (mFavorites[position].progressChapterId.length() > 3 ? "" : "Chapter ") + mFavorites[position].progressChapterId + ", page "
+                holder.progress.setText((mFavorites[position].progressChapterId.length() > 3 ? "" : "Chapter ") + mFavorites[position].progressChapterId + ", page "
                         + (mFavorites[position].progressPageIndex + 1));
             }
             else
             {
-                holder.progress.setText("My Progress: Not started.");
+                holder.progress.setText("Not started");
             }
 
             // set update text
@@ -1424,10 +1425,10 @@ public class FavoritesActivity extends MangoActivity
         }
     }
 
-    public void pendingItemFailed(String data)
+    public void pendingItemFailed(MangoHttpResponse data)
     {
         Mango.DIALOG_DOWNLOADING.dismiss();
-        Mango.alert(data, this);
+        Mango.alert(data.toString(), this);
     }
 
     public void popupBackupFavorites()

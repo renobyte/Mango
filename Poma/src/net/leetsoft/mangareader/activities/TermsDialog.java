@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import net.leetsoft.mangareader.Mango;
 import net.leetsoft.mangareader.MangoHttp;
+import net.leetsoft.mangareader.MangoHttpResponse;
 import net.leetsoft.mangareader.R;
 
 public class TermsDialog extends Dialog
@@ -74,7 +75,7 @@ public class TermsDialog extends Dialog
         mDialog.show();
     }
 
-    public void callback(String data)
+    public void callback(MangoHttpResponse data)
     {
         try
         {
@@ -83,8 +84,8 @@ public class TermsDialog extends Dialog
         {
             Mango.log("Couldn't dismiss dialog (" + e.toString() + ")");
         }
-        mTermsTextView.setText(data);
-        if (data.startsWith("Exception"))
+        mTermsTextView.setText(data.toString());
+        if (data.exception)
         {
             mTermsTextView.setText("Mango was unable to download the Terms of Service.\n\nBy clicking I Agree below, you agree to the terms as outlined at the following web page:\nhttp://Mango.leetsoft.net/terms.php\n\n("
                     + data + ")");
@@ -105,7 +106,7 @@ public class TermsDialog extends Dialog
             return super.onKeyDown(keyCode, event);
     }
 
-    private class TermsDownloader extends AsyncTask<String, Void, String>
+    private class TermsDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         TermsDialog dialog = null;
 
@@ -115,13 +116,13 @@ public class TermsDialog extends Dialog
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadHtml(params[0], dialog.getContext());
+            return MangoHttp.downloadData(params[0], dialog.getContext());
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             if (dialog != null)
                 dialog.callback(data);

@@ -222,9 +222,12 @@ public class MainMenuActivity extends MangoActivity
                 else if (itemId == 50)
                 {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
-                    String url = MangoHttp.downloadHtml("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, MainMenuActivity.this);
-                    if (url.startsWith("Exception"))
+                    MangoHttpResponse resp = MangoHttp.downloadData("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, MainMenuActivity.this);
+                    String url;
+                    if (resp.exception)
                         url = "http://Mango.leetsoft.net/install-android.php";
+                    else
+                        url = resp.toString();
                     intent.setData(Uri.parse(url));
                     startActivity(intent);
                     overridePendingTransition(R.anim.fadein, R.anim.expandout);
@@ -542,7 +545,7 @@ public class MainMenuActivity extends MangoActivity
         return super.onOptionsItemSelected(item);
     }
 
-    private class DownloadAlertsTask extends AsyncTask<String, Void, String>
+    private class DownloadAlertsTask extends AsyncTask<String, Void, MangoHttpResponse>
     {
         MainMenuActivity activity = null;
 
@@ -552,13 +555,13 @@ public class MainMenuActivity extends MangoActivity
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadHtml(params[0], activity);
+            return MangoHttp.downloadData(params[0], activity);
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             if (activity == null)
             {
@@ -582,9 +585,15 @@ public class MainMenuActivity extends MangoActivity
         }
     }
 
-    public void callback(String data)
+    public void callback(MangoHttpResponse data)
     {
-        MangoCache.writeDataToCache(data, "serveralerts.txt");
+        if (data.exception)
+        {
+            Mango.log("Exception when downloading serveralerts: " + data.toString());
+            Mango.getSharedPreferences().edit().putLong("nextAlertCheck", System.currentTimeMillis() + (1000 * 30)).commit();
+            return;
+        }
+        MangoCache.writeDataToCache(data.toString(), "serveralerts.txt");
         parseAlerts();
     }
 

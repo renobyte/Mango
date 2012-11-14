@@ -233,8 +233,7 @@ public class NotifierService extends Service
                             Chapter c = null;
                             mNotificationViews.setTextViewText(R.id.ChapterNotifierText, "Checking " + n[i].mangaTitle + " (" + (n.length - (i + 1)) + " more)");
                             mNotificationManager.notify(1340, mNotification);
-                            String response = MangoHttp.downloadHtml(
-                                    "http://%SERVER_URL%/getchapterlist.aspx?pin=" + Mango.getPin() + "&url=" + n[i].mangaId + "&site=" + n[i].siteId + "&latest=true", NotifierService.this);
+                            String response = MangoHttp.downloadData("http://%SERVER_URL%/getchapterlist.aspx?pin=" + Mango.getPin() + "&url=" + n[i].mangaId + "&site=" + n[i].siteId + "&latest=true", NotifierService.this).toString();
 
                             SAXParserFactory saxFactory = SAXParserFactory.newInstance();
                             SAXParser parser = saxFactory.newSAXParser();
@@ -271,8 +270,7 @@ public class NotifierService extends Service
                                     reader = parser.getXMLReader();
                                     ChaptersSaxHandler chandler = new ChaptersSaxHandler();
                                     reader.setContentHandler(chandler);
-                                    reader.parse(new InputSource(new StringReader(MangoHttp.downloadHtml(
-                                            "http://%SERVER_URL%/getchapterlist.aspx?pin=" + Mango.getPin() + "&url=" + n[i].mangaId + "&site=" + n[i].siteId, NotifierService.this))));
+                                    reader.parse(new InputSource(new StringReader(MangoHttp.downloadData("http://%SERVER_URL%/getchapterlist.aspx?pin=" + Mango.getPin() + "&url=" + n[i].mangaId + "&site=" + n[i].siteId, NotifierService.this).toString())));
                                     int mangasize = chandler.getAllChapters().size();
 
                                     DownloadRequest d = new DownloadRequest();
@@ -292,17 +290,20 @@ public class NotifierService extends Service
                                     Mango.log("NotifierService", "Adding " + d.manga.title + " " + c.id + " to download request queue.");
                                 }
                             }
-                        } catch (Exception e)
+                        }
+                        catch (Exception e)
                         {
                             Mango.log("NotifierService", n[i].mangaId + " failed to update... " + e.toString());
                             Mango.log("Stack trace: " + Log.getStackTraceString(e));
                             ;
                         }
                     }
-                } catch (SQLException e)
+                }
+                catch (SQLException e)
                 {
                     Mango.log("NotifierService", "checkForNewChapters Exception: " + e.toString());
-                } finally
+                }
+                finally
                 {
                     if (db != null)
                         db.close();
@@ -320,17 +321,20 @@ public class NotifierService extends Service
                         file = new File(getApplicationContext().getFilesDir().getPath() + "/notifierreport.txt");
                         out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, true), "UTF-8"));
                         out.append(report);
-                    } catch (IOException ioe)
+                    }
+                    catch (IOException ioe)
                     {
                         Mango.log("NotifierService", "IOException when writing report to disk! (" + String.valueOf(file.getAbsolutePath()) + ", " + "notifierreport.txt, " + ioe.getMessage() + ")");
-                    } finally
+                    }
+                    finally
                     {
                         try
                         {
                             if (out != null)
                                 out.close();
                             out = null;
-                        } catch (IOException e)
+                        }
+                        catch (IOException e)
                         {
 
                         }
@@ -369,7 +373,8 @@ public class NotifierService extends Service
         try
         {
             d = new Date(Date.parse(dtStr));
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             d = null;
         }
@@ -382,7 +387,8 @@ public class NotifierService extends Service
             SimpleDateFormat formatter1 = new SimpleDateFormat("MM/dd/yyyy");
             formatter1.setLenient(true);
             d = formatter1.parse(dtStr);
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             Mango.log("nope " + dtStr);
             d = null;

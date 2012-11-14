@@ -19,21 +19,22 @@ import java.io.UnsupportedEncodingException;
 public class MangoHttpResponse
 {
     //URL
-    String requestUri;
+    public String requestUri;
 
     //Headers
-    String contentType = "";
-    int contentLength = 0;
-    int responseCode = 200;
+    public String contentType = "";
+    public int contentLength = 0;
+    public int responseCode = 200;
 
     //Data
-    String charset = "UTF-8";
-    byte[] data;
+    public String charset = "UTF-8";
+    public byte[] data;
 
-    boolean exception = false;
+    public boolean exception = false;
 
 
-    public String decodeDataAsString()
+    @Override
+    public String toString()
     {
         try
         {
@@ -47,7 +48,7 @@ public class MangoHttpResponse
         }
     }
 
-    public Bitmap decodeDataAsBitmap()
+    public Bitmap toBitmap()
     {
         Bitmap bitmap = null;
 
@@ -72,14 +73,18 @@ public class MangoHttpResponse
         }
     }
 
-    public String writeEncodedImageToCache(int mode, String filepath, String filename)
+    public void writeEncodedImageToCache(int mode, String filepath, String filename)
     {
+        if (data == null)
+        {
+            Mango.log("MangoHttpResponse", "writeEncodedImageToCache: No data to write!");
+            return;
+        }
         if (mode == 0)
             MangoCache.writeEncodedImageToCache(data, filepath, filename);
         else if (mode == 1)
             MangoLibraryIO.writeEncodedImageToDisk(filepath, filename, data);
         else if (mode == 2)
             MangoDecorHandler.writeDecorImageToDisk(data, filename);
-        return "ok";
     }
 }

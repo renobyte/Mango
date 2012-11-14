@@ -59,12 +59,12 @@ public class Bookmark
         }
     }
 
-    private void callback(String data)
+    private void callback(MangoHttpResponse data)
     {
-        if (data.startsWith("Exception") || data.startsWith("error"))
+        if (data.exception || data.toString().startsWith("error"))
         {
-            data = "Mango wasn't able to download more information about this bookmark. If your phone's 3G/4G/WiFi connection is fine, "
-                    + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data;
+            data.data = ("Mango wasn't able to download more information about this bookmark. If your phone's 3G/4G/WiFi connection is fine, "
+                    + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
             if (bookmarkType == Bookmark.RELEASE)
                 ((NewReleasesActivity) mReference).pendingItemFailed(data);
             else
@@ -81,15 +81,16 @@ public class Bookmark
             XMLReader reader = parser.getXMLReader();
             ChaptersSaxHandler handler = new ChaptersSaxHandler();
             reader.setContentHandler(handler);
-            reader.parse(new InputSource(new StringReader(data)));
+            reader.parse(new InputSource(new StringReader(data.toString())));
             chapterArrayList.addAll(handler.getAllChapters());
             if (chapterArrayList.size() == 0)
                 throw new Exception("Mango Service returned an empty chapter list.");
             manga.details = handler.getDetails();
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
-            data = "Mango received invalid data about this bookmark from the server. If you phone's 3G/4G connection is fine, "
-                    + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data;
+            data.data = ("Mango received invalid data about this bookmark from the server. If you phone's 3G/4G connection is fine, "
+                    + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
             if (bookmarkType == Bookmark.RELEASE)
                 ((NewReleasesActivity) mReference).pendingItemFailed(data);
             else
@@ -107,7 +108,7 @@ public class Bookmark
             ((HistoryActivity) mReference).loadPendingBookmark(this);
     }
 
-    private class ChapterDownloader extends AsyncTask<String, Void, String>
+    private class ChapterDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         Bookmark bmRef;
 
@@ -117,13 +118,13 @@ public class Bookmark
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadHtml(params[0], bmRef.mReference);
+            return MangoHttp.downloadData(params[0], bmRef.mReference);
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             bmRef.callback(data);
             bmRef = null;

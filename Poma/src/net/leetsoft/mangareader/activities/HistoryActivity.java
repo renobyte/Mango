@@ -359,9 +359,9 @@ public class HistoryActivity extends MangoActivity
         }
     }
 
-    public void pendingItemFailed(String data)
+    public void pendingItemFailed(MangoHttpResponse data)
     {
         Mango.DIALOG_DOWNLOADING.dismiss();
-        Mango.alert(data, this);
+        Mango.alert(data.toString(), this);
     }
 }

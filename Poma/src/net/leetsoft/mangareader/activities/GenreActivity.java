@@ -115,25 +115,23 @@ public class GenreActivity extends MangoActivity
         mDownloadTask.execute("http://%SERVER_URL%/getgenrelist.aspx?pin=" + Mango.getPin() + "&site=" + Mango.getSiteId());
     }
 
-    private void callback(final String data, final boolean save)
+    private void callback(final MangoHttpResponse data, final boolean save)
     {
         Mango.DIALOG_DOWNLOADING.dismiss();
         removeDialog(0);
-        if (data.startsWith("Exception"))
+        if (data.exception)
         {
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data, "Connectivity Problem! T__T", this);
-            mListview.setAdapter(new ArrayAdapter<String>(GenreActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                    "Download failed! Press the back key and try again."}));
+            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
             return;
         }
-        if (data.startsWith("error"))
+        if (data.toString().startsWith("error"))
         {
-            Mango.alert("The Mango Service gave the following error:\n\n" + data, "Problem! T__T", this);
-            mListview.setAdapter(new ArrayAdapter<String>(GenreActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                    "Download failed! Press the back key and try again."}));
+            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
             return;
         }
-        parseXml(data);
+        parseXml(data.toString());
     }
 
     private void parseXml(String data)
@@ -292,7 +290,7 @@ public class GenreActivity extends MangoActivity
         }
     }
 
-    private class XmlDownloader extends AsyncTask<String, Void, String>
+    private class XmlDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         GenreActivity activity = null;
 
@@ -302,13 +300,13 @@ public class GenreActivity extends MangoActivity
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadHtml(params[0], activity);
+            return MangoHttp.downloadData(params[0], activity);
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             if (activity == null)
             {

@@ -108,7 +108,7 @@ public class SearchActivity extends MangoActivity
         if (Mango.getSharedPreferences().getLong("searchCooldown", 0) > System.currentTimeMillis())
         {
             long cooldown = (Mango.getSharedPreferences().getLong("searchCooldown", 0) - System.currentTimeMillis()) / 1000;
-            Mango.alert("The search feature puts a lot of strain on the Mango Service's database. Please wait " + cooldown + " seconds before trying another search.\n\nThanks. ^__^", this);
+            Mango.alert("Please wait " + cooldown + " seconds before trying another search.", "Search Flood Cooldown", this);
             return;
         }
         String queryString = "";
@@ -179,27 +179,26 @@ public class SearchActivity extends MangoActivity
         mDownloadTask.execute("http://%SERVER_URL%/getgenrelist.aspx?pin=" + Mango.getPin() + "&site=" + Mango.getSiteId());
     }
 
-    private void callback(final String data, final boolean save)
+    private void callback(final MangoHttpResponse data, final boolean save)
     {
         Mango.DIALOG_DOWNLOADING.dismiss();
         removeDialog(0);
-        if (data.startsWith("Exception"))
+        if (data.exception)
         {
-            Mango.alert("Mango couldn't download the genre list. You might still be able to use the search feature without picking genres, though.\n\n" + data, "Connectivity Problem! T__T",
-                    this);
-            mListview.setAdapter(new ArrayAdapter<String>(SearchActivity.this, android.R.layout.simple_list_item_1, new String[]{"Couldn't load genre list."}));
+            Mango.alert("Mango couldn't download the genre list. You might still be able to use the search feature without picking genres, though.\n\n" + data, "Genre Download Failed", this);
+            mListview.setAdapter(new ArrayAdapter<String>(SearchActivity.this, android.R.layout.simple_list_item_1, new String[]{"Genre list not available."}));
             mGenreList = new Genre[0];
             mGenreStatus = new int[0];
             return;
         }
-        if (data.startsWith("error"))
+        if (data.toString().startsWith("error"))
         {
             mListview.setAdapter(new ArrayAdapter<String>(SearchActivity.this, android.R.layout.simple_list_item_1, new String[]{"Genre list not available."}));
             mGenreList = new Genre[0];
             mGenreStatus = new int[0];
             return;
         }
-        parseXml(data);
+        parseXml(data.toString());
     }
 
     private void parseXml(String data)
@@ -362,7 +361,7 @@ public class SearchActivity extends MangoActivity
         }
     }
 
-    private class XmlDownloader extends AsyncTask<String, Void, String>
+    private class XmlDownloader extends AsyncTask<String, Void, MangoHttpResponse>
     {
         SearchActivity activity = null;
 
@@ -372,13 +371,13 @@ public class SearchActivity extends MangoActivity
         }
 
         @Override
-        protected String doInBackground(String... params)
+        protected MangoHttpResponse doInBackground(String... params)
         {
-            return MangoHttp.downloadHtml(params[0], activity);
+            return MangoHttp.downloadData(params[0], activity);
         }
 
         @Override
-        protected void onPostExecute(String data)
+        protected void onPostExecute(MangoHttpResponse data)
         {
             if (activity == null)
             {
