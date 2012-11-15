@@ -443,6 +443,12 @@ public class MainMenuActivity extends MangoActivity
             changelog.append("You can now jump directly from the downloader to the My Library screen.<br><br>");
             changelog.append("<b>-Added: new HTTP framework</b><br>");
             changelog.append("MangoHttp, the under-the-hood system handling all of Mango's networking, has been rewritten.  Stability, speed, memory usage, and error handling should be slightly improved.<br><br>");
+            changelog.append("<b>-[v1.6.188] Fixed: Crash on Android 2.1</b><br>");
+            changelog.append("Advertisements were causing crashes on old versions of Android.<br><br>");
+            changelog.append("<b>-[v1.6.188] Fixed: Error when deleting Library folders</b><br>");
+            changelog.append("A NullPointerException error was appearing when attempting to delete folders<br><br>");
+            changelog.append("<b>-[v1.6.188] Fixed: Ads not clickable</b><br>");
+            changelog.append("Ads displayed from one ad provider (Leadbolt) were not doing anything when tapped.<br><br>");
             changelog.append("<b>-Fixed: MangaHere issues</b><br>");
             changelog.append("Mango should no longer spit out a garbled error message when attempting to read from MangaHere.<br><br>");
             changelog.append("<b>-Fixed: My Library/Downloader crashes</b><br>");
