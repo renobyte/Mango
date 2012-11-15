@@ -974,7 +974,7 @@ public class ChaptersActivity extends MangoActivity
 
             AlertDialog alert = new AlertDialog.Builder(ChaptersActivity.this).create();
             alert.setTitle(mActiveManga.title + " " + getChapter(pos).id);
-            alert.setMessage("What do you want to do with this chapter?");
+            alert.setMessage("What would you like to do with this chapter?");
             alert.setButton(DialogInterface.BUTTON_POSITIVE, "Start Reading", new DialogInterface.OnClickListener()
             {
                 @Override

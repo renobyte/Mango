@@ -101,7 +101,7 @@ public class HistoryActivity extends MangoActivity
         {
             AlertDialog alert = new AlertDialog.Builder(HistoryActivity.this).create();
             alert.setTitle("Clear History");
-            alert.setMessage("Do you want to clear your entire history and read/unread markers?  Your Favorites progress will not be affected.");
+            alert.setMessage("This will clear your entire history and all read/unread chapter markers.  Favorites progress will not be affected.\n\nContinue?");
             alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yep, clear", new DialogInterface.OnClickListener()
             {
                 @Override

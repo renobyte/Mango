@@ -395,7 +395,7 @@ public class MainMenuActivity extends MangoActivity
         {
             AlertDialog alert = new AlertDialog.Builder(MainMenuActivity.this).create();
             alert.setTitle("Enable Analytics?");
-            alert.setMessage("Would you like to enable Flurry Analytics?\n\nThis will help make Mango even more awesome in the future by anonymously sending usage statistics and crash reports.  No information about the manga you read or download is collected.\n\nYou can change this setting at any time from Preferences.");
+            alert.setMessage("Would you like to enable Flurry Analytics?\n\nThis will help make Mango even more awesome in the future sending usage anonymous statistics and crash reports.  No information about the manga you read or download is collected.\n\nYou can change this setting at any time from Preferences.");
             alert.setButton(DialogInterface.BUTTON_POSITIVE, "Sure", new DialogInterface.OnClickListener()
             {
                 @Override
@@ -431,18 +431,26 @@ public class MainMenuActivity extends MangoActivity
         if (Mango.getSharedPreferences().getInt("lastInstalledRevision", -1) != Mango.VERSION_REVISION)
         {
             StringBuilder changelog = new StringBuilder();
-            changelog.append("<b>New in v1.6.183</b><br>");
+            changelog.append("<b>New in v " + Mango.VERSION_FULL + "</b><br>");
             changelog.append("<small>");
-            changelog.append("<b>-Added: option to disable double-tap zoom</b><br>");
-            changelog.append("A new option in the preferences screen allows you to turn off the double-tap zoom.  Single-tapping to change a page will be faster as a result.<br><br>");
-            changelog.append("<b>-Added: My Library loads much more quickly</b><br>");
+            changelog.append("<b>-Added: Option to disable double-tap zoom</b><br>");
+            changelog.append("You may now turn off double-tap zoom from the Preferences screen.  Single-tapping to change a page will be faster as a result.<br><br>");
+            changelog.append("<b>-Added: Optimizations to My Library</b><br>");
             changelog.append("Reduced the loading time for the My Library screen by about 60-70%.  Users with very large libraries should especially notice improved performance.<br><br>");
             changelog.append("<b>-Added: Optimizations to Pagereader</b><br>");
-            changelog.append("Reduced the delay between changing pages slightly, from about 350-400ms to 250-300ms on my Galaxy S3.  More performance improvements will be added soon.<br><br>");
+            changelog.append("Reduced the delay between changing pages slightly by about 25%.<br><br>");
+            changelog.append("<b>-Added: Shortcut to My Library from the Downloader</b><br>");
+            changelog.append("You can now jump directly from the downloader to the My Library screen.<br><br>");
+            changelog.append("<b>-Added: new HTTP framework</b><br>");
+            changelog.append("MangoHttp, the under-the-hood system handling all of Mango's networking, has been rewritten.  Stability, speed, memory usage, and error handling should be slightly improved.<br><br>");
+            changelog.append("<b>-Fixed: MangaHere issues</b><br>");
+            changelog.append("Mango should no longer spit out a garbled error message when attempting to read from MangaHere.<br><br>");
             changelog.append("<b>-Fixed: My Library/Downloader crashes</b><br>");
             changelog.append("Fixed an issue where the downloader would sometimes crash while downloading a chapterlist.<br><br>");
             changelog.append("<b>-Fixed: Jump-to-Page crashes</b><br>");
             changelog.append("Fixed sparodic jump-to-page crashes on some devices.<br><br>");
+            changelog.append("<b>-Fixed: Downloader dropped connection handling</b><br>");
+            changelog.append("When your Internet connection drops out in the middle of a download, the Downloader will now properly pause until it can reconnect.<br><br>");
             changelog.append("<b>-Changed: ad network</b><br>");
             changelog.append("Added support for a few different ad networks to reduce my reliance upon a single network (who've had issues paying lately)<br><br>");
             changelog.append("</small>");

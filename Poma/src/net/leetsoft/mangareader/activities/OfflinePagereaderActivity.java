@@ -1421,7 +1421,7 @@ public class OfflinePagereaderActivity extends MangoActivity
                     AlertDialog alert = new AlertDialog.Builder(OfflinePagereaderActivity.this).create();
                     alert.setTitle("Set Reading Progress Ahead?");
                     alert.setMessage("Your reading progress for this manga is Chapter " + f.progressChapterId
-                            + ", which is pretty far behind this chapter.\n\nDo you want to set your reading progress this far ahead?");
+                            + ", which is pretty far behind this chapter.\n\nWould you like to set your reading progress this far ahead?");
                     alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yep", new DialogInterface.OnClickListener()
                     {
                         @Override
@@ -1455,7 +1455,7 @@ public class OfflinePagereaderActivity extends MangoActivity
                 AlertDialog alert = new AlertDialog.Builder(OfflinePagereaderActivity.this).create();
                 alert.setTitle("Track Reading Progress?");
                 alert.setMessage("You're already reading this manga on " + Mango.getSiteName(f.siteId) + ", but this chapter was downloaded from " + Mango.getSiteName(mActiveLibraryChapter.siteId)
-                        + ". Mango can only track your progress for one manga source at a time. Do you want to start tracking your reading progress for this manga on "
+                        + ". Mango can only track your progress for one manga source at a time. Would you like to start tracking your reading progress for this manga on "
                         + Mango.getSiteName(mActiveLibraryChapter.siteId) + " instead?");
                 alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes", new DialogInterface.OnClickListener()
                 {

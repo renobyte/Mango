@@ -855,9 +855,9 @@ public class DownloaderService extends Service
             }
             catch (MalformedURLException e)
             {
-                Mango.log("DownloaderService", "Extracted URL was not valid.");
+                Mango.log("DownloaderService", "Couldn't parse an image URL from the HTML page.");
                 data.exception = true;
-                data.data = new String("Extracted URL was not valid.").getBytes();
+                data.data = new String("Parsed URL was not valid.").getBytes();
                 callbackError(data);
                 return;
             }

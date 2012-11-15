@@ -213,7 +213,7 @@ public class FavoritesActivity extends MangoActivity
             {
                 AlertDialog alert = new AlertDialog.Builder(FavoritesActivity.this).create();
                 alert.setTitle("Notifications are disabled!");
-                alert.setMessage("Notications are not enabled.  Do you want to go to the Notification Preferences screen now?");
+                alert.setMessage("Notications are not enabled.  Would you like to go to the Notification Preferences screen now?");
                 alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes!", new DialogInterface.OnClickListener()
                 {
                     @Override
@@ -1117,7 +1117,7 @@ public class FavoritesActivity extends MangoActivity
         {
             AlertDialog alert = new AlertDialog.Builder(FavoritesActivity.this).create();
             alert.setTitle("Read Offline?");
-            alert.setMessage("Do you want to resume reading " + f.mangaTitle + " " + f.progressChapterId + " from My Library?");
+            alert.setMessage("Would you like resume reading " + f.mangaTitle + " " + f.progressChapterId + " from My Library?");
             alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes, read offline", new DialogInterface.OnClickListener()
             {
                 @Override
@@ -1435,7 +1435,7 @@ public class FavoritesActivity extends MangoActivity
     {
         AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle("Backup Favorites");
-        alert.setMessage("Mango can backup your Favorites List to the SD card, allowing you to restore it later in case you re-install the app or get a new phone.\n\nWhat do you want this backup to be named?");
+        alert.setMessage("Mango can backup your Favorites to the SD card, allowing you to restore them later in case you re-install the app or get a new phone.\n\nWhat would you like this backup to be named?");
         final EditText input = new EditText(this);
         alert.setView(input);
         input.setText("MyFavorites");
@@ -1452,7 +1452,7 @@ public class FavoritesActivity extends MangoActivity
                 {
                     AlertDialog.Builder a = new AlertDialog.Builder(FavoritesActivity.this);
                     a.setTitle("Overwrite Backup?");
-                    a.setMessage("A backup with this name already exists.  Do you want to overwrite it?");
+                    a.setMessage("A backup file with this name already exists.  Would you like to overwrite it?");
                     a.setPositiveButton("Yes, overwrite", new DialogInterface.OnClickListener()
                     {
                         public void onClick(DialogInterface dialog, int whichButton)

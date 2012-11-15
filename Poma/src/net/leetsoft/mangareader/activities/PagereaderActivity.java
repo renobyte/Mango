@@ -1194,9 +1194,9 @@ public class PagereaderActivity extends MangoActivity
             }
             catch (MalformedURLException e)
             {
-                Mango.log("ImageDownloader", "Could not parse a valid image url from the downloaded HTML.");
+                Mango.log("ImageDownloader", "Parsed URL was not valid. ('" + newUrl + "')");
                 data.exception = true;
-                data.data = new String("Could not parse a valid image url from the downloaded HTML.").getBytes();
+                data.data = new String("Couldn't parse an image URL from the HTML page.").getBytes();
                 callbackError(data);
                 return;
             }
@@ -1242,8 +1242,7 @@ public class PagereaderActivity extends MangoActivity
             if (currentIndex == activity.get().mPendingPage && retries >= 3)
             {
                 Mango.log("ImageDownloader", "Page " + currentPage.id + " failed to download after three tries!");
-                Mango.alert("Mango wasn't able to download page " + currentPage.id + " after three attempts.  Assuming your device is connected to the Internet, this issue could be caused by technical difficulties with " + Mango.getSiteName(Mango.getSiteId()) + ".\n\nError message:\n\t" + data
-                        + "\nAttempted URL:\n\t" + currentUrl, PagereaderActivity.this);
+                Mango.alert("Mango wasn't able to download this page.  Please check your device's Internet connection and try again.  If the problem persists, it's possible that " + Mango.getSiteName(Mango.getSiteId()) + " is experiencing technical difficulties.", PagereaderActivity.this);
                 activity.get().displayImage(null, currentIndex);
                 activity.get().cancelPageLoad(currentIndex);
                 currentIndex = -1;
@@ -1687,7 +1686,7 @@ public class PagereaderActivity extends MangoActivity
                     AlertDialog alert = new AlertDialog.Builder(PagereaderActivity.this).create();
                     alert.setTitle("Set Reading Progress Ahead?");
                     alert.setMessage("Your reading progress for this manga is Chapter " + f.progressChapterId
-                            + ", which is pretty far behind this chapter.\n\nDo you want to set your reading progress this far ahead?");
+                            + ", which is pretty far behind this chapter.\n\nWould you like to set your reading progress this far ahead?");
                     alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yep", new DialogInterface.OnClickListener()
                     {
                         @Override
@@ -1721,7 +1720,7 @@ public class PagereaderActivity extends MangoActivity
                 AlertDialog alert = new AlertDialog.Builder(PagereaderActivity.this).create();
                 alert.setTitle("Track Reading Progress?");
                 alert.setMessage("You're already reading this manga on " + Mango.getSiteName(f.siteId)
-                        + ". Mango can only track your progress for one manga source at a time. Do you want to start tracking your reading progress for this manga on "
+                        + ". Mango can only track your progress for one manga source at a time. Would you like to start tracking your reading progress for this manga on "
                         + Mango.getSiteName(Mango.getSiteId()) + " instead?");
                 alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes", new DialogInterface.OnClickListener()
                 {

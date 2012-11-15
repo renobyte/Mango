@@ -332,7 +332,6 @@ public class LibraryBrowserActivity extends MangoActivity
     @Override
     public boolean onContextItemSelected(android.view.MenuItem item)
     {
-        Mango.log("Context item selected. " + item.getItemId());
         switch (item.getItemId())
         {
             case 0:
@@ -858,7 +857,7 @@ public class LibraryBrowserActivity extends MangoActivity
         {
             AlertDialog alert = new AlertDialog.Builder(LibraryBrowserActivity.this).create();
             alert.setTitle(generateDisplayText(index));
-            alert.setMessage("What do you want to do with this chapter?");
+            alert.setMessage("What would you like to do with this chapter?");
             alert.setButton(DialogInterface.BUTTON_POSITIVE, "Start Reading", new DialogInterface.OnClickListener()
             {
                 @Override

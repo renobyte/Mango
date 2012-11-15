@@ -44,12 +44,12 @@ public class Mango extends Application
     // 1.6 = Rukia
 
     // Versioning and identification
-    public static final String VERSION_FULL = "1.6.185";
+    public static final String VERSION_FULL = "1.6.187";
     public static final String VERSION_BUILDID = "Rukia";
-    public static final String VERSION_NETID = "android_play_1.6.185";
+    public static final String VERSION_NETID = "android_play_1.6.187";
     public static final String TAG = "Mango";
-    public static final int VERSION_REVISION = 185;
-    public static final boolean VERSION_GOOGLEPLAY = false;
+    public static final int VERSION_REVISION = 187;
+    public static final boolean VERSION_GOOGLEPLAY = true;
 
     // Site codes
     public static final int SITE_LOCAL = 1;
