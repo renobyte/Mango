@@ -1,4 +1,5 @@
 package net.leetsoft.mangareader.activities;
+
 import android.app.Dialog;
 import android.content.Context;
 import android.view.View;
@@ -6,7 +7,6 @@ import android.view.Window;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import net.leetsoft.mangareader.R;
 
 public class SiteInfoDialog extends Dialog

@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import net.leetsoft.mangareader.ui.MangoDecorHandler;
-import org.apache.http.Header;
 
 import java.io.UnsupportedEncodingException;
 

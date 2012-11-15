@@ -5,11 +5,8 @@ import android.graphics.*;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
-import android.webkit.WebView;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import net.leetsoft.mangareader.R;
-import com.mobclix.android.sdk.MobclixAdView;
 
 public class MangoAdWrapperView extends RelativeLayout
 {

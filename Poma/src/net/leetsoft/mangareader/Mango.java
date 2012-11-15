@@ -17,14 +17,16 @@ import android.text.Html;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Pair;
-import com.google.ads.AdRequest;
 import net.leetsoft.mangareader.ui.MangoBackground;
 import net.leetsoft.mangareader.ui.MangoDecorHandler;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 public class Mango extends Application
 {

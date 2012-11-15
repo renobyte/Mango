@@ -19,7 +19,10 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.AnimationUtils;
 import android.webkit.WebView;
-import android.widget.*;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
@@ -27,12 +30,12 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 import com.flurry.android.FlurryAgent;
 import com.google.ads.*;
-import net.leetsoft.mangareader.activities.*;
-import net.leetsoft.mangareader.ui.MangoAdWrapperView;
-import net.leetsoft.mangareader.ui.MangoLayout;
 import com.mobclix.android.sdk.MobclixAdView;
 import com.mobclix.android.sdk.MobclixAdViewListener;
 import com.mobclix.android.sdk.MobclixMMABannerXLAdView;
+import net.leetsoft.mangareader.activities.*;
+import net.leetsoft.mangareader.ui.MangoAdWrapperView;
+import net.leetsoft.mangareader.ui.MangoLayout;
 
 import java.util.Map;
 

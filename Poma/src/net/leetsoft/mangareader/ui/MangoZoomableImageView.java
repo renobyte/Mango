@@ -36,8 +36,8 @@ import android.util.AttributeSet;
 import android.view.*;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
-import net.leetsoft.mangareader.Mango;
 import net.leetsoft.compatibility.ScaleGestureDetectorCompat;
+import net.leetsoft.mangareader.Mango;
 
 public class MangoZoomableImageView extends View
 {
