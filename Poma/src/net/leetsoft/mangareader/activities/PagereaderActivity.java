@@ -539,11 +539,9 @@ public class PagereaderActivity extends MangoActivity
             while (loops < 100 && mAdType != Mango.PROVIDER_LEADBOLT && mAdType != Mango.PROVIDER_MOBCLIX)
             {
                 mAdType = Mango.pickAdProvider();
-                Mango.log("Interstitial ad type: " + mAdType);
+                Mango.log("Interstitial", "Using ad provider " + mAdType);
                 loops++;
             }
-
-            mAdType = 1;
 
             if (mAdType == Mango.PROVIDER_MOBCLIX)
             {

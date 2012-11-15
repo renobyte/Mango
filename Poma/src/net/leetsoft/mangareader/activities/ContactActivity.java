@@ -256,8 +256,9 @@ public class ContactActivity extends MangoActivity
         String body = "Mango Version:\n\t[Android] " + Mango.VERSION_FULL + " (" + Mango.VERSION_BUILDID + ")\n";
         body += "OS Version:\n\t" + android.os.Build.VERSION.RELEASE + "\n";
         body += "Device Model:\n\t" + android.os.Build.MODEL + "\n";
+        body += "App Package Id:\n\t" + getApplication().getPackageName() + "\n";
         body += "Dalvik Heap Size:\n\t" + heapSize + "\n";
-        body += "Data Folder:\n\t" + Mango.getDataDirectory() + ", Free: " + MangoCache.getFreeSpace() + " bytes\n\n";
+        body += "Data Folder:\n\t" + Mango.getDataDirectory() + ", Free: " + MangoCache.getFreeSpace() + "MB\n\n";
         body += mEditText.getText().toString() + "\n\n";
         msg.putExtra(Intent.EXTRA_EMAIL, new String[]{"Mango@leetsoft.net"});
 

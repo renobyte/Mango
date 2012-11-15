@@ -158,13 +158,11 @@
                 android:key="useCustomDataFolder"
                 android:summary="Allows you to override the default location for Mango&apos;s data folder (where downloads and the cache are stored)"
                 android:title="Override Default Data Folder"/>
-
         <EditTextPreference
                 android:key="customDataFolder"
                 android:summary="Specify the overridden location for the Mango data folder (must check the above box)"
                 android:title="Set Data Folder Location">
         </EditTextPreference>
-
         <CheckBoxPreference
                 android:defaultValue="false"
                 android:key="disableFavoritesMenuCovers"

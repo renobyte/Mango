@@ -91,7 +91,6 @@ public class Mango extends Application
 
     public static boolean DISABLE_ADS = false;
 
-
     public Mango()
     {
         CONTEXT = this;
@@ -100,6 +99,7 @@ public class Mango extends Application
     public static void bankaiCheck()
     {
         DISABLE_ADS = Mango.getSharedPreferences().getBoolean("bankai", false);
+        DISABLE_ADS = false;
     }
 
     public static void initializeApp(Context context)
