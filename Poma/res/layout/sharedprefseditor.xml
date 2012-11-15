@@ -17,14 +17,14 @@
 			android:text="Tap on an item to edit it."
 			android:id="@+id/sharedPrefsText"
 			android:layout_width="fill_parent"
-			android:layout_height="wrap_content"></TextView>
+			android:layout_height="wrap_content"/>
 		<EditText
-			android:text=" "
-			android:hint=" "
+			android:text=""
+			android:hint=""
 			android:id="@+id/sharedPrefsEdit"
 			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
-			android:enabled="false"></EditText>
+			android:enabled="false"/>
 
 	</LinearLayout>
 	<LinearLayout

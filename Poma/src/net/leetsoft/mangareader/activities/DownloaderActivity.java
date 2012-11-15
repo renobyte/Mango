@@ -109,7 +109,7 @@ public class DownloaderActivity extends MangoActivity
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        setTitle("Download Manager", null);
+        setTitle("Downloader", null);
 
         if (getIntent().getExtras() != null)
         {

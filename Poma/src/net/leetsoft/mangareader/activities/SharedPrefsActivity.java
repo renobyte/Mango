@@ -1,6 +1,7 @@
 package net.leetsoft.mangareader.activities;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -42,12 +43,15 @@ public class SharedPrefsActivity extends Activity
         mList = (ListView) this.findViewById(R.id.sharedPrefsList);
 
         initialize();
+
+        Mango.alert("This screen allows you to change Mango's internal SharedPreferences data.  You should only mess with this if you know what you're doing or if you're receiving instructions from support.<br /><br /><strong>Be careful!  Entering invalid values here can cause the app to stop working!</strong>", "Here be dragons!", this);
     }
 
     private void initialize()
     {
-        mEdit.setEnabled(false);
-
+        mEditIndex = -1;
+        mEdit.setEnabled(true);
+        mEdit.setText("");
         mSpMap = new TreeMap<String, Object>(Mango.getSharedPreferences().getAll());
 
         ArrayList<String> k = new ArrayList<String>();
@@ -84,11 +88,10 @@ public class SharedPrefsActivity extends Activity
                 if (arg2 == mEditIndex)
                     commit();
 
-                mText.setText("Editing " + mSpKeys[arg2] + "(" + mSpValues[arg2].getClass().getSimpleName() + ")" + "\nPress Back to cancel\nPress Menu or Selected Row to commit\nCommit a blank string to delete");
+                mText.setText("Editing " + mSpKeys[arg2] + "(" + mSpValues[arg2].getClass().getSimpleName() + ")" + "\nPress Back to cancel\nPress Menu or tap green row to commit\nCommit a blank string to delete");
                 if (mSpValues[arg2].getClass().getSimpleName().equalsIgnoreCase("long"))
                     mText.setText(mText.getText() + "\n" + "Time input format is Unix time");
                 mEdit.setText(mSpValues[arg2].toString());
-                mEdit.setEnabled(true);
                 mEditIndex = arg2;
                 mAdapter.notifyDataSetChanged();
             }
@@ -173,7 +176,6 @@ public class SharedPrefsActivity extends Activity
             if (mEditIndex != -1)
             {
                 mEditIndex = -1;
-                mEdit.setEnabled(false);
                 mEdit.setText("");
                 mText.setText("Tap on an item to edit it.");
                 mAdapter.notifyDataSetChanged();
@@ -190,9 +192,19 @@ public class SharedPrefsActivity extends Activity
 
     public void commit()
     {
+        if (mEdit.getText().toString().toLowerCase().equals("bankai"))
+        {
+            Intent myIntent = new Intent();
+            myIntent.setClass(Mango.CONTEXT, BankaiActivity.class);
+            startActivity(myIntent);
+            return;
+        }
+
+        if (mEditIndex == -1)
+            return;
+
         try
         {
-            Mango.log(mSpValues[mEditIndex].getClass().getSimpleName());
             if (mEdit.getText().length() == 0)
             {
                 Mango.getSharedPreferences().edit().remove(mSpKeys[mEditIndex]).commit();
@@ -214,7 +226,6 @@ public class SharedPrefsActivity extends Activity
                 Mango.getSharedPreferences().edit().putBoolean(mSpKeys[mEditIndex], Boolean.parseBoolean(mEdit.getText().toString())).commit();
             }
             mEditIndex = -1;
-            mEdit.setEnabled(false);
             mEdit.setText("");
             mText.setText("Tap on an item to edit it.");
             Toast.makeText(this, "Edit comitted.", Toast.LENGTH_SHORT).show();

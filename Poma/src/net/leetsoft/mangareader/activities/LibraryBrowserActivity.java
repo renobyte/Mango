@@ -13,6 +13,7 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.*;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.animation.AnimationUtils;
@@ -1244,6 +1245,7 @@ public class LibraryBrowserActivity extends MangoActivity
                                         Toast.makeText(LibraryBrowserActivity.this, "Error deleting items:\n" + e.toString(), Toast.LENGTH_LONG).show();
                                     }
                                 });
+                                Mango.log(Log.getStackTraceString(e));
                             }
                         }
                     });
@@ -1306,7 +1308,7 @@ public class LibraryBrowserActivity extends MangoActivity
         try
         {
             db.open();
-            lcArray = db.getLibraryChaptersForManga(chapter.manga);
+            lcArray = db.getAllLibraryChapters(MangoSqlite.KEY_MANGATITLE + " = '" + chapter.manga.title + "'");;
             for (int i = 0; i < lcArray.length; i++)
             {
                 db.deleteLibraryChapter(lcArray[i].rowId);

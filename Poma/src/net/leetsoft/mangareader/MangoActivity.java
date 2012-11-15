@@ -5,8 +5,11 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -23,6 +26,7 @@ import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 import com.flurry.android.FlurryAgent;
+import com.google.ads.*;
 import net.leetsoft.mangareader.activities.*;
 import net.leetsoft.mangareader.ui.MangoAdWrapperView;
 import net.leetsoft.mangareader.ui.MangoLayout;
@@ -32,13 +36,18 @@ import com.mobclix.android.sdk.MobclixMMABannerXLAdView;
 
 import java.util.Map;
 
-public class MangoActivity extends SherlockFragmentActivity implements MobclixAdViewListener
+public class MangoActivity extends SherlockFragmentActivity implements MobclixAdViewListener, AdListener
 {
     private MangoLayout mLayoutManager;
     private Runnable mKillBGCallback;
 
+
+    // advert stuff
+    private int mAdType;
     private MangoAdWrapperView mAdLayout;
-    private MobclixAdView mAd;
+    private MobclixAdView mMobclixAdView;
+    private AdView mAdMobAdView;
+    private WebView mLeadboltAdView;
 
     private View mVerticalOffsetView;
 
@@ -46,16 +55,12 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
 
     // tutorial stuff
     protected RelativeLayout mTutorialOverlay;
-    protected Button mTutorialButton;
     protected boolean mTutorialMode;
 
     // toast overlay stuff
     protected RelativeLayout mToastOverlay;
-    // protected RelativeLayout mToastContainer;
-    // protected Button mToastOkButton;
     protected ImageView mToastCloseButton;
     protected TextView mToastText;
-    protected boolean mShowClose = true;
     protected Runnable mCloseRunnable = new Runnable()
     {
 
@@ -69,10 +74,6 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
-
-        // if (android.os.Build.VERSION.SDK_INT >= 11)
-        // this.setTheme(R.style.Theme_Mango_Light_Honeycomb);
-
         if (Mango.getSharedPreferences().getBoolean("invertTheme", false))
         {
             if (!Mango.getSharedPreferences().getBoolean("disableBackgrounds", false))
@@ -81,6 +82,8 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
         }
         if (!Mango.INITIALIZED)
             Mango.initializeApp(this);
+
+        mAdType = Mango.pickAdProvider();
 
         super.onCreate(savedInstanceState);
     }
@@ -165,7 +168,6 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
     public void onPause()
     {
         super.onPause();
-        // mAd.pause();
         if (mLayoutManager != null)
         {
             mLayoutManager.mBgSet = false;
@@ -193,7 +195,6 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
     public void onResume()
     {
         super.onResume();
-        // mAd.resume();
         if (mLayoutManager != null)
         {
             mLayoutManager.removeCallbacks(mKillBGCallback);
@@ -205,25 +206,47 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
     @Override
     public void onDestroy()
     {
-        if (mAd != null)
+        if (mAdLayout != null)
         {
-            mAd.removeMobclixAdViewListener(this);
-            mAd.cancelAd();
-            mAdLayout.removeAllViews();
+            switch (mAdType)
+            {
+                case Mango.PROVIDER_MOBCLIX:
+                    disposeMobclixAdview();
+                    break;
+                case Mango.PROVIDER_LEADBOLT:
+                    if (mLeadboltAdView != null)
+                        mLeadboltAdView.destroy();
+                    break;
+                case Mango.PROVIDER_ADMOB:
+                    if (mAdMobAdView != null)
+                        mAdMobAdView.destroy();
+                    break;
+            }
+        }
+
+        super.onDestroy();
+    }
+
+    private void disposeMobclixAdview()
+    {
+        if (mMobclixAdView != null)
+        {
+            mMobclixAdView.removeMobclixAdViewListener(this);
+            mMobclixAdView.cancelAd();
 
             try
             {
                 /* HACK HACK HACK HACK HACK
-                     * There appears to be a bug or some sort of implementation oddity
-                     * with WebView on devices running HTC Sense which causes the WebView
-                     * to leak its parent's context.  So here we traverse down the
-                     * MobclixAdView's view hierarchy and try to find the WebView,
-                     * then manually call its destroy() method and set it to null.
-                     */
+                * There appears to be a bug or some sort of implementation oddity
+                * with WebView on devices running HTC Sense which causes the WebView
+                * to leak its parent's context.  So here we traverse down the
+                * MobclixAdView's view hierarchy and try to find the WebView,
+                * then manually call its destroy() method and set it to null.
+                */
                 WebView wv;
-                if (((ViewGroup) ((ViewGroup) mAd.getChildAt(0)).getChildAt(0)).getChildAt(0).getClass().getSimpleName().contains("WebView"))
+                if (((ViewGroup) ((ViewGroup) mMobclixAdView.getChildAt(0)).getChildAt(0)).getChildAt(0).getClass().getSimpleName().contains("WebView"))
                 {
-                    wv = (WebView) ((ViewGroup) ((ViewGroup) mAd.getChildAt(0)).getChildAt(0)).getChildAt(0);
+                    wv = (WebView) ((ViewGroup) ((ViewGroup) mMobclixAdView.getChildAt(0)).getChildAt(0)).getChildAt(0);
                     wv.destroy();
                     wv = null;
                 }
@@ -232,10 +255,9 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
             {
                 // nope.avi
             }
-            mAd = null;
+            mMobclixAdView = null;
             mAdLayout = null;
         }
-        super.onDestroy();
     }
 
     public void setToastText(String text)
@@ -411,15 +433,72 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
     public void instantiateAdView()
     {
         mAdLayout.setVisibility(View.VISIBLE);
-        mAd = new MobclixMMABannerXLAdView(this);
-        mAd.setShouldRotate(false);
-        mAd.addMobclixAdViewListener(this);
 
-        mAdLayout.addView(mAd);
-        mAdLayout.setAdHitbox(mAd);
+        Mango.log("MangoActivity", "Using ad provider: " + mAdType);
+
+        switch (mAdType)
+        {
+            case Mango.PROVIDER_MOBCLIX:
+            default:
+                if (mMobclixAdView != null)
+                    return;
+
+                mMobclixAdView = new MobclixMMABannerXLAdView(this);
+                mMobclixAdView.setShouldRotate(false);
+                mMobclixAdView.addMobclixAdViewListener(this);
+
+                mAdLayout.addView(mMobclixAdView);
+                mAdLayout.setAdHitbox(mMobclixAdView);
+                break;
+
+            case Mango.PROVIDER_ADMOB:
+                if (mAdMobAdView != null)
+                    return;
+
+                mAdMobAdView = new AdView(this, AdSize.SMART_BANNER, "a14d419d563ddaf");
+                mAdMobAdView.loadAd(new AdRequest());
+                mAdLayout.addView(mAdMobAdView);
+                mAdLayout.setAdHitbox(mAdMobAdView);
+                break;
+
+            case Mango.PROVIDER_LEADBOLT:
+                if (mLeadboltAdView != null)
+                    return;
+
+                int bannerWidth = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 320, getResources().getDisplayMetrics());
+                int bannerHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 50, getResources().getDisplayMetrics());
+                int bannerId = 782282564;
+                if ((this.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) == Configuration.SCREENLAYOUT_SIZE_XLARGE)
+                {
+                    bannerWidth = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 468, getResources().getDisplayMetrics());
+                    bannerHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 60, getResources().getDisplayMetrics());
+                    LayoutParams p = mAdLayout.getLayoutParams();
+                    p.height = bannerHeight;
+                    mAdLayout.setLayoutParams(p);
+                    bannerId = 441291409;
+                }
+
+                mLeadboltAdView = new WebView(this);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                    mLeadboltAdView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(bannerWidth, bannerHeight);
+                params.addRule(RelativeLayout.CENTER_IN_PARENT, RelativeLayout.TRUE);
+
+                mLeadboltAdView.setLayoutParams(params);
+                mLeadboltAdView.getSettings().setJavaScriptEnabled(true);
+                mLeadboltAdView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+//                mLeadboltAdView.getSettings().setSupportMultipleWindows(true);
+                String adHtml = "<html><body style=\"margin:0;padding:0\"><script type=\"text/javascript\" src=\"http://ad.leadboltads.net/show_app_ad.js?section_id=" + bannerId + " \"></script></body></html>";
+                mLeadboltAdView.loadData(adHtml, "text/html", "utf-8");
+                mLeadboltAdView.setBackgroundColor(0x00000000);
+
+                mAdLayout.addView(mLeadboltAdView);
+                mAdLayout.setAdHitbox(mLeadboltAdView);
+                break;
+        }
+
         mAdLayout.setCloseListener(new Runnable()
         {
-
             @Override
             public void run()
             {
@@ -454,8 +533,7 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
             return;
         }
 
-        if (mAd == null)
-            instantiateAdView();
+        instantiateAdView();
     }
 
     @Override
@@ -514,20 +592,21 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
     @Override
     public void onFailedLoad(MobclixAdView arg0, int arg1)
     {
-        Mango.log("Ad failed to load for " + this.toString());
+        Mango.log("Mobclix: Failed to load for " + this.toString() + "(" + arg1 + ")");
         hideAdView();
     }
 
     @Override
     public boolean onOpenAllocationLoad(MobclixAdView arg0, int arg1)
     {
-        // TODO Auto-generated method stub
+        Mango.log("Mobclix: Using Open Allocation.");
         return false;
     }
 
     @Override
     public void onSuccessfulLoad(MobclixAdView arg0)
     {
+        //Mango.log("Mobclix: Successfully loaded for " + this.toString());
         showAdView();
     }
 
@@ -536,5 +615,36 @@ public class MangoActivity extends SherlockFragmentActivity implements MobclixAd
     {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    @Override
+    public void onReceiveAd(Ad ad)
+    {
+        //Mango.log("AdMob: Successfully loaded for " + this.toString());
+    }
+
+    @Override
+    public void onFailedToReceiveAd(Ad ad, AdRequest.ErrorCode errorCode)
+    {
+        Mango.log("AdMob: Failed to loaded for " + this.toString() + "(" + errorCode.name() + ")");
+        hideAdView();
+    }
+
+    @Override
+    public void onPresentScreen(Ad ad)
+    {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public void onDismissScreen(Ad ad)
+    {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public void onLeaveApplication(Ad ad)
+    {
+        //To change body of implemented methods use File | Settings | File Templates.
     }
 }

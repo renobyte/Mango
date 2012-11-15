@@ -431,7 +431,7 @@ public class MainMenuActivity extends MangoActivity
         if (Mango.getSharedPreferences().getInt("lastInstalledRevision", -1) != Mango.VERSION_REVISION)
         {
             StringBuilder changelog = new StringBuilder();
-            changelog.append("<b>New in v " + Mango.VERSION_FULL + "</b><br>");
+            changelog.append("<b>New in v" + Mango.VERSION_FULL + "</b><br>");
             changelog.append("<small>");
             changelog.append("<b>-Added: Option to disable double-tap zoom</b><br>");
             changelog.append("You may now turn off double-tap zoom from the Preferences screen.  Single-tapping to change a page will be faster as a result.<br><br>");

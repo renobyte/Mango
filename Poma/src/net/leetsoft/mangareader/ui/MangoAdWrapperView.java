@@ -72,8 +72,8 @@ public class MangoAdWrapperView extends RelativeLayout
         {
             int x = (int) ev.getX();
             int y = (int) ev.getY();
-            if (x >= mAdHitbox.getLeft() && x <= mAdHitbox.getLeft() + (mCloseButton.getWidth() * 0.7))
-                if (y >= mAdHitbox.getTop() && y <= mAdHitbox.getTop() + mCloseButton.getHeight() * 0.7)
+            if (x >= mAdHitbox.getLeft() && x <= mAdHitbox.getLeft() + (mCloseButton.getWidth() * 0.5))
+                if (y >= mAdHitbox.getTop() && y <= mAdHitbox.getTop() + mCloseButton.getHeight() * 0.5)
                 {
                     mCloseListener.run();
                     return true;

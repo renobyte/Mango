@@ -560,9 +560,10 @@ public class PagereaderActivity extends MangoActivity
 
                 mAdView.setLayoutParams(params);
                 mAdView.getSettings().setJavaScriptEnabled(true);
-                mAdView.getSettings().setPluginState(WebSettings.PluginState.ON);
+                if (android.os.Build.VERSION.SDK_INT > 7)
+                    mAdView.getSettings().setPluginState(WebSettings.PluginState.ON);
                 mAdView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-                mAdView.getSettings().setSupportMultipleWindows(true);
+                //mAdView.getSettings().setSupportMultipleWindows(true);
                 String adHtml = "<html><body style=\"margin:0;padding:0\"><script type=\"text/javascript\" src=\"http://ad.leadboltads.net/show_app_ad.js?section_id=" + bannerId + " \"></script></body></html>";
                 mAdView.loadData(adHtml, "text/html", "utf-8");
                 mAdContainer.addView(mAdView);

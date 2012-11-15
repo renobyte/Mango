@@ -44,11 +44,11 @@ public class Mango extends Application
     // 1.6 = Rukia
 
     // Versioning and identification
-    public static final String VERSION_FULL = "1.6.187";
+    public static final String VERSION_FULL = "1.6.188";
     public static final String VERSION_BUILDID = "Rukia";
-    public static final String VERSION_NETID = "android_play_1.6.187";
+    public static final String VERSION_NETID = "android_play_1.6.188";
     public static final String TAG = "Mango";
-    public static final int VERSION_REVISION = 187;
+    public static final int VERSION_REVISION = 188;
     public static final boolean VERSION_GOOGLEPLAY = true;
 
     // Site codes
@@ -99,7 +99,6 @@ public class Mango extends Application
     public static void bankaiCheck()
     {
         DISABLE_ADS = Mango.getSharedPreferences().getBoolean("bankai", false);
-        DISABLE_ADS = false;
     }
 
     public static void initializeApp(Context context)
