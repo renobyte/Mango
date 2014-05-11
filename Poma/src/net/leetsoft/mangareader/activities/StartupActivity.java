@@ -26,7 +26,6 @@ public class StartupActivity extends SherlockActivity
 {
     private TextView statusLabel;
     private LinearLayout layout;
-
     private ConnectionTask mConnectionTask;
 
     @Override
@@ -41,7 +40,7 @@ public class StartupActivity extends SherlockActivity
             return;
         }
 
-        Mango.log("==========================");
+        Mango.initializeApp(this);
         setContentView(R.layout.startup);
         layout = (LinearLayout) findViewById(R.id.StartupLayout);
         this.setTitle("Welcome to Mango!");
@@ -49,7 +48,7 @@ public class StartupActivity extends SherlockActivity
         statusLabel.setText("Connecting to the Mango Service...");
 
         Mango.getSharedPreferences().edit().putBoolean("offlineMode", false).commit();
-        Mango.getSharedPreferences().edit().putString("serverUrl", "konata.leetsoft.net").commit();
+        Mango.getSharedPreferences().edit().putString("serverUrl", "kagami.leetsoft.net").commit();
 
         //		try
         //		{
@@ -67,10 +66,10 @@ public class StartupActivity extends SherlockActivity
             @Override
             public void run()
             {
-                MangoHttpResponse resp =  MangoHttp.downloadData("http://www.leetsoft.net/mangoweb/serverurl.txt", StartupActivity.this);
+                MangoHttpResponse resp = MangoHttp.downloadData("http://www.leetsoft.net/mangoweb/serverurl.txt", StartupActivity.this);
                 String serverurl = resp.toString();
                 if (resp.exception)
-                    serverurl = "konata.leetsoft.net";
+                    serverurl = "kagami.leetsoft.net";
                 Mango.getSharedPreferences().edit().putString("serverUrl", serverurl).commit();
             }
         });
@@ -143,7 +142,7 @@ public class StartupActivity extends SherlockActivity
             {
                 String response = MangoHttp.downloadData("http://%SERVER_URL%/getbankaistatus.aspx?did=" + Mango.getPin(), StartupActivity.this).toString();
                 String target = Mango.getPin() + "asalt";
-                String lol = "I ain't even mad.";
+                String lol = "wut up brah";
                 lol = lol.toUpperCase();
                 byte[] bhash;
 
@@ -187,23 +186,23 @@ public class StartupActivity extends SherlockActivity
 
         if (mhr.exception)
         {
-            statusLabel.setText("Connection failed! :'(");
-            errorText = "Mango couldn't connect to the internet. Check your mobile data connectivity and try again.\n" + data;
+            statusLabel.setText("Connection failed.");
+            errorText = "Mango couldn't connect to the internet. Check your mobile data or Wi-Fi connection and try again.\n" + data;
         }
         if (data.startsWith("2"))
         {
             statusLabel.setText("Device is banned.");
-            errorText = "Your phone has been banned from the Mango Service due to abuse. For more information please see:\nhttp://Mango.leetsoft.net/banned.php\n[Error 2]";
+            errorText = "Your phone has been banned from the Mango Service due to abuse. For more information please see:\nhttp://mango.leetsoft.net/banned.php\n[Error 2]";
         }
         if (data.startsWith("3"))
         {
             statusLabel.setText("Unrecognized version ID.");
-            errorText = "The Mango Service doesn't recognize this version. Please reinstall the newest version of Mango.\n[Error 3]";
+            errorText = "The Mango Service doesn't recognize this version. Please reinstall the newest version of Mango from mango.leetsoft.net.\n[Error 3]";
         }
         if (data.startsWith("4"))
         {
             statusLabel.setText("Outdated version!");
-            errorText = "There is a new version of Mango available! This version no longer works, so please update Mango from the Android Market.\n[Error 4]";
+            errorText = "There is a new version of Mango available! This version no longer works, so please update Mango from mango.leetsoft.net.\n[Error 4]";
         }
 
         if (data.startsWith("error"))
@@ -238,12 +237,12 @@ public class StartupActivity extends SherlockActivity
             errorText = "Mango received an unexpected response from the Mango Service. It may be experiencing server issues.\n\n" + data;
         }
 
-        statusLabel.setText(statusLabel.getText() + "\n\nTap the globe icon at the top-right corner of the screen to enter Offline Mode.");
+        statusLabel.setText(statusLabel.getText() + "\n\nTap the globe icon in the action bar to enter Offline Mode.");
 
         if (errorText.length() > 0)
         {
             AlertDialog alert = new AlertDialog.Builder(StartupActivity.this).create();
-            alert.setTitle("Problem! T__T");
+            alert.setTitle("Error");
             alert.setMessage(errorText);
             if (data.startsWith("3") || data.startsWith("4"))
             {
@@ -252,14 +251,27 @@ public class StartupActivity extends SherlockActivity
                     @Override
                     public void onClick(DialogInterface dialog, int which)
                     {
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        MangoHttpResponse resp = MangoHttp.downloadData("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, StartupActivity.this);
-                        String url = resp.toString();
-                        if (resp.exception)
-                            url = "http://Mango.leetsoft.net/install-android.php";
-                        intent.setData(Uri.parse(url));
-                        startActivity(intent);
-                        overridePendingTransition(R.anim.fadein, R.anim.expandout);
+                        new Thread(new Runnable()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                MangoHttpResponse resp = MangoHttp.downloadData("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, StartupActivity.this);
+                                String url = resp.toString();
+                                if (resp.exception)
+                                    url = "http://Mango.leetsoft.net/install-android.php";
+                                final String finalUrl = url;
+                                layout.post(new Runnable() {
+                                    @Override
+                                    public void run()
+                                    {
+                                        launchUpdateIntent(finalUrl);
+                                    }
+                                });
+                            }
+                        }).start();
+
+
                     }
                 });
             }
@@ -283,6 +295,14 @@ public class StartupActivity extends SherlockActivity
                 // catch and ignore BadTokenException if activity is closed
             }
         }
+    }
+
+    private void launchUpdateIntent(String url)
+    {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(url));
+        startActivity(intent);
+        overridePendingTransition(R.anim.fadein, R.anim.expandout);
     }
 
     private class ConnectionTask extends AsyncTask<String, Void, MangoHttpResponse>

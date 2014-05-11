@@ -390,7 +390,7 @@ public class OfflinePagereaderActivity extends MangoActivity
         {
             Mango.alert(
                     "Mango was not able to load this folder.<br><br><small><b>Stack Trace:</b><br>" + Log.getStackTraceString(e),
-                    "Problem! T__T", this, new DialogInterface.OnClickListener()
+                    "Error", this, new DialogInterface.OnClickListener()
             {
 
                 @Override
@@ -437,7 +437,7 @@ public class OfflinePagereaderActivity extends MangoActivity
         {
             Mango.alert(
                     "Mango was not able to open this chapter.  If this happens repeatedly, try re-downloading the chapter.<br><br><small><b>Stack Trace:</b><br>" + Log.getStackTraceString(ex),
-                    "Problem! T__T", this, new DialogInterface.OnClickListener()
+                    "Error", this, new DialogInterface.OnClickListener()
             {
 
                 @Override
@@ -590,7 +590,7 @@ public class OfflinePagereaderActivity extends MangoActivity
                 Manga argManga = new Manga();
                 argManga.id = mActiveLibraryChapter.manga.id;
                 argManga.title = mActiveLibraryChapter.manga.title;
-                argManga.generateSimpleName();
+                argManga.generateSimpleName(null);
                 chaptersIntent.putExtra("manga", argManga);
             }
             startActivity(chaptersIntent);
@@ -715,7 +715,7 @@ public class OfflinePagereaderActivity extends MangoActivity
         }
         catch (SAXException ex)
         {
-            Mango.alert("An error occurred while parsing the xml data. Please try re-downloading the chapter.\n\n" + ex.toString(), "Malformed XML! :'(", this);
+            Mango.alert("An error occurred while parsing the xml data. Please try re-downloading the chapter.\n\n" + ex.toString(), "Invalid Response", this);
             return;
         }
         catch (ParserConfigurationException e)

@@ -53,7 +53,8 @@ public class ChaptersActivity extends MangoActivity
     private DetailsViewHolder mDetailsHolder;
     private ChapterViewHolder mResumeHolder;
     private ChaptersAdapter mAdapter;
-    private Bitmap mFullSizeImg;
+    private Bitmap mFullSizeArt;
+    private Bitmap mThumbnailArt;
     private XmlDownloader mXmlTask;
     private BitmapDownloader mBitmapTask;
 
@@ -130,7 +131,7 @@ public class ChaptersActivity extends MangoActivity
         mListview.setFastScrollEnabled(true);
         mFindTextbox = (EditText) findViewById(R.id.FindText);
         mFindTextbox.setSingleLine();
-        mFindTextbox.setHint("Type a chapter number.");
+        mFindTextbox.setHint("Jump to chapter number");
         DigitsKeyListener dkl = new DigitsKeyListener(true, true);
         mFindTextbox.setKeyListener(dkl);
 
@@ -145,7 +146,7 @@ public class ChaptersActivity extends MangoActivity
         {
             InstanceBundle save = (InstanceBundle) getLastCustomNonConfigurationInstance();
             mActiveManga = save.activeManga;
-            mFullSizeImg = save.fullSizeImg;
+            mFullSizeArt = save.fullSizeImg;
             mGotData = save.gotData;
             mXmlTask = save.xmlTask;
             mBitmapTask = save.bitmapTask;
@@ -186,8 +187,8 @@ public class ChaptersActivity extends MangoActivity
         menu.setHeaderTitle(getChapter(mMenuPosition).title);
         menu.add(Menu.NONE, 0, 0, "Download to My Library");
         menu.add(Menu.NONE, 1, 1, "Mark " + (mReadStatus[mMenuPosition] ? "Unread" : "Read"));
-        menu.add(Menu.NONE, 2, 2, "Set this and previous as unread");
-        menu.add(Menu.NONE, 3, 3, "Set this and previous as read");
+        menu.add(Menu.NONE, 2, 2, "Mark this and previous as unread");
+        menu.add(Menu.NONE, 3, 3, "Mark this and previous as read");
     }
 
     @Override
@@ -367,7 +368,7 @@ public class ChaptersActivity extends MangoActivity
             menu.getItem(1).setTitleCondensed("Download These");
             menu.getItem(1).setIcon(getResources().getDrawable(R.drawable.ic_action_okay));
         }
-        else if (!mMultiSelectMode)
+        else
         {
             menu.getItem(1).setTitle("Multi-Select");
             menu.getItem(1).setTitleCondensed("Multi-Select");
@@ -384,13 +385,6 @@ public class ChaptersActivity extends MangoActivity
             toggleMultiselect(false);
             return true;
         }
-        if (item.getItemId() == R.id.menuChapterMultiSelectDummy)
-        {
-            Mango.alert(
-                    "The multi-select option has been moved to the top-right corner.  Tap on that button instead!\n\nThis 'dummy' menu item will be here for a while so I don't get so many emails asking where it went. :S",
-                    this);
-            return true;
-        }
         if (item.getItemId() == R.id.menuChapterAddFavorite)
         {
             MangoSqlite db = new MangoSqlite(ChaptersActivity.this);
@@ -400,7 +394,7 @@ public class ChaptersActivity extends MangoActivity
                 if (mFavorited)
                 {
                     db.deleteFavorite(db.getFavoriteForManga(mActiveManga).rowId);
-                    Mango.alert(mActiveManga.title + " has been removed from your favorites.", "Favorite removed!", ChaptersActivity.this);
+                    Mango.alert(mActiveManga.title + " has been removed from your favorites.", "Favorite Deleted", ChaptersActivity.this);
                 }
                 else
                 {
@@ -415,7 +409,7 @@ public class ChaptersActivity extends MangoActivity
                     f.siteId = Mango.getSiteId();
                     db.insertFavorite(f);
 
-                    Mango.alert(mActiveManga.title + " has been favorited! Mango will now track your reading progress in the Favorites screen.", "Favorite added!", ChaptersActivity.this);
+                    Mango.alert(mActiveManga.title + " has been favorited! Mango will now track your reading progress in the Favorites screen.", "Favorite Created", ChaptersActivity.this);
                 }
                 mFavorited = !mFavorited;
             }
@@ -461,7 +455,7 @@ public class ChaptersActivity extends MangoActivity
         InstanceBundle save = new InstanceBundle();
         save.activeManga = mActiveManga;
         save.activeManga.chapters = mActiveManga.chapters;
-        save.fullSizeImg = mFullSizeImg;
+        save.fullSizeImg = mFullSizeArt;
         save.gotData = mGotData;
         save.xmlTask = mXmlTask;
         save.bitmapTask = mBitmapTask;
@@ -472,7 +466,7 @@ public class ChaptersActivity extends MangoActivity
         if (mBitmapTask != null)
             mBitmapTask.detach();
         mActiveManga = null;
-        mFullSizeImg = null;
+        mFullSizeArt = null;
         if (mDetailsHolder != null)
             mDetailsHolder.coverart.setImageBitmap(null);
         return save;
@@ -588,14 +582,14 @@ public class ChaptersActivity extends MangoActivity
         removeDialog(0);
         if (data.exception)
         {
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this);
-            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
+            Mango.alert("Mango was unable to fetch the requested data.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString(), "Network Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Unable to load data.  Close this screen and try again."}));
             return;
         }
         if (data.toString().startsWith("error"))
         {
-            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this);
-            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
+            Mango.alert("The server returned an error.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString().substring(7), "Server Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Unable to load data.  Close this screen and try again."}));
             return;
         }
         parseXml(data.toString());
@@ -648,15 +642,15 @@ public class ChaptersActivity extends MangoActivity
                     db.updateFavorite(f);
                 }
                 if (MangoCache.checkCacheForImage("cover/", f.coverArtUrl))
-                    mFullSizeImg = MangoCache.readBitmapFromCache("cover/", f.coverArtUrl, 1);
+                    mFullSizeArt = MangoCache.readBitmapFromCache("cover/", f.coverArtUrl, 1);
                 else if (f.coverArtUrl.startsWith("file@"))
-                    mFullSizeImg = MangoCache.readCustomCoverArt(f.coverArtUrl, 1);
+                    mFullSizeArt = MangoCache.readCustomCoverArt(f.coverArtUrl, 1);
             }
             db.close();
         }
         catch (SAXException ex)
         {
-            Mango.alert("Mango wasn't able process the XML for the following reason:\n\n" + ex.toString() + "\n\n" + data, "Malformed XML! :'(", this);
+            Mango.alert("The server returned malformed XML.\n\n<strong>Error Details:</strong>\n" + ex.toString() + "\n\n" + data, "Invalid Response", this);
             return;
         }
         catch (NullPointerException ex)
@@ -701,13 +695,13 @@ public class ChaptersActivity extends MangoActivity
             mDetailsHolder.artist.setText(mActiveManga.details.artist + " and " + mActiveManga.details.author);
         mDetailsHolder.summary.setText(mActiveManga.details.summary);
         setCoverArt(BitmapFactory.decodeResource(getResources(), R.drawable.placeholder_downloading), true);
-        if (mFullSizeImg == null)
+        if (mFullSizeArt == null)
         {
             mBitmapTask = new BitmapDownloader(this);
             mBitmapTask.execute(mActiveManga.details.coverArtUrl);
         }
         else
-            setCoverArt(mFullSizeImg, false);
+            setCoverArt(mFullSizeArt, false);
 
         initializeReadTags();
     }
@@ -799,7 +793,7 @@ public class ChaptersActivity extends MangoActivity
         try
         {
             if (!placeholder)
-                mFullSizeImg = img.copy(Config.RGB_565, false);
+                mFullSizeArt = img.copy(Config.RGB_565, false);
             DisplayMetrics metrics = new DisplayMetrics();
             getWindowManager().getDefaultDisplay().getMetrics(metrics);
             Bitmap overlay = BitmapFactory.decodeResource(getResources(), R.drawable.coverart_overlay);
@@ -817,11 +811,11 @@ public class ChaptersActivity extends MangoActivity
 
             c = new Canvas(thumbnail);
             c.drawBitmap(overlay, 0, 0, null);
-            c.drawBitmap(artInset, 1 * metrics.density, 1 * metrics.density, null);
+            c.drawBitmap(artInset, 2 * metrics.density, 2 * metrics.density, null);
 
             mDetailsHolder.coverart.setImageBitmap(thumbnail);
             if (mDetailsPopup != null && mDetailsPopup.isShowing())
-                mDetailsPopupCoverart.setImageBitmap(mFullSizeImg);
+                mDetailsPopupCoverart.setImageBitmap(mFullSizeArt);
         }
         catch (OutOfMemoryError er)
         {
@@ -1070,8 +1064,8 @@ public class ChaptersActivity extends MangoActivity
         TextView schedule = (TextView) mDetailsPopup.findViewById(R.id.DetailsChapters);
         TextView summary = (TextView) mDetailsPopup.findViewById(R.id.DetailsSummary);
         title.setText(mActiveManga.title);
-        if (mFullSizeImg != null)
-            mDetailsPopupCoverart.setImageBitmap(mFullSizeImg);
+        if (mFullSizeArt != null)
+            mDetailsPopupCoverart.setImageBitmap(mFullSizeArt);
         artistauthor.setText(mDetailsHolder.artist.getText());
         popularity.setText(mActiveManga.details.rank);
         genres.setText(mActiveManga.details.genres);

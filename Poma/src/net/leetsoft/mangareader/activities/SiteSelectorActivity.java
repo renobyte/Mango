@@ -19,12 +19,12 @@ public class SiteSelectorActivity extends MangoActivity
 {
 	private MenuChoice[] MENU_CHOICES = new MenuChoice[] { new MenuChoice("MangaHere", Mango.SITE_MANGAHERE),
 	        new MenuChoice("MangaPanda", Mango.SITE_MANGAPANDA),
-	        new MenuChoice("MangaFox", Mango.SITE_MANGAFOX),
 	        new MenuChoice("Mangable", Mango.SITE_MANGABLE),
 	        new MenuChoice("AnimeA", Mango.SITE_ANIMEA),
 	        new MenuChoice("MangaShare", Mango.SITE_MANGASHARE),
 	        new MenuChoice("MangaStream", Mango.SITE_MANGASTREAM),
 	        new MenuChoice("MangaReader", Mango.SITE_MANGAREADER),
+            new MenuChoice("MangaFox", Mango.SITE_MANGAFOX),
 	        new MenuChoice("Submanga [Español]", Mango.SITE_SUBMANGA) };
 
 	 //new MenuChoice("Test Site", Mango.SITE_TEST) };
@@ -70,14 +70,22 @@ public class SiteSelectorActivity extends MangoActivity
 
 	protected void itemClicked(int id)
 	{
-		if (id == Mango.SITE_MANGAREADER && !Mango.getSharedPreferences().getBoolean("popupWarnMangareader", false))
-		{
-			Mango.alert(
-			        "MangaReader blocks readers from the United States from reading many of their titles.  If you're in the US, you should use a different manga source.  Otherwise, tap on MangaReader again to confirm that you want to use this source.",
-			        "Warning!", this);
-			Mango.getSharedPreferences().edit().putBoolean("popupWarnMangareader", true).commit();
-			return;
-		}
+        if (id == Mango.SITE_MANGAREADER && !Mango.getSharedPreferences().getBoolean("popupWarnMangareader", false))
+        {
+            Mango.alert(
+                    "MangaReader blocks users from certain countries from accessing most of their titles.  If you can't access a series on MangaReader, you should use a different manga source.  Tap on MangaReader again to confirm that you want to use this source.",
+                    "Warning", this);
+            Mango.getSharedPreferences().edit().putBoolean("popupWarnMangareader", true).commit();
+            return;
+        }
+        if (id == Mango.SITE_MANGAFOX && !Mango.getSharedPreferences().getBoolean("popupWarnMangafox", false))
+        {
+            Mango.alert(
+                    "MangaFox blocks users from certain countries from accessing most of their titles.  If you can't access a series on MangaFox, you should use a different manga source.  Tap on MangaFox again to confirm that you want to use this source.",
+                    "Warning", this);
+            Mango.getSharedPreferences().edit().putBoolean("popupWarnMangafox", true).commit();
+            return;
+        }
 		Mango.getSharedPreferences().edit().putInt("mangaSite", id).commit();
 		Intent intent = new Intent();
         intent.setClass(Mango.CONTEXT, BrowseByActivity.class);
@@ -102,7 +110,7 @@ public class SiteSelectorActivity extends MangoActivity
 				resId = R.drawable.logo_mangapanda_small;
 				break;
 			case Mango.SITE_MANGAFOX:
-				description = "Over 7,000 titles, including lots of shoujo and yaoi manga. Some popular manga are not available due to copyright/legal concerns. Moderate image quality.";
+				description = "Over 6,000 titles, including lots of shoujo and yaoi manga. Some popular manga are not available due to copyright/legal concerns. Moderate image quality.\n\nNOTE: MangaFox blocks IP addresses from the United States!  Use another source if you're reading from the US.";
 				resId = R.drawable.logo_mangafox_small;
 				break;
 			case Mango.SITE_MANGAREADER:
@@ -130,7 +138,7 @@ public class SiteSelectorActivity extends MangoActivity
 				resId = R.drawable.logo_submanga_small;
 				break;
 			default:
-				description = "Something didn't work right here! @_@";
+				description = "Something didn't work right here!";
 				resId = R.drawable.ic_error;
 		}
 

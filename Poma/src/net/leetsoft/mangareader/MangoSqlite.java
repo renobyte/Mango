@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 public class MangoSqlite
 {
@@ -20,39 +21,31 @@ public class MangoSqlite
     public static final String KEY_CHAPTERCOUNT = "chapterCount";
     public static final String KEY_PAGEINDEX = "pageIndex";
     public static final String KEY_PAGEID = "pageId";
-
     // tBookmarks only
     public static final String KEY_MANGASITE = "mangaSite";
     public static final String KEY_UPDATETIME = "updateTime";
     public static final String KEY_BOOKMARKTYPE = "bookmarkType";
-
     // tLibrary only
     public static final String KEY_CHAPTERURL = "chapterUrl";
     public static final String KEY_LOCALPATH = "localPath";
-
     private static final String DATABASE_NAME = "pomaDB";
     private static final String TABLE_BOOKMARKS = "tBookmarks";
     private static final String TABLE_LIBRARY = "tLibrary";
     private static final String TABLE_FAVORITES = "tFavorites";
-
-    private static final int DATABASE_VERSION = 7;
-
     public static final String DATABASE_CREATE_BOOKMARKS = "CREATE TABLE " + TABLE_BOOKMARKS + " (" + KEY_ROWID + " integer primary key autoincrement, " + KEY_MANGAID + " text not null, "
             + KEY_MANGATITLE + " text, " + KEY_CHAPTERINDEX + " integer, " + KEY_CHAPTERNAME + " text, " + KEY_CHAPTERID + " text, "
             + KEY_CHAPTERCOUNT + " integer, " + KEY_PAGEINDEX + " integer, " + KEY_PAGEID + " text, " + KEY_MANGASITE + " text, "
             + KEY_UPDATETIME + " text, " + KEY_BOOKMARKTYPE + " integer)";
-
     public static final String DATABASE_CREATE_LIBRARY = "CREATE TABLE " + TABLE_LIBRARY + " (" + KEY_ROWID + " integer primary key autoincrement, " + KEY_MANGAID + " text not null, "
             + KEY_MANGATITLE + " text, " + KEY_CHAPTERINDEX + " integer, " + KEY_CHAPTERNAME + " text, " + KEY_CHAPTERID + " text, "
             + KEY_CHAPTERCOUNT + " integer, " + KEY_CHAPTERURL + " text, " + KEY_MANGASITE + " integer, " + KEY_LOCALPATH
             + " text, mangaSimpleName text)";
-
     public static final String DATABASE_CREATE_FAVORITES = "CREATE TABLE tFavorites (rowId integer primary key autoincrement, mangaTitle text, mangaId text, mangaSimpleName text, mangaAltName text, progressChapterId text, progressChapterUrl text, progressChapterName text, progressChapterIndex integer, progressPageIndex integer, siteId integer, lastChapterTime integer, lastChapterId text, lastChapterUrl text, lastChapterName text, lastChapterIndex integer, coverArtUrl text, notificationsEnabled integer, tagId integer, isOngoing integer, readDate integer, newChapterAvailable integer)";
-
+    private static final int DATABASE_VERSION = 7;
     private final Context context;
-
     public DatabaseHelper DBHelper;
     public SQLiteDatabase db;
+    Pattern p = Pattern.compile("[^a-z0-9]");
 
     public MangoSqlite(Context ctx)
     {
@@ -60,90 +53,13 @@ public class MangoSqlite
         DBHelper = new DatabaseHelper(context);
     }
 
-    public static class DatabaseHelper extends SQLiteOpenHelper
-    {
-        private Context c;
-
-        DatabaseHelper(Context context)
-        {
-            super(context, DATABASE_NAME, null, DATABASE_VERSION);
-            c = context;
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db)
-        {
-            db.execSQL(DATABASE_CREATE_BOOKMARKS);
-            db.execSQL(DATABASE_CREATE_LIBRARY);
-            db.execSQL(DATABASE_CREATE_FAVORITES);
-            Mango.log("MangoSqlite >> Created initial database structure!");
-        }
-
-        @Override
-        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
-        {
-            Mango.log("MangoSqlite >> onUpgrade is being called (from " + oldVersion + " to " + newVersion + ".)");
-            if (oldVersion == 2) // version 3 adds My Library
-            {
-                Mango.log("MangoSqlite >> upgrading database from version 2 to version 3.");
-                db.execSQL("DROP TABLE IF EXISTS tLibrary");
-                db.execSQL(DATABASE_CREATE_LIBRARY);
-                oldVersion = 3;
-            }
-            if (oldVersion == 3) // version 4 adds Favorites
-            {
-                Mango.log("MangoSqlite >> upgrading database from version 3 to version 4.");
-                db.execSQL("DROP TABLE IF EXISTS tFavorites");
-                db.execSQL(DATABASE_CREATE_FAVORITES);
-                oldVersion = 4;
-            }
-            // version 5 introduces changes to Library table structure
-            if (oldVersion < 6) // ...but it was buggy as hell so version 6 fixes that.
-            {
-                Mango.log("MangoSqlite >> upgrading database to version 6.");
-                Mango.log("MangoSqlite >>\tDropping table...");
-                db.execSQL("DROP TABLE IF EXISTS tLibrary");
-                Mango.log("MangoSqlite >>\tRe-creating table...");
-                db.execSQL(DATABASE_CREATE_LIBRARY);
-                oldVersion = 6;
-            }
-            // version 7 adds a column to favorites
-            if (oldVersion == 6)
-            {
-                Mango.log("MangoSqlite >> adding new boolean column 'newChapterAvailable'");
-                Cursor c = db.query(true, TABLE_FAVORITES, null, null, null, null, null, null, null);
-                if (c != null && c.getCount() > 0)
-                {
-                    c.moveToFirst();
-                }
-                if (c.getColumnIndex("newChapterAvailable") == -1)
-                {
-                    db.execSQL("ALTER TABLE tFavorites ADD COLUMN newChapterAvailable integer");
-                    Mango.log("MangoSqlite >> added column newChapterAvailable!");
-                }
-                else
-                {
-                    Mango.log("It already exists!");
-                }
-                oldVersion = 7;
-            }
-        }
-
-        public void wipeDatabase(SQLiteDatabase db)
-        {
-            db.execSQL("DROP TABLE IF EXISTS tBookmarks");
-            db.execSQL("DROP TABLE IF EXISTS tLibrary");
-            db.execSQL("DROP TABLE IF EXISTS tFavorites");
-            onCreate(db);
-        }
-    }
-
     public MangoSqlite open() throws SQLException
     {
         try
         {
             db = DBHelper.getWritableDatabase();
-        } catch (SQLException e)
+        }
+        catch (SQLException e)
         {
             Mango.log("MangoSqlite.open: " + e.toString());
             db = DBHelper.getReadableDatabase();
@@ -216,7 +132,7 @@ public class MangoSqlite
     // uses rowId of the "fav" parameter to update an existing item
     public long updateLibraryChapter(LibraryChapter lc)
     {
-        lc.manga.generateSimpleName();
+        lc.manga.generateSimpleName(null);
         ContentValues initialValues = new ContentValues();
         initialValues.put(KEY_MANGAID, lc.manga.id);
         initialValues.put(KEY_MANGATITLE, lc.manga.title);
@@ -253,25 +169,11 @@ public class MangoSqlite
 
     public Favorite getFavoriteForManga(Manga manga)
     {
-        manga.generateSimpleName();
+        manga.generateSimpleName(null);
         String safeTitle = manga.title.replace("'", "''");
         String whereClause = "lower(mangaTitle) = '" + safeTitle + "' OR lower(mangaId) = '" + manga.id.toLowerCase() + "' OR lower(mangaSimpleName) = '" + manga.simpleName.toLowerCase() + "'";
         return getFavorite(whereClause);
     }
-
-    //	public void updateMissingColumn()
-    //	{
-    //		Cursor c = db.query(true, TABLE_FAVORITES, null, null, null, null, null, null, null);
-    //		if (c != null && c.getCount() > 0)
-    //		{
-    //			c.moveToFirst();
-    //		}
-    //		if (c.getColumnIndex("readDate") == -1)
-    //		{
-    //			db.execSQL("ALTER TABLE tFavorites ADD COLUMN readDate integer");
-    //			Mango.Log("added column readDate!");
-    //		}
-    //	}
 
     public Favorite getFavorite(String whereClause)
     {
@@ -290,7 +192,7 @@ public class MangoSqlite
         f.mangaId = c.getString(2);
         f.mangaSimpleName = c.getString(3);
         if (f.mangaSimpleName == null)
-            f.mangaSimpleName = f.mangaTitle.toLowerCase().replaceAll("[^a-z0-9]", "");
+            f.mangaSimpleName = p.matcher(f.mangaTitle.toLowerCase()).replaceAll("");
         f.mangaAltTitles = c.getString(4);
         f.progressChapterId = c.getString(5);
         f.progressChapterUrl = c.getString(6);
@@ -306,14 +208,28 @@ public class MangoSqlite
         f.coverArtUrl = c.getString(16);
         if (f.coverArtUrl == null)
             f.coverArtUrl = ".";
-        f.notificationsEnabled = (c.getInt(17) == 0 ? false : true);
+        f.notificationsEnabled = (c.getInt(17) != 0);
         f.tagId = c.getInt(18);
-        f.isOngoing = (c.getInt(19) == 0 ? false : true);
+        f.isOngoing = (c.getInt(19) != 0);
         f.readDate = c.getLong(20);
-        f.newChapterAvailable = (c.getInt(21) == 0 ? false : true);
+        f.newChapterAvailable = (c.getInt(21) != 0);
         c.close();
         return f;
     }
+
+    //	public void updateMissingColumn()
+    //	{
+    //		Cursor c = db.query(true, TABLE_FAVORITES, null, null, null, null, null, null, null);
+    //		if (c != null && c.getCount() > 0)
+    //		{
+    //			c.moveToFirst();
+    //		}
+    //		if (c.getColumnIndex("readDate") == -1)
+    //		{
+    //			db.execSQL("ALTER TABLE tFavorites ADD COLUMN readDate integer");
+    //			Mango.Log("added column readDate!");
+    //		}
+    //	}
 
     public long getFavoriteCount(String whereClause)
     {
@@ -712,11 +628,17 @@ public class MangoSqlite
         return list.toArray(fArray);
     }
 
-    public LibraryChapter[] getAllLibraryChapters(String whereClause) throws SQLException
+    public LibraryChapter[] getAllLibraryChapters(String mangaTitle) throws SQLException
     {
         ArrayList<LibraryChapter> list = new ArrayList<LibraryChapter>();
 
-        Cursor c = db.query(true, TABLE_LIBRARY, new String[]{"rowId"}, whereClause, null, null, null, null, null);
+        Cursor c;
+        if (mangaTitle != null)
+            c = db.rawQuery("SELECT DISTINCT rowId FROM tLibrary WHERE " + KEY_MANGATITLE + " = ?", new String[]{mangaTitle});
+        else
+            c = db.rawQuery("SELECT DISTINCT rowId FROM tLibrary", new String[]{});
+
+        //c = db.query(true, TABLE_LIBRARY, new String[]{"rowId"}, whereClause, null, null, null, null, null);
         if (c != null && c.getCount() > 0)
         {
             c.moveToFirst();
@@ -763,14 +685,14 @@ public class MangoSqlite
         l.chapter.url = c.getString(7);
         l.siteId = c.getInt(8);
         l.path = c.getString(9);
-        l.manga.generateSimpleName();
+        l.manga.generateSimpleName(p);
         c.close();
         return l;
     }
 
     public LibraryChapter[] getLibraryChaptersForManga(Manga manga)
     {
-        manga.generateSimpleName();
+        manga.generateSimpleName(p);
         String whereClause = "lower(mangaId) = '" + manga.id.toLowerCase() + "' OR lower(mangaSimpleName) = '" + manga.simpleName.toLowerCase() + "'";
         return getAllLibraryChapters(whereClause);
     }
@@ -783,5 +705,83 @@ public class MangoSqlite
         count = c.getInt(0);
         c.close();
         return count;
+    }
+
+    public static class DatabaseHelper extends SQLiteOpenHelper
+    {
+        private Context c;
+
+        DatabaseHelper(Context context)
+        {
+            super(context, DATABASE_NAME, null, DATABASE_VERSION);
+            c = context;
+        }
+
+        @Override
+        public void onCreate(SQLiteDatabase db)
+        {
+            db.execSQL(DATABASE_CREATE_BOOKMARKS);
+            db.execSQL(DATABASE_CREATE_LIBRARY);
+            db.execSQL(DATABASE_CREATE_FAVORITES);
+            Mango.log("MangoSqlite >> Created initial database structure!");
+        }
+
+        @Override
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
+        {
+            Mango.log("MangoSqlite >> onUpgrade is being called (from " + oldVersion + " to " + newVersion + ".)");
+            if (oldVersion == 2) // version 3 adds My Library
+            {
+                Mango.log("MangoSqlite >> upgrading database from version 2 to version 3.");
+                db.execSQL("DROP TABLE IF EXISTS tLibrary");
+                db.execSQL(DATABASE_CREATE_LIBRARY);
+                oldVersion = 3;
+            }
+            if (oldVersion == 3) // version 4 adds Favorites
+            {
+                Mango.log("MangoSqlite >> upgrading database from version 3 to version 4.");
+                db.execSQL("DROP TABLE IF EXISTS tFavorites");
+                db.execSQL(DATABASE_CREATE_FAVORITES);
+                oldVersion = 4;
+            }
+            // version 5 introduces changes to Library table structure
+            if (oldVersion < 6) // ...but it was buggy as hell so version 6 fixes that.
+            {
+                Mango.log("MangoSqlite >> upgrading database to version 6.");
+                Mango.log("MangoSqlite >>\tDropping table...");
+                db.execSQL("DROP TABLE IF EXISTS tLibrary");
+                Mango.log("MangoSqlite >>\tRe-creating table...");
+                db.execSQL(DATABASE_CREATE_LIBRARY);
+                oldVersion = 6;
+            }
+            // version 7 adds a column to favorites
+            if (oldVersion == 6)
+            {
+                Mango.log("MangoSqlite >> adding new boolean column 'newChapterAvailable'");
+                Cursor c = db.query(true, TABLE_FAVORITES, null, null, null, null, null, null, null);
+                if (c != null && c.getCount() > 0)
+                {
+                    c.moveToFirst();
+                }
+                if (c.getColumnIndex("newChapterAvailable") == -1)
+                {
+                    db.execSQL("ALTER TABLE tFavorites ADD COLUMN newChapterAvailable integer");
+                    Mango.log("MangoSqlite >> added column newChapterAvailable!");
+                }
+                else
+                {
+                    Mango.log("It already exists!");
+                }
+                oldVersion = 7;
+            }
+        }
+
+        public void wipeDatabase(SQLiteDatabase db)
+        {
+            db.execSQL("DROP TABLE IF EXISTS tBookmarks");
+            db.execSQL("DROP TABLE IF EXISTS tLibrary");
+            db.execSQL("DROP TABLE IF EXISTS tFavorites");
+            onCreate(db);
+        }
     }
 }

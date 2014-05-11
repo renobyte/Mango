@@ -1,5 +1,7 @@
 package net.leetsoft.mangareader;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.app.AlertDialog;
 import android.app.Application;
 import android.app.ProgressDialog;
@@ -20,15 +22,15 @@ import android.util.Pair;
 import net.leetsoft.mangareader.ui.MangoBackground;
 import net.leetsoft.mangareader.ui.MangoDecorHandler;
 
-import java.io.File;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.text.DateFormat;
+import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
-public class Mango extends Application
+public class Mango extends Application implements Thread.UncaughtExceptionHandler
 {
     // Build IDs
     // pre-release alpha = Misa
@@ -44,15 +46,15 @@ public class Mango extends Application
     // 1.4.140 = Renji
     // 1.5 = Orihime
     // 1.6 = Rukia
+    // 1.6.190
 
     // Versioning and identification
-    public static final String VERSION_FULL = "1.6.188";
-    public static final String VERSION_BUILDID = "Rukia";
-    public static final String VERSION_NETID = "android_play_1.6.188";
+    public static final String VERSION_FULL = "1.6.190";
+    public static final String VERSION_BUILDID = "Kon";
+    public static final String VERSION_NETID = "android_play_1.6.190";
     public static final String TAG = "Mango";
-    public static final int VERSION_REVISION = 188;
-    public static final boolean VERSION_GOOGLEPLAY = true;
-
+    public static final int VERSION_REVISION = 190;
+    public static final boolean DONT_LOGCAT = false;
     // Site codes
     public static final int SITE_LOCAL = 1;
     public static final int SITE_MANGAFOX = 2;
@@ -65,37 +67,39 @@ public class Mango extends Application
     public static final int SITE_MANGAHERE = 9;
     public static final int SITE_MANGAPANDA = 10;
     public static final int SITE_TEST = 100;
-
     // Ad provider codes
     public static final int PROVIDER_MOBCLIX = 0;
     public static final int PROVIDER_LEADBOLT = 1;
     public static final int PROVIDER_ADMOB = 2;
-
     // Menu background cache
     public static Bitmap MENUBG_PORTRAIT;
     public static Bitmap MENUBG_LANDSCAPE;
     public static String MENUBG_PORTRAITNAME;
     public static String MENUBG_LANDSCAPENAME;
-
     // Global variables
+    public static boolean WEBSITE_VERSION;
     public static ProgressDialog DIALOG_DOWNLOADING;
     public static boolean MANGA_LIST_CACHED = false;
     public static long LAST_CACHE_UPDATE = 0;
-
     public static Map<String, Integer> AD_PROVIDER_WEIGHTS;
-
+    public static Context CONTEXT = null;
+    public static boolean INITIALIZED = false;
+    public static boolean DISABLE_ADS = false;
     private static SharedPreferences MANGO_SHAREDPREFS;
     private static Random RANDOM;
-
-    public static Context CONTEXT = null;
-
-    public static boolean INITIALIZED = false;
-
-    public static boolean DISABLE_ADS = false;
+    // Logging
+    private static boolean loggingStarted = false;
+    private static LogProducer logProducer;
+    private static LogConsumer logConsumer;
+    private static Thread loggingThread;
+    private static long appStartedAt;
+    private Thread.UncaughtExceptionHandler defaultUEH;
 
     public Mango()
     {
         CONTEXT = this;
+        defaultUEH = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler(this);
     }
 
     public static void bankaiCheck()
@@ -105,10 +109,29 @@ public class Mango extends Application
 
     public static void initializeApp(Context context)
     {
+        if (loggingThread != null)
+            loggingThread.interrupt();
+
         bankaiCheck();
 
+        try
+        {
+            appStartedAt = System.currentTimeMillis();
+            setupLogger();
+        }
+        catch (IOException ex)
+        {
+            Mango.log("Unable to start logger: " + ex.toString());
+        }
+
         INITIALIZED = true;
-        Log.d(Mango.TAG, "Mango is initializing. (" + CONTEXT.toString() + ")");
+        String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
+        Mango.log("===================================================");
+        Mango.log(currentDateTimeString + ", " + System.currentTimeMillis());
+        Mango.log("Mango is initializing. (" + CONTEXT.toString() + ")");
+
+        if (CONTEXT.getPackageName().contains("com.ls"))
+            WEBSITE_VERSION = true;
 
         MANGO_SHAREDPREFS = PreferenceManager.getDefaultSharedPreferences(CONTEXT);
         RANDOM = new Random(System.currentTimeMillis());
@@ -139,7 +162,7 @@ public class Mango extends Application
 
         LAST_CACHE_UPDATE = MANGO_SHAREDPREFS.getLong("lastAllMangaCacheUpdate", 0);
 
-        if (java.lang.Runtime.getRuntime().maxMemory() < 24 * 1024 * 1024)
+        if (Runtime.getRuntime().maxMemory() < 24 * 1024 * 1024)
         {
             Mango.log("DalvikVM heap size is < 24MB!  OutOfMemoryErrors may occur!");
             MANGO_SHAREDPREFS.edit().putBoolean("disableAnimation", true).commit();
@@ -205,6 +228,13 @@ public class Mango extends Application
         }
 
         return 0;
+    }
+
+    public static String getPrimaryAccount()
+    {
+        Account[] accounts= AccountManager.get(CONTEXT).getAccountsByType("com.google");
+        String s = accounts[0].name;
+        return s;
     }
 
     public static int getSiteId()
@@ -400,12 +430,19 @@ public class Mango extends Application
 
     public static void log(Object msg)
     {
-        Log.d("Mango", String.valueOf(msg));
+        if (!DONT_LOGCAT)
+            Log.d("Mango", String.valueOf(msg));
+        if (loggingStarted)
+            logProducer.log(String.valueOf(msg));
     }
 
     public static void log(String tag, Object msg)
     {
-        Log.d("Mango", tag + " >> " + String.valueOf(msg));
+        String composed = tag + " >> " + String.valueOf(msg);
+        if (!DONT_LOGCAT)
+            Log.d("Mango", composed);
+        if (loggingStarted)
+            logProducer.log(composed);
     }
 
     public static String getSiteName(int siteId)
@@ -664,5 +701,164 @@ public class Mango extends Application
         {
         }
         return false;
+    }
+
+    private static void setupLogger() throws IOException
+    {
+        File logF = new File(CONTEXT.getFilesDir(), "log.txt");
+        Mango.log("Log size is " + (logF.length() / 1024) + "KB");
+        if (logF.length() > 1024 * 10)
+        {
+            Mango.log("Cycling log file.");
+            File log2 = new File(CONTEXT.getFilesDir(), "logOld.txt");
+            if (log2.exists())
+                log2.delete();
+
+            if (!logF.renameTo(log2)) throw new IOException("Unable to rename cycle log.");
+            logF = new File(CONTEXT.getFilesDir(), "log.txt");
+        }
+
+        if (!logF.exists())
+            if (!logF.createNewFile()) throw new IOException("Unable to create logfile.");
+
+        BlockingQueue<LogEntry> queue = new LinkedBlockingQueue<LogEntry>();
+        logConsumer = new LogConsumer(queue);
+        logProducer = new LogProducer(queue);
+        loggingThread = new Thread(logConsumer);
+        loggingStarted = true;
+        loggingThread.start();
+    }
+
+    public static void stopLogger()
+    {
+        loggingStarted = false;
+        loggingThread.interrupt();
+    }
+
+    @Override
+    public void uncaughtException(Thread thread, Throwable throwable)
+    {
+        Log.d("Mango", "Uncaught exception");
+        File f = null;
+        BufferedWriter b = null;
+
+
+
+        try
+        {
+            f = new File(getApplicationContext().getFilesDir(), "log.txt");
+            Log.d("Mango", "Writing exception report to " + f.getAbsolutePath());
+            if (!f.exists())
+                f.createNewFile();
+            b = new BufferedWriter(new FileWriter(f, true));
+            b.append("Mango has died :'(\n" + CONTEXT.toString() + ", " + System.currentTimeMillis() + "\n" + Log.getStackTraceString(throwable));
+            b.newLine();
+            b.flush();
+        }
+        catch (Exception ioe)
+        {
+            Log.d("Mango", "Unable to write exception report." + Log.getStackTraceString(ioe));
+        }
+        finally
+        {
+            try
+            {
+                if (b != null)
+                    b.close();
+                b = null;
+            }
+            catch (IOException e)
+            {
+
+            }
+        }
+        Log.d("Mango", "Calling up to default exception handler.");
+        defaultUEH.uncaughtException(thread, throwable);
+    }
+
+    static class LogEntry
+    {
+        private final String message;
+
+        LogEntry(String msg)
+        {
+            message = msg;
+        }
+    }
+
+    static class LogProducer
+    {
+        private final BlockingQueue<LogEntry> queue;
+
+        LogProducer(BlockingQueue<LogEntry> q)
+        {
+            queue = q;
+        }
+
+        public void log(String msg)
+        {
+            try
+            {
+                queue.put(new LogEntry(msg));
+            }
+            catch (InterruptedException e)
+            {
+                Log.d("Mango", "LogProducer: InterruptedException");
+            }
+        }
+    }
+
+    static class LogConsumer implements Runnable
+    {
+        private final BlockingQueue<LogEntry> queue;
+
+        LogConsumer(BlockingQueue<LogEntry> q)
+        {
+            queue = q;
+        }
+
+        public void run()
+        {
+            File f;
+            BufferedWriter b = null;
+            try
+            {
+                f = new File(CONTEXT.getFilesDir(), "log.txt");
+                b = new BufferedWriter(new FileWriter(f, true));
+
+
+                StringBuilder s = new StringBuilder();
+
+                while (loggingStarted)
+                {
+                    s.delete(0, s.length());
+                    s.append(System.currentTimeMillis() - appStartedAt);
+                    s.append(" > ");
+                    LogEntry entry = queue.take();
+                    s.append(entry.message);
+                    b.append(s.toString());
+                    b.newLine();
+                    b.flush();
+                }
+            }
+            catch (InterruptedException ex)
+            {
+                loggingStarted = false;
+                Log.d("Mango", "LogConsumer: InterruptedException");
+            }
+            catch (IOException e)
+            {
+                Log.d("Mango", "LogConsumer: IOException");
+            }
+            finally
+            {
+                Log.d("Mango", "LogConsumer: Shutting down.");
+                if (b != null)
+                    try
+                    { b.close(); }
+                    catch (IOException e)
+                    { }
+            }
+        }
     }
 }

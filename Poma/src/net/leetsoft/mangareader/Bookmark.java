@@ -21,7 +21,6 @@ public class Bookmark
     public static final int RECENT = 3;
     public static final int PAGE_LOCAL = 4;
     public static final int RELEASE = 5;
-
     public String mangaId;
     public String mangaName;
     public int chapterIndex;
@@ -32,13 +31,10 @@ public class Bookmark
     public int pageIndex;
     public String pageId;
     public int bookmarkType;
-
     public long updateTime;
     public int siteId;
-
     public Manga manga;
     public long rowId;
-
     private Activity mReference;
 
     public void buildManga(Activity ref)
@@ -63,8 +59,7 @@ public class Bookmark
     {
         if (data.exception || data.toString().startsWith("error"))
         {
-            data.data = ("Mango wasn't able to download more information about this bookmark. If your phone's 3G/4G/WiFi connection is fine, "
-                    + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
+            data.data = ("Mango wasn't able to retrieve metadata for this favorite.  If your device's mobile data or Wi-Fi connection is fine, " + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
             if (bookmarkType == Bookmark.RELEASE)
                 ((NewReleasesActivity) mReference).pendingItemFailed(data);
             else
@@ -89,7 +84,7 @@ public class Bookmark
         }
         catch (Exception ex)
         {
-            data.data = ("Mango received invalid data about this bookmark from the server. If you phone's 3G/4G connection is fine, "
+            data.data = ("Mango received invalid data about this favorite from the server.  If your device's mobile data or Wi-Fi connection is fine, "
                     + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
             if (bookmarkType == Bookmark.RELEASE)
                 ((NewReleasesActivity) mReference).pendingItemFailed(data);

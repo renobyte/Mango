@@ -437,13 +437,13 @@ public class TutorialActivity extends MangoActivity
         if (keyCode == KeyEvent.KEYCODE_BACK && Mango.getSharedPreferences().getInt("pagereaderShowTutorial", 0) != 2 && !pressedBackOnce)
         {
             pressedBackOnce = true;
-            Mango.alert("Please view the tutorial to the end. It takes just 20 seconds and will make your reading experience more enjoyable, I promise!", this);
+            Mango.alert("Please view the tutorial to the end. It takes just 20 seconds and will make your reading experience more enjoyable, I promise.", this);
             return false;
         }
         else if (keyCode == KeyEvent.KEYCODE_BACK && Mango.getSharedPreferences().getInt("pagereaderShowTutorial", 0) != 2 && pressedBackOnce)
         {
             Mango.getSharedPreferences().edit().putInt("pagereaderShowTutorial", 2).commit();
-            Mango.alert("Okay, fine! If you really want to skip the tutorial, just press Back once more.\n\nBut if you email me asking for help with controls, I won't like you! >:(", this);
+            Mango.alert("Alright, fine!  If you really want to skip the tutorial, just press Back once more.", this);
             return false;
         }
         else

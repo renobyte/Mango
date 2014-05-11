@@ -43,69 +43,27 @@ public class MainMenuActivity extends MangoActivity
             new MenuChoice("Favorites", 2, R.drawable.ic_favorites),
             new MenuChoice("History", 3, R.drawable.ic_history),
             new MenuChoice("Settings and Help", 4, R.drawable.ic_options)};
-
-    class MenuChoice
-    {
-        String text;
-        int id;
-        int icon;
-
-        MenuChoice(String t, int i, int iconId)
-        {
-            id = i;
-            text = t;
-            icon = iconId;
-        }
-    }
-
     Alert[] ALERTS;
-
-    class Alert
-    {
-        String text;
-        String urlToLaunch;
-        Bitmap icon;
-
-        Alert(String t, String url, Bitmap i)
-        {
-            text = t;
-            urlToLaunch = url;
-            icon = i;
-        }
-    }
-
     String[] TIPS = new String[]{"Don't like how pages keep scrolling after you lift your finger? Enable 'Reduce Scroll Momentum' from Preferences.",
-            "When you add a manga to your Favorites, Mango will automatically track your progress as you read!",
-            "Select Send Feedback from the menu to get in touch with Mango's developer. It even goes straight to his phone! :]",
-            "Have friends who like manga? Tell them about Mango! (also available for BlackBerry!)",
-            "Use the History screen to quickly resume reading a manga you don't have in your Favorites.",
-            "Turn on Sticky Zoom from the General Settings menu to retain the zoom level when switching pages.",
-            "Become a fan of Mango on Facebook and learn about new features and development progress!\n<www.facebook.com/MangoApp>",
-            "Have a suggestion? See something you think could be improved? Let me know via Send Feedback from the menu!",
-            "Hate ads? Upgrade to Mango Bankai to get rid of them and support the developer at the same time! ;)",
-            "Save chapters to your Library so you can read them later without an internet connection!",
-            "Going on a trip? Don't forget to save a bunch of manga to your Library so that you'll have something to read on the plane. :P",
-            "Please support mangaka and publishers by buying official manga volumes when they're licensed in English!",
-            "Support English publishers and mangaka by buying licensed manga! Besides, even Mango isn't as good as a real book. ;P",
-            "Share a cool page with your friends on Facebook or Twitter by going to Menu >> More >> Share!",
-            "Enable Notifications to have Mango automatically check for new chapters of your favorite manga!",
-            "Mango is also available on BlackBerry. World domination is imminent!",
-            "Support Japanese mangaka and English publishers by buying licensed manga when it's available in your local bookstore!",
-            "Want to get in touch with the developer of Mango? Use the Send Feedback function to send a message straight to his phone!",
-            "Mango's Advanced Search is really powerful! Use it to include or exclude certain genres and to search through manga summaries!",
-            "Sick of Bleach, Naruto, and One Piece? Use the Advanced Search feature to find new manga from genres you like!",
-            "The Mango Service checks for new chapters every hour. If a brand new chapter doesn't show up, just wait a bit for it to be discovered.",
-            "The Mango Service checks for new manga daily at 3:00 AM EST. If a new manga is not in the All Manga list yet, it should be there by the next day."};
-
+            "Adding a series to your Favorites will cause Mango to save your progress as you read.",
+            "Have friends who like manga?  Please tell them about Mango!",
+            "Use the History screen to quickly resume reading a series you don't have in your Favorites.",
+            "Turn on Sticky Zoom from the Preferences menu to retain the zoom level when switching pages.",
+            "Follow us on social media to keep up on development progress, service status, and new features.\n<www.facebook.com/MangoApp>",
+            "Hate ads?  Upgrade to Bankai to get rid of them and support the developer at the same time!",
+            "Download chapters for your favorite series to your Library so you can read them later without an internet connection.",
+            "Please support mangaka and publishers by purchasing official manga volumes when they're licensed in English.",
+            "Support English publishers and mangaka by buying licensed manga!  Even Mango isn't as good as a real book.",
+            "Enable Notifications to have Mango automatically check for new chapters of your favorite series.",
+            "Sick of Bleach, Naruto, and One Piece? Use the Advanced Search feature to find new manga from genres you enjoy!",
+            "The Mango Service checks for new chapters every half-hour. If a brand new chapter doesn't show up, just wait a bit for it to be discovered.",
+            "The Mango Service checks for new manga daily. If a new manga is not in the All Manga list yet, it should be there by the next day."};
     private TextSwitcher tipSwitcher;
     private TextSwitcher alertSwitcher;
     private ImageView alertIcon;
     private RelativeLayout alertLayout;
-
     private ListView mainMenuList;
-
     private Random rand = new Random(System.currentTimeMillis());
-
     private Handler tipRotator = new Handler();
     private Runnable tipRotateTask = new Runnable()
     {
@@ -113,7 +71,7 @@ public class MainMenuActivity extends MangoActivity
         public void run()
         {
             tipSwitcher.setText("\n" + TIPS[rand.nextInt(TIPS.length - 1)]);
-            tipRotator.postDelayed(this, 8000);
+            tipRotator.postDelayed(this, 10000);
         }
     };
     private Handler alertRotator = new Handler();
@@ -135,7 +93,7 @@ public class MainMenuActivity extends MangoActivity
             }
             catch (ArrayIndexOutOfBoundsException ex)
             {
-                alertSwitcher.setText("ArrayIndexOutOfBoundsException: Error loading server alerts.");
+                alertSwitcher.setText("Unable to load server alerts.");
                 alertIcon.setImageBitmap(null);
             }
             alertRotator.removeCallbacks(alertRotateTask);
@@ -143,7 +101,6 @@ public class MainMenuActivity extends MangoActivity
         }
     };
     private int activeAlert = -1;
-
     private boolean mUpdateAvailable = false;
 
     @Override
@@ -225,7 +182,7 @@ public class MainMenuActivity extends MangoActivity
                     MangoHttpResponse resp = MangoHttp.downloadData("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, MainMenuActivity.this);
                     String url;
                     if (resp.exception)
-                        url = "http://Mango.leetsoft.net/install-android.php";
+                        url = "http://mango.leetsoft.net/install-android.php";
                     else
                         url = resp.toString();
                     intent.setData(Uri.parse(url));
@@ -256,7 +213,7 @@ public class MainMenuActivity extends MangoActivity
                     }
                     catch (Exception ex)
                     {
-                        Mango.alert("Mango wasn't able to open the link. :'(\n\nYou can manually type it into the Browser instead:\n" + ALERTS[activeAlert].urlToLaunch, MainMenuActivity.this);
+                        Mango.alert("Unable to launch web brower.\n\nYou can manually type it into the Browser instead:\n" + ALERTS[activeAlert].urlToLaunch, MainMenuActivity.this);
                     }
                 }
             }
@@ -281,7 +238,7 @@ public class MainMenuActivity extends MangoActivity
                     startActivity(myIntent);
                 }
             };
-            setToast("Want to get rid of ads, and support Mango's developer at the same time?  Tap here to upgrade to Mango Bankai!", l, true);
+            setToast("Want to permanently get rid of ads?  Tap here to upgrade to Bankai!", l, true);
             showToast(20000);
         }
 
@@ -290,7 +247,7 @@ public class MainMenuActivity extends MangoActivity
         if (arguments != null && arguments.getBoolean("updateavailable"))
         {
             mUpdateAvailable = true;
-            Toast toast = Toast.makeText(MainMenuActivity.this, "An update for Mango is available!", Toast.LENGTH_LONG);
+            Toast toast = Toast.makeText(MainMenuActivity.this, "A version update is available.", Toast.LENGTH_LONG);
             toast.show();
             MenuChoice[] temp = new MenuChoice[MENU_CHOICES.length + 1];
             for (int i = 0; i < MENU_CHOICES.length; i++)
@@ -375,27 +332,28 @@ public class MainMenuActivity extends MangoActivity
 
         // Make sure we can write data to our data directory
         MangoCache.writeDataToCache(Mango.CONTEXT.toString(), "iocheck");
-        if (MangoCache.readDataFromCache("iocheck") == null || !MangoCache.readDataFromCache("iocheck").equals(Mango.CONTEXT.toString()))
-            Mango.alert(
-                    "Mango cannot write to the cache folder!  It's possible that your SD card is full, mounted, or write-locked.  You will not be able to read manga until Mango can access the cache folder again.\n\n<strong>Possible Solutions:</strong>\n<small>-Unmount the SD card, if it is mounted\n-Unplug your device if it is plugged into a computer\n-Make sure the SD card isn't full\n-Restart your device</small>",
-                    "Error", MainMenuActivity.this);
-        else if (MangoCache.getFreeSpace() < 20 && MangoCache.getFreeSpace() > 2)
-            Mango.alert(
-                    "Your external storage is almost full! ("
-                            + ((int) MangoCache.getFreeSpace())
-                            + "MB remaining)\n\nIf it becomes full, Mango probably won't function properly.\n\nTry to delete some stuff from your external storage, such as camera photos, music, or My Library chapters until you're above 20MB of available space.",
-                    "Warning!", MainMenuActivity.this);
+        if (MangoCache.getFreeSpace() < 20 && MangoCache.getFreeSpace() > 2)
+        {
+            Mango.alert("Your external storage is nearly full. (" + ((int) MangoCache.getFreeSpace()) + "MB remaining)\n\nIf it becomes full, Mango probably won't function properly.\n\nTry to delete some data from your external storage, such as camera photos, music, or My Library chapters until you're above 20MB of available space.", "Warning", MainMenuActivity.this);
+            Mango.log("External storage nearly full.");
+        }
         else if (MangoCache.getFreeSpace() <= 2)
-            Mango.alert(
-                    "Your external storage is full! Mango probably won't work properly.\n\nTry deleting some stuff from your external storage, such as camera photos, music, or My Library chapters to free up space.",
-                    "Warning!", MainMenuActivity.this);
+        {
+            Mango.alert("Your external storage is full! Mango probably won't work properly.\n\nTry deleting some data from your external storage, such as camera photos, music, or My Library chapters to free up space.", "Warning", MainMenuActivity.this);
+            Mango.log("External storage full.");
+        }
+        else if (MangoCache.readDataFromCache("iocheck") == null || !MangoCache.readDataFromCache("iocheck").equals(Mango.CONTEXT.toString()))
+        {
+            Mango.alert("Mango was unable to write to the cache folder.  It is possible that your SD card is full, mounted, or write-locked.  You will not be able to read manga until Mango can access the cache folder again.\n\n<strong>Possible Solutions:</strong>\n<small>-Unmount the SD card, if it is mounted\n-Unplug your device if it is plugged into a computer\n-Make sure the SD card isn't full\n-Restart your device</small>", "Error", MainMenuActivity.this);
+            Mango.log("iocheck failed.");
+        }
 
         // Flurry opt in
         if (!Mango.getSharedPreferences().getBoolean("popupEnableFlurry", false))
         {
             AlertDialog alert = new AlertDialog.Builder(MainMenuActivity.this).create();
             alert.setTitle("Enable Analytics?");
-            alert.setMessage("Would you like to enable Flurry Analytics?\n\nThis will help make Mango even more awesome in the future sending usage anonymous statistics and crash reports.  No information about the manga you read or download is collected.\n\nYou can change this setting at any time from Preferences.");
+            alert.setMessage("Would you like to enable Flurry Analytics?\n\nThis will help make Mango even better in the future by sending usage anonymous statistics and crash reports.  No information about the manga you read or download is collected.\n\nYou can change this setting at any time from Preferences.");
             alert.setButton(DialogInterface.BUTTON_POSITIVE, "Sure", new DialogInterface.OnClickListener()
             {
                 @Override
@@ -433,32 +391,14 @@ public class MainMenuActivity extends MangoActivity
             StringBuilder changelog = new StringBuilder();
             changelog.append("<b>New in v" + Mango.VERSION_FULL + "</b><br>");
             changelog.append("<small>");
-            changelog.append("<b>-Added: Option to disable double-tap zoom</b><br>");
-            changelog.append("You may now turn off double-tap zoom from the Preferences screen.  Single-tapping to change a page will be faster as a result.<br><br>");
-            changelog.append("<b>-Added: Optimizations to My Library</b><br>");
-            changelog.append("Reduced the loading time for the My Library screen by about 60-70%.  Users with very large libraries should especially notice improved performance.<br><br>");
-            changelog.append("<b>-Added: Optimizations to Pagereader</b><br>");
-            changelog.append("Reduced the delay between changing pages slightly by about 25%.<br><br>");
-            changelog.append("<b>-Added: Shortcut to My Library from the Downloader</b><br>");
-            changelog.append("You can now jump directly from the downloader to the My Library screen.<br><br>");
-            changelog.append("<b>-Added: new HTTP framework</b><br>");
-            changelog.append("MangoHttp, the under-the-hood system handling all of Mango's networking, has been rewritten.  Stability, speed, memory usage, and error handling should be slightly improved.<br><br>");
-            changelog.append("<b>-[v1.6.188] Fixed: Crash on Android 2.1</b><br>");
-            changelog.append("Advertisements were causing crashes on old versions of Android.<br><br>");
-            changelog.append("<b>-[v1.6.188] Fixed: Error when deleting Library folders</b><br>");
-            changelog.append("A NullPointerException error was appearing when attempting to delete folders<br><br>");
-            changelog.append("<b>-[v1.6.188] Fixed: Ads not clickable</b><br>");
-            changelog.append("Ads displayed from one ad provider (Leadbolt) were not doing anything when tapped.<br><br>");
-            changelog.append("<b>-Fixed: MangaHere issues</b><br>");
-            changelog.append("Mango should no longer spit out a garbled error message when attempting to read from MangaHere.<br><br>");
-            changelog.append("<b>-Fixed: My Library/Downloader crashes</b><br>");
-            changelog.append("Fixed an issue where the downloader would sometimes crash while downloading a chapterlist.<br><br>");
-            changelog.append("<b>-Fixed: Jump-to-Page crashes</b><br>");
-            changelog.append("Fixed sparodic jump-to-page crashes on some devices.<br><br>");
-            changelog.append("<b>-Fixed: Downloader dropped connection handling</b><br>");
-            changelog.append("When your Internet connection drops out in the middle of a download, the Downloader will now properly pause until it can reconnect.<br><br>");
-            changelog.append("<b>-Changed: ad network</b><br>");
-            changelog.append("Added support for a few different ad networks to reduce my reliance upon a single network (who've had issues paying lately)<br><br>");
+            changelog.append("<b>-Added: Content Filtering option</b><br>");
+            changelog.append("Hides all manga tagged as mature, ecchi, or adult.  This can be adjusted from the Settings menu.<br><br>");
+            changelog.append("<b>-Fixed: Various bugs</b><br>");
+            changelog.append("Fixed some crashes, addressed some My Library issues<br><br>");
+            changelog.append("<b>-Fixed: Android 4.4 issues</b><br>");
+            changelog.append("Fixed crashes caused by SD card access changes on Android 4.4.<br><br>");
+            changelog.append("<b>-Improved: Faster All Manga load times</b><br>");
+            changelog.append("The All Manga list's 'Processing Data' period has been improved by about 15%.<br><br>");
             changelog.append("</small>");
             // MangoCache.writeDataToCache(changelog.toString(), "changelog");
             Mango.alert(changelog.toString(), "What's new in this update?", MainMenuActivity.this, new DialogInterface.OnClickListener()
@@ -496,47 +436,6 @@ public class MainMenuActivity extends MangoActivity
         super.onResume();
     }
 
-    class ViewHolder
-    {
-        TextView text;
-        ImageView icon;
-        ImageView star;
-    }
-
-    class MainMenuAdapter extends ArrayAdapter<MenuChoice>
-    {
-        LayoutInflater mInflater = null;
-
-        public MainMenuAdapter(Activity context)
-        {
-            super(context, R.layout.iconlistrow, MENU_CHOICES);
-            mInflater = context.getLayoutInflater();
-        }
-
-        @Override
-        public View getView(final int position, View convertView, ViewGroup parent)
-        {
-            ViewHolder holder;
-            if (convertView == null)
-            {
-                convertView = mInflater.inflate(R.layout.iconlistrow, null);
-                holder = new ViewHolder();
-                holder.text = (TextView) convertView.findViewById(R.id.label);
-                holder.icon = (ImageView) convertView.findViewById(R.id.icon);
-                holder.star = (ImageView) convertView.findViewById(R.id.star);
-                convertView.setTag(holder);
-            }
-            else
-            {
-                holder = (ViewHolder) convertView.getTag();
-            }
-            holder.text.setText(MENU_CHOICES[position].text);
-            holder.icon.setImageResource(MENU_CHOICES[position].icon);
-            holder.star.setVisibility(View.INVISIBLE);
-            return convertView;
-        }
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
@@ -557,46 +456,6 @@ public class MainMenuActivity extends MangoActivity
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    private class DownloadAlertsTask extends AsyncTask<String, Void, MangoHttpResponse>
-    {
-        MainMenuActivity activity = null;
-
-        public DownloadAlertsTask(MainMenuActivity activity)
-        {
-            attach(activity);
-        }
-
-        @Override
-        protected MangoHttpResponse doInBackground(String... params)
-        {
-            return MangoHttp.downloadData(params[0], activity);
-        }
-
-        @Override
-        protected void onPostExecute(MangoHttpResponse data)
-        {
-            if (activity == null)
-            {
-                Mango.log("AsyncTask skipped onPostExecute because no activity is attached!");
-            }
-            else
-            {
-                activity.callback(data);
-            }
-            detach();
-        }
-
-        void detach()
-        {
-            activity = null;
-        }
-
-        void attach(MainMenuActivity activity)
-        {
-            this.activity = activity;
-        }
     }
 
     public void callback(MangoHttpResponse data)
@@ -662,6 +521,120 @@ public class MainMenuActivity extends MangoActivity
         }
     }
 
+    public View getTutorialHighlightView(int index)
+    {
+        return mainMenuList.getChildAt(index);
+    }
+
+    class MenuChoice
+    {
+        String text;
+        int id;
+        int icon;
+
+        MenuChoice(String t, int i, int iconId)
+        {
+            id = i;
+            text = t;
+            icon = iconId;
+        }
+    }
+
+    class Alert
+    {
+        String text;
+        String urlToLaunch;
+        Bitmap icon;
+
+        Alert(String t, String url, Bitmap i)
+        {
+            text = t;
+            urlToLaunch = url;
+            icon = i;
+        }
+    }
+
+    class ViewHolder
+    {
+        TextView text;
+        ImageView icon;
+        ImageView star;
+    }
+
+    class MainMenuAdapter extends ArrayAdapter<MenuChoice>
+    {
+        LayoutInflater mInflater = null;
+
+        public MainMenuAdapter(Activity context)
+        {
+            super(context, R.layout.iconlistrow, MENU_CHOICES);
+            mInflater = context.getLayoutInflater();
+        }
+
+        @Override
+        public View getView(final int position, View convertView, ViewGroup parent)
+        {
+            ViewHolder holder;
+            if (convertView == null)
+            {
+                convertView = mInflater.inflate(R.layout.iconlistrow, null);
+                holder = new ViewHolder();
+                holder.text = (TextView) convertView.findViewById(R.id.label);
+                holder.icon = (ImageView) convertView.findViewById(R.id.icon);
+                holder.star = (ImageView) convertView.findViewById(R.id.star);
+                convertView.setTag(holder);
+            }
+            else
+            {
+                holder = (ViewHolder) convertView.getTag();
+            }
+            holder.text.setText(MENU_CHOICES[position].text);
+            holder.icon.setImageResource(MENU_CHOICES[position].icon);
+            holder.star.setVisibility(View.INVISIBLE);
+            return convertView;
+        }
+    }
+
+    private class DownloadAlertsTask extends AsyncTask<String, Void, MangoHttpResponse>
+    {
+        MainMenuActivity activity = null;
+
+        public DownloadAlertsTask(MainMenuActivity activity)
+        {
+            attach(activity);
+        }
+
+        @Override
+        protected MangoHttpResponse doInBackground(String... params)
+        {
+            return MangoHttp.downloadData(params[0], activity);
+        }
+
+        @Override
+        protected void onPostExecute(MangoHttpResponse data)
+        {
+            if (activity == null)
+            {
+                Mango.log("AsyncTask skipped onPostExecute because no activity is attached!");
+            }
+            else
+            {
+                activity.callback(data);
+            }
+            detach();
+        }
+
+        void detach()
+        {
+            activity = null;
+        }
+
+        void attach(MainMenuActivity activity)
+        {
+            this.activity = activity;
+        }
+    }
+
     private class DecorDownloader extends AsyncTask<Void, Void, Void>
     {
         @Override
@@ -674,10 +647,5 @@ public class MainMenuActivity extends MangoActivity
             h.downloadMissingBackground(MainMenuActivity.this);
             return null;
         }
-    }
-
-    public View getTutorialHighlightView(int index)
-    {
-        return mainMenuList.getChildAt(index);
     }
 }

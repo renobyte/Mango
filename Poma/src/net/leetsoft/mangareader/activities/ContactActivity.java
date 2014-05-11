@@ -1,8 +1,10 @@
 package net.leetsoft.mangareader.activities;
 
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-import android.view.KeyEvent;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.*;
@@ -11,32 +13,25 @@ import net.leetsoft.mangareader.MangoActivity;
 import net.leetsoft.mangareader.MangoCache;
 import net.leetsoft.mangareader.R;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
+import java.io.*;
 
 public class ContactActivity extends MangoActivity
 {
     private LinearLayout mMenuLayout;
     private LinearLayout mEditLayout;
-
     private RadioGroup mRadioGroup;
     private RadioButton mOption1;
     private RadioButton mOption2;
     private RadioButton mOption3;
     private RadioButton mOption4;
-
     private Button mNext;
     private Button mBack;
-
     private TextView mMenuHeader;
     private TextView mMenuHelpText;
     private TextView mEditHeader;
     private TextView mEditHelpText;
-
     private EditText mEditText;
     private Button mSubmit;
-
     private int mMenuLevel = 0;
 
     @Override
@@ -72,38 +67,42 @@ public class ContactActivity extends MangoActivity
             }
         });
         mBack = (Button) findViewById(R.id.feedbackMenuBack);
-        mBack.setOnClickListener(new OnClickListener()
-        {
+        mBack.setOnClickListener(new
 
-            @Override
-            public void onClick(View v)
-            {
-                backButtonPressed();
-            }
-        });
+                                         OnClickListener()
+                                         {
+
+                                             @Override
+                                             public void onClick(View v)
+                                             {
+                                                 backButtonPressed();
+                                             }
+                                         });
         mSubmit = (Button) findViewById(R.id.feedbackEditSubmit);
-        mSubmit.setOnClickListener(new OnClickListener()
-        {
+        mSubmit.setOnClickListener(new
 
-            @Override
-            public void onClick(View v)
-            {
-                String body = "Please add a bit more text to your message!\n\nThanks. ^__^";
+                                           OnClickListener()
+                                           {
 
-                int minLength = 20;
-                if (mMenuLevel >= 5)
-                {
-                    body = "When reporting a bug, be as detailed as possible so I can track it down! Be sure to include the manga and chapter you were reading, if applicable. Reports with very little or no detail will be deleted. :'(\n\nThanks. ^__^";
-                    minLength = 40;
-                }
-                if (mEditText.getText().length() <= minLength)
-                {
-                    Mango.alert(body, "Please type more!", ContactActivity.this);
-                    return;
-                }
-                sendButtonPressed();
-            }
-        });
+                                               @Override
+                                               public void onClick(View v)
+                                               {
+                                                   String body = "Please add a bit more text to your message.";
+
+                                                   int minLength = 20;
+                                                   if (mMenuLevel >= 5)
+                                                   {
+                                                       body = "When reporting a bug, be as detailed as possible so it can be tracked down.  Be sure to include the manga and chapter you were reading, if applicable.  Reports with very little or no details will be deleted.\n\nThanks!";
+                                                       minLength = 1;
+                                                   }
+                                                   if (mEditText.getText().length() <= minLength)
+                                                   {
+                                                       Mango.alert(body, "Please type more!", ContactActivity.this);
+                                                       return;
+                                                   }
+                                                   sendButtonPressed();
+                                               }
+                                           });
 
         mEditText = (EditText) findViewById(R.id.feedbackEditTextbox);
 
@@ -119,11 +118,11 @@ public class ContactActivity extends MangoActivity
                 mMenuLayout.setVisibility(View.VISIBLE);
                 mEditLayout.setVisibility(View.GONE);
                 mMenuHeader.setText("Send Feedback");
-                mMenuHelpText.setText("Thanks for your interest in contacting Leetsoft!  What's the nature of your feedback?");
-                mOption1.setText("I'm having an issue with the app.");
-                mOption2.setText("I've got a cool suggestion for you!");
-                mOption3.setText("I found some missing pages or chapters.");
-                mOption4.setText("Something else (praise, other comments, 'how do I do this?')");
+                mMenuHelpText.setText("Thanks for your interest in providing feedback on the app!  What's the nature of your message?");
+                mOption1.setText("I'm having an issue");
+                mOption2.setText("I've got a suggestion");
+                mOption3.setText("I've found some missing pages or chapters");
+                mOption4.setText("I have another comment");
                 mRadioGroup.setVisibility(View.VISIBLE);
                 mOption1.setChecked(true);
                 mNext.setEnabled(true);
@@ -132,10 +131,10 @@ public class ContactActivity extends MangoActivity
                 mMenuLayout.setVisibility(View.VISIBLE);
                 mEditLayout.setVisibility(View.GONE);
                 mMenuHeader.setText("Report an Issue");
-                mMenuHelpText.setText("Sorry that you're having a problem with Mango.  Please choose the option below that describes your issue:");
-                mOption1.setText("I can't view any pages at all.");
-                mOption2.setText("I'm getting a 'Force Close' crash repeatedly.");
-                mOption3.setText("I found some missing pages or chapters.");
+                mMenuHelpText.setText("Please choose the option below that describes your issue:");
+                mOption1.setText("I can't view any pages at all");
+                mOption2.setText("The app is crashing frequently");
+                mOption3.setText("I've found some missing pages or chapters");
                 mOption4.setText("None of the above");
                 mRadioGroup.setVisibility(View.VISIBLE);
                 mOption1.setChecked(true);
@@ -145,7 +144,7 @@ public class ContactActivity extends MangoActivity
                 mMenuLayout.setVisibility(View.GONE);
                 mEditLayout.setVisibility(View.VISIBLE);
                 mEditHeader.setText("Send a Suggestion");
-                mEditHelpText.setText("Have a suggestion to make Mango even better?  Describe it below and we'll consider adding it!");
+                mEditHelpText.setText("Please describe your suggestion below.");
                 break;
             case 3: // missing pages
             case 8:
@@ -153,8 +152,8 @@ public class ContactActivity extends MangoActivity
                 mEditLayout.setVisibility(View.GONE);
                 mMenuHeader.setText("Missing Pages");
                 mMenuHelpText.setText("If there are occasional missing pages or chapters in a manga, you will need to contact the manga source (such as MangaFox.com or MangaReader.net) to ask them to fix them."
-                        + "\n\nPlease note that the developer of Mango does not actually upload or host any content; Mango is sort of like a search engine that directs you to the manga you want to read.  Unfortuantely this means that missing pages or chapters are not under our control."
-                        + "\n\nTry reading the manga on a different manga source (for example, if you're using MangaFox, try MangaReader instead) and see if the missing pages appear.");
+                        + "\n\nPlease note that the developer of Mango does not actually upload or host any content; Mango is sort of like a search engine that directs you to the manga you want to read.  Unfortuantely this means that missing pages or chapters are not under my control."
+                        + "\n\nTry reading the manga on a different manga source (for example, if you're using MangaFox, try MangaHere instead) and see if the missing pages appear.");
                 mNext.setEnabled(false);
                 mRadioGroup.setVisibility(View.GONE);
                 break;
@@ -162,19 +161,19 @@ public class ContactActivity extends MangoActivity
                 mMenuLayout.setVisibility(View.GONE);
                 mEditLayout.setVisibility(View.VISIBLE);
                 mEditHeader.setText("Other Feedback");
-                mEditHelpText.setText("Have a random comment, or perhaps just some praise?  Or maybe you need some general help with using the app?  Let us know below!");
+                mEditHelpText.setText("Have a random comment or just need some general help using the app?  Let me know below!");
                 break;
             case 5: // no pages
                 mMenuLayout.setVisibility(View.GONE);
                 mEditLayout.setVisibility(View.VISIBLE);
                 mEditHeader.setText("Can't Read Anything");
-                mEditHelpText.setText("If *all* pages are failing to load (and you've tried multiple manga sources), please let us know below.  If you've only tried one manga source, try another one; the first one might be temporarily down.");
+                mEditHelpText.setText("If all pages are failing to load (and you've tried different manga sources), please let me know below.  If you've only tried one manga source, try another one; the first one might be temporarily down.");
                 break;
             case 6: // fc
                 mMenuLayout.setVisibility(View.GONE);
                 mEditLayout.setVisibility(View.VISIBLE);
-                mEditHeader.setText("Force Close Crashes");
-                mEditHelpText.setText("If Mango is force closing (displaying a popup that says 'Sorry! The application Mango has stopped unexpectedly'), please describe the circumstances below.");
+                mEditHeader.setText("Frequent Crashes");
+                mEditHelpText.setText("If Mango is frequently or repeatedly crashing (ie. you're getting a 'Unfortunately, Mango has stopped.' popup), please describe the circumstances below.");
                 break;
             case 7:
                 mMenuLayout.setVisibility(View.GONE);
@@ -253,16 +252,19 @@ public class ContactActivity extends MangoActivity
         String heapSize = (java.lang.Runtime.getRuntime().maxMemory() / 1024) / 1024 + "MB";
 
         Intent msg = new Intent(Intent.ACTION_SEND);
-        String body = "Mango Version:\n\t[Android] " + Mango.VERSION_FULL + " (" + Mango.VERSION_BUILDID + ")\n";
-        body += "OS Version:\n\t" + android.os.Build.VERSION.RELEASE + "\n";
-        body += "Device Model:\n\t" + android.os.Build.MODEL + "\n";
-        body += "App Package Id:\n\t" + getApplication().getPackageName() + "\n";
-        body += "Dalvik Heap Size:\n\t" + heapSize + "\n";
-        body += "Data Folder:\n\t" + Mango.getDataDirectory() + ", Free: " + MangoCache.getFreeSpace() + "MB\n\n";
+        String body = "Mango Version:\n\t" + Mango.VERSION_FULL + " (" + Mango.VERSION_BUILDID + ")\n";
+        body += "API Level:\n\t" + Build.VERSION.SDK_INT + "\n";
+        body += "ROM Name:\n\t" + Build.DISPLAY + "\n";
+        body += "Device:\n\t" + android.os.Build.MODEL + "\n";
+        body += "Package Name:\n\t" + getApplication().getPackageName() + "\n";
+        body += "VM Heap Size:\n\t" + heapSize + "\n";
+        body += "Data Folder:\n\t" + Mango.getDataDirectory() + ", Free: ~" + Math.floor(MangoCache.getFreeSpace()) + "MB\n\n";
         body += mEditText.getText().toString() + "\n\n";
-        msg.putExtra(Intent.EXTRA_EMAIL, new String[]{"Mango@leetsoft.net"});
+        msg.putExtra(Intent.EXTRA_EMAIL, new String[]{"mango@leetsoft.net"});
 
         msg.setType("message/rfc822");
+
+        Uri uri = Uri.fromFile(new File(Mango.CONTEXT.getExternalFilesDir(null).getAbsolutePath() + "/log.txt"));
 
         switch (mMenuLevel)
         {
@@ -275,14 +277,17 @@ public class ContactActivity extends MangoActivity
             case 5: // no pages
                 msg.putExtra(Intent.EXTRA_SUBJECT, "Mango Feedback [NOPG] (v" + Mango.VERSION_FULL + ")");
                 body += getLogcat();
+                msg.putExtra(android.content.Intent.EXTRA_STREAM, uri);
                 break;
             case 6: // fc
                 msg.putExtra(Intent.EXTRA_SUBJECT, "Mango Feedback [FC] (v" + Mango.VERSION_FULL + ")");
                 body += getLogcat();
+                msg.putExtra(android.content.Intent.EXTRA_STREAM, uri);
                 break;
             case 7: // other issue
                 msg.putExtra(Intent.EXTRA_SUBJECT, "Mango Feedback [PROB] (v" + Mango.VERSION_FULL + ")");
                 body += getLogcat();
+                msg.putExtra(android.content.Intent.EXTRA_STREAM, uri);
                 break;
         }
 
@@ -307,53 +312,49 @@ public class ContactActivity extends MangoActivity
 
     private String getLogcat()
     {
+        File f = new File(getFilesDir(), "logOld.txt");
+        BufferedReader br = null;
+        String logStr = "";
         try
         {
-            ArrayList<String> list = new ArrayList<String>();
+            if (f.exists())
+                logStr = readFile(f);
+            f = new File(getFilesDir(), "log.txt");
+            logStr = readFile(f);
 
-            final StringBuilder log = new StringBuilder();
-            ArrayList<String> commandLine = new ArrayList<String>();
-            commandLine.add("logcat");//$NON-NLS-1$
-            commandLine.add("-d");//$NON-NLS-1$
-            ArrayList<String> arguments = null;
-            if (null != arguments)
-            {
-                commandLine.addAll(arguments);
-            }
-            commandLine.add("Mango:V AndroidRuntime:E *:S");
 
-            Mango.log("Executing logcat -d Mango:V AndroidRuntime:E *:S");
-            Process process = Runtime.getRuntime().exec(commandLine.toArray(new String[0]));
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-            String line;
-            while ((line = bufferedReader.readLine()) != null)
-            {
-                int index = line.indexOf(":") + 1;
-                if (index == -1)
-                    index = 1;
-                log.append(">");
-                log.append(line.substring(index));
-                log.append("\n");
-            }
-            log.insert(0, "Diagnostic Data:\n");
-            return log.toString();
+            FileOutputStream out = null;
+            f = new File(Mango.CONTEXT.getExternalFilesDir(null).getAbsolutePath());
+            f.mkdirs();
+            f = new File(Mango.CONTEXT.getExternalFilesDir(null).getAbsolutePath() + "/log.txt");
+            if (f.exists())
+                f.delete();
+            f.createNewFile();
+            out = new FileOutputStream(f);
+            out.write(logStr.getBytes());
+            out.close();
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            // TODO: handle exception
+            logStr += "Unable to read logfile. " + ex.getClass().getSimpleName() + ": " + ex.getMessage() + "\n" + f.getAbsolutePath();
+            logStr += Log.getStackTraceString(ex);
         }
-        return "";
+        return logStr + "\n\nSome debugging information has been attached to this email to help diagnose your issue.  Press the Send button in your email app to send your message.";
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event)
+    private String readFile(File f) throws IOException
     {
-        if (keyCode == KeyEvent.KEYCODE_BACK && mMenuLevel != 0)
+        BufferedReader br = null;
+        br = new BufferedReader(new InputStreamReader(new FileInputStream(f), "UTF-8"));
+        StringBuilder builder = new StringBuilder();
+        char[] buffer = new char[8192];
+        int charsRead = 0;
+        while ((charsRead = br.read(buffer)) > 0)
         {
-            backButtonPressed();
-            return true;
+            builder.append(buffer, 0, charsRead);
+            buffer = new char[8192];
         }
-        return super.onKeyDown(keyCode, event);
+        builder.insert(0, "Diagnostic Data: \n");
+        return builder.toString();
     }
 }

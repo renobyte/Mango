@@ -25,7 +25,7 @@
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:gravity="center_vertical|center_horizontal"
-            android:text="Download queue is empty!"
+            android:text="The download queue is empty."
             android:textSize="16sp"
             android:textStyle="bold" >
         </TextView>

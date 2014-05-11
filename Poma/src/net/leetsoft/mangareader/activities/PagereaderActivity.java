@@ -924,7 +924,7 @@ public class PagereaderActivity extends MangoActivity
         if (data.exception)
         {
             clearStatus();
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this,
+            Mango.alert("Mango was unable to fetch the requested data.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString(), "Network Error", this,
                     new DialogInterface.OnClickListener()
                     {
                         @Override
@@ -939,7 +939,7 @@ public class PagereaderActivity extends MangoActivity
         if (data.toString().startsWith("error"))
         {
             clearStatus();
-            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this, new DialogInterface.OnClickListener()
+            Mango.alert("The server returned an error.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString().substring(7), "Server Error", this, new DialogInterface.OnClickListener()
             {
                 @Override
                 public void onClick(DialogInterface dialog, int which)
@@ -980,7 +980,7 @@ public class PagereaderActivity extends MangoActivity
         }
         catch (SAXException ex)
         {
-            Mango.alert("Mango wasn't able process the XML for the following reason:\n\n" + ex.toString(), "Malformed XML! :'(", this);
+            Mango.alert("The server returned malformed XML.\n\n<strong>Error Details:</strong>\n" + ex.toString(), "Invalid Response", this);
             return;
         }
         catch (ParserConfigurationException e)

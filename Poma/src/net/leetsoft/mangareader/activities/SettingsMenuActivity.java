@@ -25,38 +25,15 @@ public class SettingsMenuActivity extends MangoActivity
 
     private final MenuChoice[] NORMAL_MENU = new MenuChoice[]{new MenuChoice("Preferences", 1, R.drawable.ic_options),
             new MenuChoice("Notification Preferences", 2, R.drawable.ic_notifications),
-            new MenuChoice("Activate Mango Bankai (ad-free)", 6, R.drawable.icon_bankai),
+            new MenuChoice("Mango Bankai (ad-free)", 6, R.drawable.icon_bankai),
             new MenuChoice("Download Manager", 4, R.drawable.ic_network),
             new MenuChoice("Send Feedback", 3, R.drawable.ic_contact),
             new MenuChoice("Clear User Data", 5, R.drawable.ic_clear_data),
             new MenuChoice("Advanced Options", 7, R.drawable.ic_error)};
-
-    private final MenuChoice[] GOOGLEPLAY_MENU = new MenuChoice[]{new MenuChoice("Preferences", 1, R.drawable.ic_options),
-            new MenuChoice("Notification Preferences", 2, R.drawable.ic_notifications),
-            new MenuChoice("Download Manager", 4, R.drawable.ic_network),
-            new MenuChoice("Send Feedback", 3, R.drawable.ic_contact),
-            new MenuChoice("Clear User Data", 5, R.drawable.ic_clear_data),
-            new MenuChoice("Advanced Options", 7, R.drawable.ic_error)};
-
     private final MenuChoice[] ADVANCED_MENU = new MenuChoice[]{new MenuChoice("Debug Log", 50, R.drawable.ic_error),
             new MenuChoice("SharedPreferences Editor", 51, R.drawable.ic_error),
             new MenuChoice("Stop App Process", 52, R.drawable.ic_error),
             new MenuChoice("Disable Tutorials", 54, R.drawable.ic_error),};
-
-    class MenuChoice
-    {
-        String text;
-        int id;
-        int icon;
-
-        MenuChoice(String t, int i, int iconId)
-        {
-            id = i;
-            text = t;
-            icon = iconId;
-        }
-    }
-
     private ListView mSettingsMenu;
     private int mMenuLevel = 0;
 
@@ -70,18 +47,13 @@ public class SettingsMenuActivity extends MangoActivity
         super.setJpBackground(R.drawable.jp_bg_settings);
 
         mSettingsMenu = (ListView) findViewById(R.id.MainMenuList);
-        mActiveMenu = NORMAL_MENU;
-        if (Mango.VERSION_GOOGLEPLAY)
-        {
-            mActiveMenu = GOOGLEPLAY_MENU;
-        }
+        if (!Mango.DISABLE_ADS)
+            NORMAL_MENU[2].text = "Remove Ads with Bankai!";
         else
-        {
-            if (!Mango.DISABLE_ADS)
-                mActiveMenu[2].text = "Remove Ads with Bankai!";
-            else
-                mActiveMenu[2].text = "View Bankai License";
-        }
+            NORMAL_MENU[2].text = "View Bankai License";
+
+        mActiveMenu = NORMAL_MENU;
+
         mSettingsMenu.setAdapter(new SettingsMenuAdapter(this));
         mSettingsMenu.setOnItemClickListener(new OnItemClickListener()
         {
@@ -101,7 +73,7 @@ public class SettingsMenuActivity extends MangoActivity
         {
             if (mMenuLevel == 1)
             {
-                mActiveMenu = (Mango.VERSION_GOOGLEPLAY ? GOOGLEPLAY_MENU : NORMAL_MENU);
+                mActiveMenu = NORMAL_MENU;
                 mSettingsMenu.setAdapter(new SettingsMenuAdapter(this));
 
             }
@@ -145,6 +117,8 @@ public class SettingsMenuActivity extends MangoActivity
         }
         else if (itemId == 6)
         {
+            if (1==1)
+                return;
             Intent myIntent = new Intent();
             myIntent.setClass(Mango.CONTEXT, BankaiActivity.class);
             startActivity(myIntent);
@@ -219,40 +193,43 @@ public class SettingsMenuActivity extends MangoActivity
                 selection[which] = isChecked;
             }
         });
-        a.setPositiveButton("Okay", new OnClickListener()
-        {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which)
-            {
-                dialog.dismiss();
-                AlertDialog alert = new AlertDialog.Builder(SettingsMenuActivity.this).create();
-                alert.setTitle("Clear User Data");
-                alert.setMessage("The selected data will be permanently erased.\n\nWARNING: This action cannot be reversed! Are you certain?");
-                alert.setButton(-1, "Yes!", new DialogInterface.OnClickListener()
+        a.setPositiveButton("Okay", new
+                OnClickListener()
                 {
+
                     @Override
                     public void onClick(DialogInterface dialog, int which)
                     {
-                        wipeData(selection);
+                        dialog.dismiss();
+                        AlertDialog alert = new AlertDialog.Builder(SettingsMenuActivity.this).create();
+                        alert.setTitle("Clear User Data");
+                        alert.setMessage("The selected data will be permanently erased.\n\nWARNING: This action cannot be reversed! Are you certain?");
+                        alert.setButton(-1, "Yes!", new DialogInterface.OnClickListener()
+                        {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which)
+                            {
+                                wipeData(selection);
+                            }
+                        });
+                        alert.setButton(-3, "No, cancel!", new
+                                DialogInterface.OnClickListener()
+                                {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which)
+                                    {}
+                                });
+                        alert.show();
                     }
                 });
-                alert.setButton(-3, "No, cancel!", new DialogInterface.OnClickListener()
+        a.setNegativeButton("Never mind", new
+                OnClickListener()
                 {
+
                     @Override
                     public void onClick(DialogInterface dialog, int which)
                     {}
                 });
-                alert.show();
-            }
-        });
-        a.setNegativeButton("Never mind", new OnClickListener()
-        {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which)
-            {}
-        });
         a.show();
     }
 
@@ -304,6 +281,20 @@ public class SettingsMenuActivity extends MangoActivity
                 overridePendingTransition(R.anim.fadein, R.anim.dummy_vis);
             }
         }, 3000);
+    }
+
+    class MenuChoice
+    {
+        String text;
+        int id;
+        int icon;
+
+        MenuChoice(String t, int i, int iconId)
+        {
+            id = i;
+            text = t;
+            icon = iconId;
+        }
     }
 
     class ViewHolder

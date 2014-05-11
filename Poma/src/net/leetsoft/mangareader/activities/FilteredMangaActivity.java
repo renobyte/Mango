@@ -33,6 +33,7 @@ import javax.xml.parsers.SAXParserFactory;
 import java.io.StringReader;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class FilteredMangaActivity extends MangoActivity
 {
@@ -274,7 +275,7 @@ public class FilteredMangaActivity extends MangoActivity
         {
             ProgressDialog dialog = new ProgressDialog(this);
             dialog.setTitle("Downloading data...");
-            dialog.setMessage("Retrieving the manga list from the Mango Service...");
+            dialog.setMessage("Retrieving manga list from server...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(true);
             Mango.DIALOG_DOWNLOADING = dialog;
@@ -283,7 +284,7 @@ public class FilteredMangaActivity extends MangoActivity
         if (id == 1)
         {
             ProgressDialog dialog = new ProgressDialog(this);
-            dialog.setTitle("Processing data...");
+            dialog.setTitle("Parsing data...");
             dialog.setMessage("Hang tight for just a bit...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(false);
@@ -299,14 +300,14 @@ public class FilteredMangaActivity extends MangoActivity
         removeDialog(0);
         if (data.exception)
         {
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this);
-            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
+            Mango.alert("Mango was unable to fetch the requested data.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString(), "Network Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Unable to load data.  Close this screen and try again."}));
             return;
         }
         if (data.toString().startsWith("error"))
         {
-            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this);
-            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
+            Mango.alert("The server returned an error.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString().substring(7), "Server Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Unable to load data.  Close this screen and try again."}));
             return;
         }
         showDialog(1);
@@ -321,10 +322,10 @@ public class FilteredMangaActivity extends MangoActivity
             Mango.log("parseCallback: " + Log.getStackTraceString((Exception) data));
 
             Mango.alert(
-                    "Mango wasn't able to process the data.\n\n<strong>Possible Solutions:</strong>\n<small>-Go to Settings and Help >> Advanced >> Force Stop, then try again.\n-Check the 'Disable Menu Backgrounds' option in Preferences, then do a Force Stop and try again.\n-Power off and on your device, then try again.</small>",
+                    "Mango was unable to parse the data.\n\n<strong>Possible Solutions:</strong>\n<small>-Go to Settings and Help >> Advanced >> Force Stop, then try again.\n-Check the 'Disable Menu Backgrounds' option in Preferences, then do a Force Stop and try again.\n-Power off and on your device, then try again.</small>",
                     FilteredMangaActivity.this);
             mListview.setAdapter(new ArrayAdapter<String>(FilteredMangaActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                    "Download failed! Press the back key and try again."}));
+                    "Unable to load data.  Close this screen and try again."}));
             return;
         }
 
@@ -441,6 +442,8 @@ public class FilteredMangaActivity extends MangoActivity
         ArrayList<String> viewCounts;
         Manga currentManga;
         String extraText = "";
+        boolean blockEcchi = Mango.getSharedPreferences().getBoolean("ecchiFilter", false);
+        Pattern p = Pattern.compile("[^a-z0-9]");
 
         public ArrayList<Manga> getAllManga()
         {
@@ -480,7 +483,7 @@ public class FilteredMangaActivity extends MangoActivity
             else if (localName.equalsIgnoreCase("title"))
             {
                 currentManga.title = attributes.getValue(0);
-                currentManga.generateSimpleName();
+                currentManga.generateSimpleName(p);
             }
             else if (localName.equalsIgnoreCase("url"))
             {
@@ -514,6 +517,10 @@ public class FilteredMangaActivity extends MangoActivity
 
                 viewCounts.add(viewString);
             }
+            else if (localName.equalsIgnoreCase("e"))
+            {
+                currentManga.ecchi = (!attributes.getValue(0).equals("0"));
+            }
         }
 
         @Override
@@ -524,7 +531,8 @@ public class FilteredMangaActivity extends MangoActivity
             {
                 if (localName.equalsIgnoreCase("manga"))
                 {
-                    allManga.add(currentManga);
+                    if (!(blockEcchi && currentManga.ecchi))
+                        allManga.add(currentManga);
                 }
             }
         }
@@ -659,7 +667,7 @@ public class FilteredMangaActivity extends MangoActivity
                             db.deleteFavorite(db.getFavoriteForManga(getManga(position)).rowId);
 
                             if (!Mango.getSharedPreferences().getBoolean("popupFavoriteRemoved", false))
-                                Mango.alert(getManga(position).title + " has been removed from your favorites.", "Favorite removed!", FilteredMangaActivity.this);
+                                Mango.alert(getManga(position).title + " has been removed from your favorites.", "Favorite Deleted", FilteredMangaActivity.this);
                             Mango.getSharedPreferences().edit().putBoolean("popupFavoriteRemoved", true).commit();
                             vh.star.setImageResource(android.R.drawable.btn_star_big_off);
                         }
@@ -677,7 +685,7 @@ public class FilteredMangaActivity extends MangoActivity
                             db.insertFavorite(f);
 
                             if (!Mango.getSharedPreferences().getBoolean("popupFavoriteAdded", false))
-                                Mango.alert(getManga(position).title + " has been favorited! Mango will now track your reading progress in the Favorites screen.", "Favorite added!",
+                                Mango.alert(getManga(position).title + " has been favorited! Mango will now track your reading progress in the Favorites screen.", "Favorite Created",
                                         FilteredMangaActivity.this);
                             Mango.getSharedPreferences().edit().putBoolean("popupFavoriteAdded", true).commit();
                             vh.star.setImageResource(android.R.drawable.btn_star_big_on);

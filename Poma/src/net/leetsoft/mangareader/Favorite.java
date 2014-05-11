@@ -80,7 +80,7 @@ public class Favorite implements Serializable
         mangaObject = new Manga();
         mangaObject.title = mangaTitle;
         mangaObject.id = mangaId;
-        mangaObject.generateSimpleName();
+        mangaObject.generateSimpleName(null);
         mangaObject.coverart = coverArtUrl;
         mangaObject.chapters = new Chapter[progressChapterIndex + 1];
         mangaObject.chapters[progressChapterIndex] = new Chapter();
@@ -96,7 +96,7 @@ public class Favorite implements Serializable
     {
         if (data.exception || data.toString().startsWith("error"))
         {
-            data.data = ("Mango wasn't able to download more information about this favorite. If your phone's 3G/4G/WiFi connection is fine, " + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
+            data.data = ("Mango wasn't able to download favorite metadata.  If your device's mobile data or Wi-Fi connection is fine, " + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
             ((FavoritesActivity) mReference).pendingItemFailed(data);
             return;
         }
@@ -118,7 +118,7 @@ public class Favorite implements Serializable
         }
         catch (Exception ex)
         {
-            data.data = ("Mango wasn't able to download more information about this favorite. If your phone's 3G/4G/WiFi connection is fine, " + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
+            data.data = ("Mango wasn't able to download favorite metadata.  If your device's mobile data or Wi-Fi connection is fine, " + Mango.getSiteName(Mango.getSiteId()) + " might be down.\n\n" + data).getBytes();
             ((FavoritesActivity) mReference).pendingItemFailed(data);
             return;
         }

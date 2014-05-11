@@ -123,9 +123,9 @@ public class MangoLayout extends RelativeLayout
             {
                 Canvas c = null;
                 Bitmap screenBg = Mango.getMenuBackgroundPortrait().copy(Config.RGB_565, true);
-
                 screenBg = Bitmap.createScaledBitmap(screenBg, this.getRealWidth(), this.getRealHeight(), true);
 
+                /*
                 if (mJpResourceId != -1)
                 {
                     c = new Canvas(screenBg);
@@ -139,7 +139,7 @@ public class MangoLayout extends RelativeLayout
                     int alphaVal = 180;
                     paint.setAlpha(alphaVal);
                     c.drawBitmap(jpBackground, mLayoutWidth - jpBackground.getWidth(), mJpOffset, paint);
-                }
+                }*/
                 this.setBackgroundDrawable(new BitmapDrawable(getResources(), screenBg));
             }
             else
@@ -149,6 +149,7 @@ public class MangoLayout extends RelativeLayout
 
                 screenBg = Bitmap.createScaledBitmap(screenBg, this.getRealWidth(), this.getRealHeight(), true);
 
+                /*
                 if (mJpResourceId != -1)
                 {
                     c = new Canvas(screenBg);
@@ -158,6 +159,7 @@ public class MangoLayout extends RelativeLayout
                     paint.setAlpha(alphaVal);
                     c.drawBitmap(jpBackground, 0, mJpOffset, paint);
                 }
+                */
                 this.setBackgroundDrawable(new BitmapDrawable(getResources(), screenBg));
             }
         } catch (OutOfMemoryError e)

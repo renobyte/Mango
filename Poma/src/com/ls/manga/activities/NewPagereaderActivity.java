@@ -900,7 +900,7 @@
 //    {
 //        if (data.startsWith("Exception"))
 //        {
-//            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data, "Connectivity Problem! T__T", this,
+//            Mango.alert("Mango was unable to fetch the requested data.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data, "Connectivity Error", this,
 //                    new DialogInterface.OnClickListener()
 //                    {
 //                        @Override
@@ -915,7 +915,7 @@
 //        }
 //        if (data.startsWith("error"))
 //        {
-//            Mango.alert("The Mango Service gave the following error:\n\n" + data, "Problem! T__T", this, new DialogInterface.OnClickListener()
+//            Mango.alert("The Mango Service gave the following error:\n\n" + data, "Error", this, new DialogInterface.OnClickListener()
 //            {
 //                @Override
 //                public void onClick(DialogInterface dialog, int which)

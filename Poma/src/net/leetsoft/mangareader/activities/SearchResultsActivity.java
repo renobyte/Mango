@@ -32,6 +32,7 @@ import javax.xml.parsers.SAXParserFactory;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.regex.Pattern;
 
 public class SearchResultsActivity extends MangoActivity
 {
@@ -138,7 +139,7 @@ public class SearchResultsActivity extends MangoActivity
         showDialog(0);
         mMangaList = new Manga[0];
         mDownloadTask = new XmlDownloader(this);
-        mDownloadTask.execute("http://%SERVER_URL%/dosearch.aspx?pin=" + Mango.getPin() + "&site=" + Mango.getSiteId() + "&" + mQuerystring);
+        mDownloadTask.execute("http://%SERVER_URL%/dosearch.aspx?pin=" + Mango.getPin() + "&site=" + Mango.getSiteId()  + "&cf=" + Mango.getSharedPreferences().getBoolean("ecchiFilter", true) + "&" + mQuerystring);
     }
 
     @Override
@@ -228,7 +229,7 @@ public class SearchResultsActivity extends MangoActivity
         if (id == 1)
         {
             ProgressDialog dialog = new ProgressDialog(this);
-            dialog.setTitle("Processing data...");
+            dialog.setTitle("Parsing data...");
             dialog.setMessage("Hang tight for just a bit...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(false);
@@ -244,8 +245,8 @@ public class SearchResultsActivity extends MangoActivity
         {
             Mango.DIALOG_DOWNLOADING.dismiss();
             removeDialog(0);
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this);
-            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
+            Mango.alert("Mango was unable to fetch the requested data.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString(), "Network Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Unable to load data.  Close this screen and try again."}));
             return;
         }
         Mango.getSharedPreferences().edit().putLong("searchCooldown", System.currentTimeMillis() + (1000 * 10)).commit();
@@ -253,8 +254,8 @@ public class SearchResultsActivity extends MangoActivity
         {
             Mango.DIALOG_DOWNLOADING.dismiss();
             removeDialog(0);
-            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this);
-            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
+            Mango.alert("The server returned an error.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString().substring(7).substring(7), "Server Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Unable to load data.  Close this screen and try again."}));
             return;
         }
 
@@ -270,25 +271,25 @@ public class SearchResultsActivity extends MangoActivity
             Mango.log("parsecallback error (" + data.toString() + ")");
             if (data.getClass().equals(SQLException.class))
             {
-                Mango.alert("getMangaBookmarkIds SQLite routine just exploded. This is rather undesirable, so please let us know.\n\n" + ((SQLException) data).toString(), "SQL handler is borked!",
+                Mango.alert("getMangaBookmarkIds SQLite routine just exploded. This is rather undesirable, so please let us know.\n\n" + data.toString(), "SQL handler is borked!",
                         this);
                 mListview.setAdapter(new ArrayAdapter<String>(SearchResultsActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                        "Download failed! Press the back key and try again."}));
+                        "Unable to load data.  Close this screen and try again."}));
                 return;
             }
             else if (data.toString().contains("NullPointer"))
             {
-                Mango.alert("Mango wasn't able to load the requested data for the following reason:\n\n" + data, "Unable to load data", this);
+                Mango.alert("Mango was unable to load the requested data.\n\n<strong>Error Details</strong>\n" + data, "Parse Failed", this);
                 mListview.setAdapter(new ArrayAdapter<String>(SearchResultsActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                        "Download failed! Press the back key and try again."}));
+                        "Unable to load data.  Close this screen and try again."}));
                 return;
             }
             else if (data.toString().contains("Exception"))
             {
-                Mango.alert("The server returned bad xml data which could not be parsed. If this occurs repeatedly, send us the information below!\n\n" + ((Exception) data).toString(),
-                        "Malformed XML! :'(", this);
+                Mango.alert("The server returned bad xml data which could not be parsed. If this occurs repeatedly, send us the information below!\n\n" + data.toString(),
+                        "Invalid Response", this);
                 mListview.setAdapter(new ArrayAdapter<String>(SearchResultsActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                        "Download failed! Press the back key and try again."}));
+                        "Unable to load data.  Close this screen and try again."}));
                 return;
             }
         }
@@ -393,6 +394,8 @@ public class SearchResultsActivity extends MangoActivity
     {
         ArrayList<Manga> allManga;
         Manga currentManga;
+        boolean blockEcchi = Mango.getSharedPreferences().getBoolean("ecchiFilter", false);
+        Pattern p = Pattern.compile("[^a-z0-9]");
 
         public ArrayList<Manga> getAllManga()
         {
@@ -417,7 +420,7 @@ public class SearchResultsActivity extends MangoActivity
             else if (localName.equalsIgnoreCase("title"))
             {
                 currentManga.title = attributes.getValue(0);
-                currentManga.generateSimpleName();
+                currentManga.generateSimpleName(p);
             }
             else if (localName.equalsIgnoreCase("url"))
             {
@@ -431,6 +434,10 @@ public class SearchResultsActivity extends MangoActivity
             {
                 currentManga.coverart = attributes.getValue(0);
             }
+            else if (localName.equalsIgnoreCase("e"))
+            {
+                currentManga.ecchi = (!attributes.getValue(0).equals("0"));
+            }
         }
 
         @Override
@@ -441,7 +448,8 @@ public class SearchResultsActivity extends MangoActivity
             {
                 if (localName.equalsIgnoreCase("manga"))
                 {
-                    allManga.add(currentManga);
+                    if (!(blockEcchi && currentManga.ecchi))
+                        allManga.add(currentManga);
                 }
             }
         }
@@ -535,7 +543,7 @@ public class SearchResultsActivity extends MangoActivity
                             db.deleteFavorite(db.getFavoriteForManga(getManga(position)).rowId);
 
                             if (!Mango.getSharedPreferences().getBoolean("popupFavoriteRemoved", false))
-                                Mango.alert(getManga(position).title + " has been removed from your favorites.", "Favorite removed!", SearchResultsActivity.this);
+                                Mango.alert(getManga(position).title + " has been removed from your favorites.", "Favorite Deleted", SearchResultsActivity.this);
                             Mango.getSharedPreferences().edit().putBoolean("popupFavoriteRemoved", true).commit();
                             vh.star.setImageResource(android.R.drawable.btn_star_big_off);
                         }
@@ -553,7 +561,7 @@ public class SearchResultsActivity extends MangoActivity
                             db.insertFavorite(f);
 
                             if (!Mango.getSharedPreferences().getBoolean("popupFavoriteAdded", false))
-                                Mango.alert(getManga(position).title + " has been favorited! Mango will now track your reading progress in the Favorites screen.", "Favorite added!",
+                                Mango.alert(getManga(position).title + " has been favorited! Mango will now track your reading progress in the Favorites screen.", "Favorite Created",
                                         SearchResultsActivity.this);
                             Mango.getSharedPreferences().edit().putBoolean("popupFavoriteAdded", true).commit();
                             vh.star.setImageResource(android.R.drawable.btn_star_big_on);

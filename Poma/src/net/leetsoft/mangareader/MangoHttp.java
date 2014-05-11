@@ -37,7 +37,7 @@ public class MangoHttp
     public static MangoHttpResponse downloadData(String url, Context c)
     {
         MangoHttpResponse response = new MangoHttpResponse();
-        url = url.replace("%SERVER_URL%", Mango.getSharedPreferences().getString("serverUrl", "konata.leetsoft.net"));
+        url = url.replace("%SERVER_URL%", Mango.getSharedPreferences().getString("serverUrl", "kagami.leetsoft.net"));
         url = cleanString(url);
 
         if (url.contains("mangable") && !url.endsWith("?mango"))
@@ -49,7 +49,7 @@ public class MangoHttp
             Mango.log("MangoHttp", "Requesting '" + url + "' [" + url.hashCode() + "]...");
 
             if (!MangoHttp.checkConnectivity(c))
-                throw new Exception("No connection to the Internet is available.  Check your mobile data or WiFi connection.");
+                throw new Exception("No connection to the Internet is available.  Check your mobile data or Wi-Fi connection.");
             if (isOfflineMode())
                 throw new Exception("Mango is in offline mode. To disable offline mode, return to the main menu and press the Back key, then restart the app.");
 

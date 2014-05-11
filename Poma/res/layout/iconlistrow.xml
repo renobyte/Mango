@@ -25,7 +25,7 @@
         android:layout_toRightOf="@+id/icon"
         android:maxLines="2"
         android:paddingLeft="3dp"
-        android:paddingRight="20dp"
+        android:paddingRight="30dp"
         android:text="Text"
         android:textSize="18sp" />
 
@@ -37,10 +37,14 @@
         android:layout_centerVertical="true"
         android:clickable="true"
         android:adjustViewBounds="true"
-        android:maxHeight="26dp"
-        android:maxWidth="26dp"
-        android:paddingTop="2dp"
-        android:scaleType="fitXY"
-        android:src="@drawable/ic_error" />
+        android:maxHeight="40dp"
+        android:maxWidth="85dp"
+        android:layout_marginTop="2dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_error"
+        android:paddingRight="10dp"
+        android:paddingLeft="30dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp" />
 
 </RelativeLayout>

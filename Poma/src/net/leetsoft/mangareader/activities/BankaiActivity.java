@@ -1,36 +1,32 @@
 package net.leetsoft.mangareader.activities;
 
-import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ScrollView;
-import android.widget.TextView;
 import net.leetsoft.mangareader.Mango;
 import net.leetsoft.mangareader.MangoActivity;
-import net.leetsoft.mangareader.MangoHttp;
 import net.leetsoft.mangareader.R;
+import net.robotmedia.billing.BillingController;
+import net.robotmedia.billing.BillingRequest;
+import net.robotmedia.billing.helper.AbstractBillingObserver;
+import net.robotmedia.billing.model.Transaction;
+
+import java.util.List;
 
 public class BankaiActivity extends MangoActivity
 {
     Button mButton;
     Button mButton2;
-    TextView mDeviceId;
-    TextView mInfoText;
-    EditText mOrderNumberText;
-
     ScrollView mMenuView;
-    ScrollView mRetrieveView;
     ScrollView mInfoView;
-
     int mDisplayMode;    // 0 menu, 1 retrieve, 2 info
+    private AbstractBillingObserver mBillingObserver;
 
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -40,14 +36,7 @@ public class BankaiActivity extends MangoActivity
         inflateLayoutManager(this, R.layout.bankai);
         super.setNoBackground(true);
         mMenuView = (ScrollView) findViewById(R.id.bankaiMenuScrollView);
-        mRetrieveView = (ScrollView) findViewById(R.id.bankaiRetrieveScrollView);
         mInfoView = (ScrollView) findViewById(R.id.bankaiInfoScrollView);
-        mDeviceId = (TextView) findViewById(R.id.bankaiTextView);
-        mDeviceId.setText(Mango.getPin());
-        mInfoText = (TextView) findViewById(R.id.bankaiInfoText);
-        mOrderNumberText = (EditText) findViewById(R.id.bankaiOrderNum);
-        mOrderNumberText.setText(Mango.getSharedPreferences().getString("bankaiOrderNumber", ""));
-        mOrderNumberText.setHint("Type or paste order number here");
         mButton = (Button) findViewById(R.id.bankaiButton);
         mButton.setOnClickListener(new OnClickListener()
         {
@@ -55,25 +44,35 @@ public class BankaiActivity extends MangoActivity
             @Override
             public void onClick(View v)
             {
-                buttonClicked();
-            }
-        });
-        mButton2 = (Button) findViewById(R.id.bankaiPurchase);
-        mButton2.setOnClickListener(new OnClickListener()
-        {
-
-            @Override
-            public void onClick(View v)
-            {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(Uri.parse("http://" + Mango.getSharedPreferences().getString("serverUrl", "konata.leetsoft.net") + "/buyBankai.aspx?did=" + Mango.getPin()));
+                intent.setData(Uri.parse("http://mango.leetsoft.net/mybankai"));
                 startActivity(intent);
                 overridePendingTransition(R.anim.fadein, R.anim.expandout);
             }
         });
+        mButton2 = (Button) findViewById(R.id.bankaiPurchase);
+        mButton2.setOnClickListener(new
+
+                                            OnClickListener()
+                                            {
+
+                                                @Override
+                                                public void onClick(View v)
+                                                {
+                                                    Mango.alert("You're being transferred to Google Play to complete this transaction.  A receipt will be emailed to " + Mango.getPrimaryAccount() + ".  Thanks for your support!", "Mango Bankai", BankaiActivity.this, new DialogInterface.OnClickListener() {
+                                                        @Override
+                                                        public void onClick(DialogInterface dialogInterface, int i)
+                                                        {
+                                                            BillingController.requestPurchase(BankaiActivity.this, "android.test.purchased", true, Mango.getPin() + ";" + Mango.getPrimaryAccount());
+                                                        }
+                                                    });
+                                                }
+                                            });
         switchMode(0);
         if (Mango.DISABLE_ADS)
-            switchMode(2);
+            switchMode(0);
+
+        initializeBilling();
     }
 
     @Override
@@ -86,7 +85,6 @@ public class BankaiActivity extends MangoActivity
     {
         mDisplayMode = mode;
         mMenuView.setVisibility(View.GONE);
-        mRetrieveView.setVisibility(View.GONE);
         mInfoView.setVisibility(View.GONE);
         mButton.setVisibility(View.GONE);
         mButton2.setVisibility(View.GONE);
@@ -98,86 +96,102 @@ public class BankaiActivity extends MangoActivity
         }
         else if (mode == 1)
         {
-            mRetrieveView.setVisibility(View.VISIBLE);
-            mButton.setVisibility(View.VISIBLE);
-        }
-        else
-        {
             mInfoView.setVisibility(View.VISIBLE);
-            mInfoText.setText("DID: " + Mango.getPin());
+            mButton.setVisibility(View.VISIBLE);
+            mButton2.setVisibility(View.GONE);
         }
     }
 
-    private void buttonClicked()
+    private void initializeBilling()
     {
-        if (mDisplayMode == 0)
-        {
-            switchMode(1);
-        }
-        else
-        {
-            AlertDialog alert = new AlertDialog.Builder(BankaiActivity.this).create();
-            alert.setTitle("Important!");
-            alert.setMessage("Each order number can only be registered to one device.  To re-register this order number later, you'll need to email us.  Are you sure you'd like to associate this order number with the device you're using now?");
-            alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yep", new DialogInterface.OnClickListener()
-            {
-                @Override
-                public void onClick(DialogInterface dialog, int which)
-                {
-                    Mango.getSharedPreferences().edit().putString("bankaiOrderNumber", mOrderNumberText.getText().toString()).commit();
-                    doRegistration();
-                }
-            });
-            alert.setButton(DialogInterface.BUTTON_NEGATIVE, "Nah", new DialogInterface.OnClickListener()
-            {
-                @Override
-                public void onClick(DialogInterface dialog, int which)
-                {
-                    switchMode(0);
-                }
-            });
-            alert.show();
-
-        }
-    }
-
-    private void doRegistration()
-    {
-        Thread t = new Thread(new Runnable()
+        BillingController.setDebug(true);
+        BillingController.setConfiguration(new BillingController.IConfiguration()
         {
 
-            @Override
-            public void run()
+            public byte[] getObfuscationSalt()
             {
-                final String retval = MangoHttp.downloadData("http://%SERVER_URL%/registerbankai.aspx?pin=" + Mango.getPin() + "&order=" + mOrderNumberText.getText().toString(), BankaiActivity.this).toString();
-                if (!retval.startsWith("okay"))
-                {
-                    mRetrieveView.post(new Runnable()
-                    {
+                return new byte[]{-124, -2, 32, 77, -40, -107, 14, 98, 9, -59, 48, 47, 101, -108, -64, -11, -35, -116, 82, -120};
+            }
 
-                        @Override
-                        public void run()
-                        {
-                            Mango.alert("Mango wasn't able to activate your Bankai key for the following reason:\n\n" + retval, "Uh oh!", BankaiActivity.this);
-                        }
-                    });
-                }
-                else
-                {
-                    mRetrieveView.post(new Runnable()
-                    {
-
-                        @Override
-                        public void run()
-                        {
-                            Mango.alert("Mango Bankai has been successfully activated on this device!  Ads should be gone once you reset the app.", "Success!", BankaiActivity.this);
-                            Mango.DISABLE_ADS = true;
-                        }
-                    });
-                }
+            public String getPublicKey()
+            {
+                return "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDTkeaJwTdUCJmOxTj2WS9nG9J93mH9VHmqQi7lQLmeeZbbdhhg3LAYj6bg/iYGvJRhekJHJHCTyIFl84ZZYX8tkz6tn3GZ0tBBBPU4GDukACdqYJTHR7cTHHLYmRClKihSfBIDceHz3gZD9+S1VMZ7vkphf9r/S4eRMmp/ExuZ6wIDAQAB";
             }
         });
-        t.start();
+
+        mBillingObserver = new AbstractBillingObserver(this)
+        {
+
+            public void onBillingChecked(boolean supported)
+            {
+                BankaiActivity.this.onBillingChecked(supported);
+            }
+
+            public void onPurchaseStateChanged(String itemId, Transaction.PurchaseState state, String signedData, String signature)
+            {
+                BankaiActivity.this.onPurchaseStateChanged(itemId, state, signedData, signature);
+            }
+
+            public void onRequestPurchaseResponse(String itemId, BillingRequest.ResponseCode response)
+            {
+                BankaiActivity.this.onRequestPurchaseResponse(itemId, response);
+            }
+
+            public void onSubscriptionChecked(boolean supported)
+            {
+                BankaiActivity.this.onSubscriptionChecked(supported);
+            }
+        };
+
+        BillingController.registerObserver(mBillingObserver);
+        BillingController.checkBillingSupported(this);
+    }
+
+    private void updateOwnedItems()
+    {
+        List<Transaction> transactions = BillingController.getTransactions(this);
+        if (transactions.size() > 0)
+        {
+            Transaction t = transactions.get(transactions.size() - 1);
+            Mango.log(t.orderId + ", STATUS=" + t.purchaseState.name() + ", PAYLOAD=" + t.developerPayload);
+        }
+    }
+
+    public void onPurchaseStateChanged(String itemId, Transaction.PurchaseState state, String signed, String sig)
+    {
+        updateOwnedItems();
+        Mango.log(signed);
+    }
+
+    public void onRequestPurchaseResponse(String itemId, BillingRequest.ResponseCode response)
+    {
+    }
+
+    public void onSubscriptionChecked(boolean supported)
+    {
+
+    }
+
+    public void onBillingChecked(boolean supported)
+    {
+        if (!supported)
+        {
+            Mango.alert("Google Play's In-App Purchase service doesn't seem to be supported on this device.  You can still purchase Mango Bankai via PayPal by going to:\n\nhttp://mango.leetsoft.net/bankai.php", "In-App Purchases Not Supported!", this);
+            mButton2.setOnClickListener(new
+
+                                                OnClickListener()
+                                                {
+
+                                                    @Override
+                                                    public void onClick(View v)
+                                                    {
+                                                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                                                        intent.setData(Uri.parse("http://" + Mango.getSharedPreferences().getString("serverUrl", "kagami.leetsoft.net") + "/buyBankai.aspx?did=" + Mango.getPin()));
+                                                        startActivity(intent);
+                                                        overridePendingTransition(R.anim.fadein, R.anim.expandout);
+                                                    }
+                                                });
+        }
     }
 
     @Override
@@ -186,15 +200,6 @@ public class BankaiActivity extends MangoActivity
         // TODO Auto-generated method stub
         super.onConfigurationChanged(newConfig);
     }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event)
-    {
-        if (keyCode == KeyEvent.KEYCODE_BACK && mDisplayMode == 1)
-        {
-            switchMode(0);
-            return true;
-        }
-        return super.onKeyDown(keyCode, event);
-    }
 }
+
+    

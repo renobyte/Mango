@@ -34,6 +34,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.StringReader;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class AllMangaActivity extends MangoActivity
 {
@@ -41,20 +42,10 @@ public class AllMangaActivity extends MangoActivity
     private boolean mGotData = false;
     private XmlDownloader mDownloadTask;
     private XmlParser mParserTask;
-
     private EditText mFindTextbox;
     private ListView mListview;
     private TextWatcher mTextfilter;
-
     private boolean mSkipRestore;
-
-    private class InstanceBundle
-    {
-        private Manga[] mangaList;
-        private boolean gotData;
-        private XmlDownloader downloadTask;
-        private XmlParser parserTask;
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -215,7 +206,7 @@ public class AllMangaActivity extends MangoActivity
         {
             ProgressDialog dialog = new ProgressDialog(this);
             dialog.setTitle("Downloading data...");
-            dialog.setMessage("Retrieving the manga list from the Mango Service...");
+            dialog.setMessage("Retrieving manga list from server...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(true);
             Mango.DIALOG_DOWNLOADING = dialog;
@@ -224,7 +215,7 @@ public class AllMangaActivity extends MangoActivity
         if (id == 1)
         {
             ProgressDialog dialog = new ProgressDialog(this);
-            dialog.setTitle("Processing data...");
+            dialog.setTitle("Parsing data...");
             dialog.setMessage("Hang tight for just a bit...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(false);
@@ -248,18 +239,18 @@ public class AllMangaActivity extends MangoActivity
         {
             Mango.DIALOG_DOWNLOADING.dismiss();
             removeDialog(0);
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this);
+            Mango.alert("Mango was unable to fetch the requested data.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString(), "Network Error", this);
             mListview.setAdapter(new ArrayAdapter<String>(AllMangaActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                    "Download failed! Press the back key and try again."}));
+                    "Unable to load data.  Close this screen and try again."}));
             return;
         }
         if (data.toString().startsWith("error"))
         {
             Mango.DIALOG_DOWNLOADING.dismiss();
             removeDialog(0);
-            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this);
+            Mango.alert("The server returned an error.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString().substring(7), "Server Error", this);
             mListview.setAdapter(new ArrayAdapter<String>(AllMangaActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                    "Download failed! Press the back key and try again."}));
+                    "Unable to load data.  Close this screen and try again."}));
             return;
         }
         if (!save)
@@ -282,10 +273,10 @@ public class AllMangaActivity extends MangoActivity
             Mango.LAST_CACHE_UPDATE = 0;
 
             Mango.alert(
-                    "Mango wasn't able to process the data.\n\n<strong>Possible Solutions:</strong>\n<small>-Go to Settings and Help >> Advanced >> Force Stop, then try again.\n-Check the 'Disable Menu Backgrounds' option in Preferences, then do a Force Stop and try again.\n-Power off and on your device, then try again.</small>",
+                    "Mango was unable to parse the data.\n\n<strong>Possible Solutions:</strong>\n<small>-Go to Settings and Help >> Advanced >> Force Stop, then try again.\n-Check the 'Disable Menu Backgrounds' option in Preferences, then do a Force Stop and try again.\n-Power off and on your device, then try again.</small>",
                     AllMangaActivity.this);
             mListview.setAdapter(new ArrayAdapter<String>(AllMangaActivity.this, android.R.layout.simple_list_item_1, new String[]{
-                    "Download failed! Press the back key and try again."}));
+                    "Unable to load data.  Close this screen and try again."}));
             return;
         }
         mListview.setAdapter(new AllMangaAdapter(this));
@@ -300,144 +291,30 @@ public class AllMangaActivity extends MangoActivity
         imm.hideSoftInputFromWindow(mFindTextbox.getWindowToken(), 0);
     }
 
-    private Manga[] parseXml(String data) throws Exception
+    private Manga getManga(int position)
     {
-        if (data == null)
-        {
-            throw new Exception("parseXml: data parameter is null.  Try restarting the app.");
-        }
-        ArrayList<Manga> mangaArrayList = new ArrayList<Manga>();
-        Favorite[] f = new Favorite[0];
-        Manga random = new Manga();
-        random.id = "randommanga";
-        random.title = "Try a random manga!";
-        random.completed = true;
-        mangaArrayList.add(random);
-
-        // connect to the database to set bookmarked status
-        MangoSqlite db = new MangoSqlite(this);
-        try
-        {
-            db.open();
-            f = db.getAllFavorites(null);
-
-            SAXParserFactory saxFactory = SAXParserFactory.newInstance();
-            SAXParser parser = saxFactory.newSAXParser();
-            XMLReader reader = parser.getXMLReader();
-            AllMangaSaxHandler handler = new AllMangaSaxHandler();
-            reader.setContentHandler(handler);
-            reader.parse(new InputSource(new StringReader(data)));
-            mangaArrayList.addAll(handler.getAllManga());
-            handler.getAllManga().get(0).title.toString();
-        }
-        catch (Exception ex)
-        {
-            Mango.MANGA_LIST_CACHED = false;
-
-            throw ex;
-        }
-        finally
-        {
-            db.close();
-        }
-
-        for (int i = 1; i < mangaArrayList.size(); i++)
-        {
-            Manga m = mangaArrayList.get(i);
-            for (int j = 0; j < f.length; j++)
-            {
-                Favorite fav = f[j];
-                try
-                {
-                    if (m.simpleName.equals(fav.mangaSimpleName))
-                        m.bookmarked = true;
-                    else if (m.id.equals(fav.mangaId))
-                        m.bookmarked = true;
-                    else if (m.title.equals(fav.mangaTitle))
-                        m.bookmarked = true;
-                }
-                catch (Exception e)
-                {
-                    Mango.log("parseXml: " + e.toString() + " when setting bookmarked flag.");
-                    m.bookmarked = false;
-                }
-                if (m.bookmarked)
-                {
-                    if (fav.coverArtUrl.length() < 15)
-                    {
-                        fav.coverArtUrl = m.coverart;
-                        db.open();
-                        db.updateFavorite(fav);
-                        db.close();
-                    }
-                    m.favoriteRowId = fav.rowId;
-                    break;
-                }
-            }
-        }
-
-        Manga[] ret = new Manga[mangaArrayList.size()];
-        mangaArrayList.toArray(ret);
-        mangaArrayList = null;
-        return ret;
+        return ((AllMangaAdapter) mListview.getAdapter()).getItem(position);
     }
 
-    public class AllMangaSaxHandler extends DefaultHandler
+    public View getTutorialHighlightView(int index)
     {
-        ArrayList<Manga> allManga;
-        Manga currentManga;
-
-        public ArrayList<Manga> getAllManga()
+        if (index == -1)
         {
-            return this.allManga;
+            return mFindTextbox;
         }
-
-        @Override
-        public void startDocument() throws SAXException
+        if (index == 1)
         {
-            super.startDocument();
-            allManga = new ArrayList<Manga>();
+            return mListview.getChildAt(index).findViewById(R.id.star);
         }
+        return mListview.getChildAt(index);
+    }
 
-        @Override
-        public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException
-        {
-            super.startElement(uri, localName, name, attributes);
-            if (localName.equalsIgnoreCase("manga"))
-            {
-                this.currentManga = new Manga();
-            }
-            else if (localName.equalsIgnoreCase("title"))
-            {
-                currentManga.title = attributes.getValue(0);
-                currentManga.generateSimpleName();
-            }
-            else if (localName.equalsIgnoreCase("url"))
-            {
-                currentManga.id = attributes.getValue(0);
-            }
-            else if (localName.equalsIgnoreCase("completed"))
-            {
-                currentManga.completed = Boolean.parseBoolean(attributes.getValue(0));
-            }
-            else if (localName.equalsIgnoreCase("cover"))
-            {
-                currentManga.coverart = attributes.getValue(0);
-            }
-        }
-
-        @Override
-        public void endElement(String uri, String localName, String name) throws SAXException
-        {
-            super.endElement(uri, localName, name);
-            if (this.currentManga != null)
-            {
-                if (localName.equalsIgnoreCase("manga"))
-                {
-                    allManga.add(currentManga);
-                }
-            }
-        }
+    private class InstanceBundle
+    {
+        private Manga[] mangaList;
+        private boolean gotData;
+        private XmlDownloader downloadTask;
+        private XmlParser parserTask;
     }
 
     class AllMangaOnClickListener implements OnItemClickListener
@@ -467,13 +344,7 @@ public class AllMangaActivity extends MangoActivity
             argManga.title = getManga(position).title;
             chaptersIntent.putExtra("manga", argManga);
             startActivity(chaptersIntent);
-            return;
         }
-    }
-
-    private Manga getManga(int position)
-    {
-        return ((AllMangaAdapter) mListview.getAdapter()).getItem(position);
     }
 
     class ViewHolder
@@ -556,7 +427,7 @@ public class AllMangaActivity extends MangoActivity
                             db.deleteFavorite(db.getFavoriteForManga(getManga(position)).rowId);
 
                             if (!Mango.getSharedPreferences().getBoolean("popupFavoriteRemoved", false))
-                                Mango.alert(getManga(position).title + " has been removed from your favorites.", "Favorite removed!", AllMangaActivity.this);
+                                Mango.alert(getManga(position).title + " has been removed from your favorites.", "Favorite Deleted", AllMangaActivity.this);
                             Mango.getSharedPreferences().edit().putBoolean("popupFavoriteRemoved", true).commit();
                             vh.star.setImageResource(android.R.drawable.btn_star_big_off);
                         }
@@ -574,7 +445,7 @@ public class AllMangaActivity extends MangoActivity
                             db.insertFavorite(f);
 
                             if (!Mango.getSharedPreferences().getBoolean("popupFavoriteAdded", false))
-                                Mango.alert(getManga(position).title + " has been favorited! Mango will now track your reading progress in the Favorites screen.", "Favorite added!",
+                                Mango.alert(getManga(position).title + " has been favorited! Mango will now track your reading progress in the Favorites screen.", "Favorite Created",
                                         AllMangaActivity.this);
                             Mango.getSharedPreferences().edit().putBoolean("popupFavoriteAdded", true).commit();
                             vh.star.setImageResource(android.R.drawable.btn_star_big_on);
@@ -671,7 +542,7 @@ public class AllMangaActivity extends MangoActivity
         }
     }
 
-    private class XmlParser extends AsyncTask<String, Void, Object>
+    private class XmlParser extends AsyncTask<String, String, Object>
     {
         AllMangaActivity activity = null;
 
@@ -680,11 +551,168 @@ public class AllMangaActivity extends MangoActivity
             attach(activity);
         }
 
+        private Manga[] parseXml(String data) throws Exception
+        {
+            if (data == null)
+            {
+                throw new Exception("parseXml: data parameter is null.  Try restarting the app.");
+            }
+            ArrayList<Manga> mangaArrayList = new ArrayList<Manga>();
+            Favorite[] f = new Favorite[0];
+            Manga random = new Manga();
+            random.id = "randommanga";
+            random.title = "Try a random manga!";
+            random.completed = true;
+            mangaArrayList.add(random);
+
+            // connect to the database to set bookmarked status
+            MangoSqlite db = new MangoSqlite(activity);
+            try
+            {
+                db.open();
+                publishProgress("Getting Favorite status...");
+                f = db.getAllFavorites(null);
+
+                publishProgress("Parsing XML...");
+                SAXParserFactory saxFactory = SAXParserFactory.newInstance();
+                SAXParser parser = saxFactory.newSAXParser();
+                XMLReader reader = parser.getXMLReader();
+                AllMangaSaxHandler handler = new AllMangaSaxHandler();
+                reader.setContentHandler(handler);
+                reader.parse(new InputSource(new StringReader(data)));
+                mangaArrayList.addAll(handler.getAllManga());
+                handler.getAllManga().get(0).title.toString();
+            }
+            catch (Exception ex)
+            {
+                Mango.MANGA_LIST_CACHED = false;
+                throw ex;
+            }
+            finally
+            {
+                db.close();
+            }
+
+            publishProgress("Setting Favorite flags...");
+
+            for (int i = 1; i < mangaArrayList.size(); i++)
+            {
+                Manga m = mangaArrayList.get(i);
+                for (int j = 0; j < f.length; j++)
+                {
+                    Favorite fav = f[j];
+                    try
+                    {
+                        if (m.simpleName.equals(fav.mangaSimpleName))
+                            m.bookmarked = true;
+                        else if (m.id.equals(fav.mangaId))
+                            m.bookmarked = true;
+                        else if (m.title.equals(fav.mangaTitle))
+                            m.bookmarked = true;
+                    }
+                    catch (Exception e)
+                    {
+                        Mango.log("parseXml: " + e.toString() + " when setting bookmarked flag.");
+                        m.bookmarked = false;
+                    }
+                    if (m.bookmarked)
+                    {
+                        if (fav.coverArtUrl.length() < 15)
+                        {
+                            fav.coverArtUrl = m.coverart;
+                            db.open();
+                            db.updateFavorite(fav);
+                            db.close();
+                        }
+                        m.favoriteRowId = fav.rowId;
+                        break;
+                    }
+                }
+            }
+
+            Manga[] ret = new Manga[mangaArrayList.size()];
+            mangaArrayList.toArray(ret);
+            return ret;
+        }
+
+        public class AllMangaSaxHandler extends DefaultHandler
+        {
+            ArrayList<Manga> allManga;
+            Manga currentManga;
+            boolean blockEcchi = Mango.getSharedPreferences().getBoolean("ecchiFilter", false);
+            Pattern p = Pattern.compile("[^a-z0-9]");
+
+            public ArrayList<Manga> getAllManga()
+            {
+                return this.allManga;
+            }
+
+            @Override
+            public void startDocument() throws SAXException
+            {
+                super.startDocument();
+                allManga = new ArrayList<Manga>();
+            }
+
+            @Override
+            public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException
+            {
+                super.startElement(uri, localName, name, attributes);
+                if (localName.equalsIgnoreCase("manga"))
+                {
+                    this.currentManga = new Manga();
+                }
+                else if (localName.equalsIgnoreCase("title"))
+                {
+                    currentManga.title = attributes.getValue(0);
+                    currentManga.title = currentManga.title.replace("&quot;", "\"");
+                    currentManga.title = currentManga.title.replace("&amp;", "&");
+                    currentManga.title = currentManga.title.replace("&lt;", "<");
+                    currentManga.title = currentManga.title.replace("&gt;", ">");
+                    currentManga.generateSimpleName(p);
+                }
+                else if (localName.equalsIgnoreCase("url"))
+                {
+                    currentManga.id = attributes.getValue(0);
+                }
+                else if (localName.equalsIgnoreCase("completed"))
+                {
+                    currentManga.completed = Boolean.parseBoolean(attributes.getValue(0));
+                }
+                else if (localName.equalsIgnoreCase("cover"))
+                {
+                    currentManga.coverart = attributes.getValue(0);
+                }
+                else if (localName.equalsIgnoreCase("e"))
+                {
+                    currentManga.ecchi = (!attributes.getValue(0).equals("0"));
+                }
+            }
+
+            @Override
+            public void endElement(String uri, String localName, String name) throws SAXException
+            {
+                super.endElement(uri, localName, name);
+                if (this.currentManga != null)
+                {
+                    if (localName.equalsIgnoreCase("manga"))
+                    {
+                        if (!(blockEcchi && currentManga.ecchi))
+                            allManga.add(currentManga);
+                        if (allManga.size() % 100 == 0)
+                        {
+                            publishProgress("Parsing XML ("+ allManga.size() + " completed)");
+                        }
+                    }
+                }
+            }
+        }
+
         @Override
         protected Object doInBackground(String... params)
         {
             String data = params[0];
-            boolean save = (params[1].equals("true")) ? true : false;
+            boolean save = params[1].equals("true");
             if (save)
             {
                 try
@@ -705,6 +733,12 @@ public class AllMangaActivity extends MangoActivity
             {
                 return ex;
             }
+        }
+
+        @Override
+        protected void onProgressUpdate(String... progress)
+        {
+            Mango.DIALOG_DOWNLOADING.setMessage(progress[0]);
         }
 
         @Override
@@ -736,18 +770,5 @@ public class AllMangaActivity extends MangoActivity
         {
             this.activity = activity;
         }
-    }
-
-    public View getTutorialHighlightView(int index)
-    {
-        if (index == -1)
-        {
-            return mFindTextbox;
-        }
-        if (index == 1)
-        {
-            return mListview.getChildAt(index).findViewById(R.id.star);
-        }
-        return mListview.getChildAt(index);
     }
 }

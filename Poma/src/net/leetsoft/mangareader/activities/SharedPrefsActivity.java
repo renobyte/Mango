@@ -36,7 +36,7 @@ public class SharedPrefsActivity extends Activity
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.sharedprefseditor);
-        this.setTitle("SharedPrefsEditor");
+        this.setTitle("SharedPreference Editor");
 
         mText = (TextView) this.findViewById(R.id.sharedPrefsText);
         mEdit = (EditText) this.findViewById(R.id.sharedPrefsEdit);

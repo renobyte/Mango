@@ -16,6 +16,7 @@ import javax.xml.parsers.SAXParserFactory;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.regex.Pattern;
 
 public class MangoLibraryIO
 {
@@ -548,6 +549,8 @@ public class MangoLibraryIO
             Mango.log("Inserting " + arrayList.size() + " records into database...");
 
             MangoSqlite db = new MangoSqlite(context);
+            Pattern p = Pattern.compile("[^a-z0-9]");
+
             try
             {
                 db.open();
@@ -555,7 +558,7 @@ public class MangoLibraryIO
                 for (Iterator<LibraryChapter> iterator = arrayList.iterator(); iterator.hasNext(); )
                 {
                     LibraryChapter lc = iterator.next();
-                    lc.manga.generateSimpleName();
+                    lc.manga.generateSimpleName(p);
                     db.insertLibraryChapter(lc.manga.id, lc.manga.title, lc.manga.simpleName, lc.chapterIndex, lc.chapter.title, lc.chapter.id, lc.chapterCount, lc.chapter.url, lc.path, lc.siteId);
                 }
             }

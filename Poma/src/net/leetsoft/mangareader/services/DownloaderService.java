@@ -205,7 +205,7 @@ public class DownloaderService extends Service
         {
             db = new MangoSqlite(this);
             db.open();
-            newChapter.manga.generateSimpleName();
+            newChapter.manga.generateSimpleName(null);
             db.insertLibraryChapter(newChapter.manga.id, newChapter.manga.title, newChapter.manga.simpleName, newChapter.chapterIndex, newChapter.chapter.title, newChapter.chapter.id,
                     newChapter.chapterCount, newChapter.chapter.url, "/Mango/library/" + newChapter.manga.id + "/" + newChapter.chapter.id + "/", newChapter.siteId);
             db.close();
@@ -650,7 +650,7 @@ public class DownloaderService extends Service
                     db.deleteLibraryChapter(chapters[i].rowId);
                 }
             }
-            mTargetChapter.manga.generateSimpleName();
+            mTargetChapter.manga.generateSimpleName(null);
             db.insertLibraryChapter(mTargetChapter.manga.id, mTargetChapter.manga.title, mTargetChapter.manga.simpleName, mTargetChapter.chapterIndex, mTargetChapter.chapter.title,
                     mTargetChapter.chapter.id, mTargetChapter.chapterCount, mTargetChapter.chapter.url, mTargetItem.chapterObj.path, mTargetChapter.siteId);
             db.close();

@@ -216,11 +216,11 @@ public class SearchActivity extends MangoActivity
             genreArrayList.addAll(handler.getAllGenres());
         } catch (SAXException ex)
         {
-            Mango.alert("Mango wasn't able process the XML for the following reason:\n\n" + data + ex.toString(), "Malformed XML! :'(", this);
+            Mango.alert("The server returned malformed XML.\n\n<strong>Error Details:</strong>\n" + data + ex.toString(), "Invalid Response", this);
             return;
         } catch (NullPointerException ex)
         {
-            Mango.alert("Mango wasn't able to load the requested data for the following reason:\n\n" + data, "Unable to load data", this);
+            Mango.alert("Mango was unable to load the requested data.\n\n<strong>Error Details</strong>\n" + data, "Parse Failed", this);
             return;
         } catch (ParserConfigurationException e)
         {

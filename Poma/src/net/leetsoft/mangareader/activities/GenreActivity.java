@@ -121,14 +121,14 @@ public class GenreActivity extends MangoActivity
         removeDialog(0);
         if (data.exception)
         {
-            Mango.alert("Sorry, Mango wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data.toString(), "Download problem!", this);
-            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
+            Mango.alert("Mango was unable to fetch the requested data.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString(), "Network Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Unable to load data.  Close this screen and try again."}));
             return;
         }
         if (data.toString().startsWith("error"))
         {
-            Mango.alert("The Mango Service gave the following error:\n\n" + data.toString(), "Server Error", this);
-            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Download failed! Press the back key and try again."}));
+            Mango.alert("The server returned an error.\n\nPlease try again in a moment or try another manga source.\n\n<strong>Error Details:</strong>\n" + data.toString().substring(7), "Server Error", this);
+            mListview.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"Unable to load data.  Close this screen and try again."}));
             return;
         }
         parseXml(data.toString());
@@ -149,11 +149,11 @@ public class GenreActivity extends MangoActivity
             genreArrayList.addAll(handler.getAllGenres());
         } catch (SAXException ex)
         {
-            Mango.alert("Mango wasn't able process the XML for the following reason:\n\n" + data + ex.toString(), "Malformed XML! :'(", this);
+            Mango.alert("The server returned malformed XML.\n\n<strong>Error Details:</strong>\n" + data + ex.toString(), "Invalid Response", this);
             return;
         } catch (NullPointerException ex)
         {
-            Mango.alert("Mango wasn't able to load the requested data for the following reason:\n\n" + data, "Unable to load data", this);
+            Mango.alert("Mango was unable to load the requested data.\n\n<strong>Error Details</strong>\n" + data, "Parse Failed", this);
             return;
         } catch (ParserConfigurationException e)
         {
@@ -214,7 +214,8 @@ public class GenreActivity extends MangoActivity
             {
                 if (localName.equalsIgnoreCase("genre"))
                 {
-                    allGenres.add(currentGenre);
+                    if (!(Mango.getSharedPreferences().getBoolean("ecchiFilter", false) && (currentGenre.name.equalsIgnoreCase("ecchi") || currentGenre.name.equalsIgnoreCase("adult") || currentGenre.name.equalsIgnoreCase("mature"))))
+                        allGenres.add(currentGenre);
                 }
             }
         }
@@ -237,7 +238,6 @@ public class GenreActivity extends MangoActivity
             mangaByGenreIntent.putExtra("mode", FilteredMangaActivity.MODE_GENRE);
             mangaByGenreIntent.putExtra("argument", argGenre);
             startActivity(mangaByGenreIntent);
-            return;
         }
     }
 

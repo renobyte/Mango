@@ -68,7 +68,7 @@ public class TermsDialog extends Dialog
         mDownloader.execute("http://%SERVER_URL%/MangoTerms.txt");
         mDialog = new ProgressDialog(this.getContext());
         mDialog.setTitle("Retrieving Terms of Service...");
-        mDialog.setMessage("Wall of Text crits you for 9001 damage!");
+        mDialog.setMessage("wall of text inc");
         mDialog.setIndeterminate(true);
         mDialog.setCancelable(true);
         Mango.DIALOG_DOWNLOADING = mDialog;

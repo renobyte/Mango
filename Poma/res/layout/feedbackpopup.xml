@@ -26,7 +26,7 @@
 				android:layout_width="fill_parent"
 				android:id="@+id/feedbackDivider"></View>
 			<TextView
-				android:text="Have a comment, bug report, or suggestion? Please describe it below!"
+				android:text="Have a comment, bug report, or suggestion?  Please describe it below."
 				android:id="@+id/feedbackHelpText"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"></TextView>

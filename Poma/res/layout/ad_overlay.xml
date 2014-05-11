@@ -34,7 +34,7 @@
         android:clickable="true"
         android:gravity="center"
         android:paddingTop="20dp"
-        android:text="Uwaa!!  Why&apos;s there an ad here??"
+        android:text="Why&apos;s there an ad here?"
         android:textSize="12dp"
         android:textStyle="bold" />
 

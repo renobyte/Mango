@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-
     <PreferenceCategory android:title="Reading">
         <CheckBoxPreference
                 android:defaultValue="false"
@@ -51,6 +50,11 @@
                 android:key="preloaders"
                 android:summary="Sets how far in advance of your reading Mango downloads pages"
                 android:title="Preloading"/>
+        <CheckBoxPreference
+            android:title="Content Filter"
+            android:defaultValue="false"
+            android:summary="Hides any manga tagged as ecchi, mature, or adult."
+            android:key="ecchiFilter"/>
     </PreferenceCategory>
     <PreferenceCategory android:title="Controls">
         <CheckBoxPreference

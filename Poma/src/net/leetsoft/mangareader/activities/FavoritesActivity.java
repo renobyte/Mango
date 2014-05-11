@@ -52,18 +52,15 @@ public class FavoritesActivity extends MangoActivity
     private EditText mFilterEdit;
     private RelativeLayout mFilterOverlay;
     private ImageButton mFilterButton;
-
     private CoverArtLoader mLoader;
     private CoverArtDownloader mDownloader;
-
+    private Bitmap mOverlay;
     private HashMap<String, SoftReference<Bitmap>> mCoverCache = new HashMap<String, SoftReference<Bitmap>>();
     private volatile ArrayList<Integer> mPendingThumbnails;
     private volatile ArrayList<Integer> mPendingDownloads;
     private boolean[] mQueued;
     private boolean mDisableCovers;
-
     private Runnable mLoaderRunnable;
-
     private Bitmap mNoCoverArt;
     private int mMenuPosition;
     private int mMenuType;
@@ -74,9 +71,7 @@ public class FavoritesActivity extends MangoActivity
     private int mTapMode;                                                  // 0=normal,
     // 1=tag
     private String mSearchString;
-
     private boolean mEventsSent;
-
     private ServiceConnection mConnection = new ServiceConnection()
     {
 
@@ -134,6 +129,7 @@ public class FavoritesActivity extends MangoActivity
         super.setAdLayout((MangoAdWrapperView) findViewById(R.id.favoritesAdLayout));
         super.setJpBackground(R.drawable.jp_bg_bookmarks);
 
+
         mNoCoverArt = createCoverArt(BitmapFactory.decodeResource(getResources(), R.drawable.placeholder_error));
     }
 
@@ -180,7 +176,8 @@ public class FavoritesActivity extends MangoActivity
                 db.open();
                 len = db.getAllFavorites("notificationsEnabled = 1").length;
                 db.close();
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 Mango.log("Unable to check notificationsEnabled count! " + e.toString());
                 len = 0;
@@ -665,7 +662,8 @@ public class FavoritesActivity extends MangoActivity
                     }
                     Mango.alert("The following manga have new chapters!\n\n" + builder.toString().trim(), "New Chapters Available", this);
                     f.delete();
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     // TODO: handle exception
                 }
@@ -738,10 +736,12 @@ public class FavoritesActivity extends MangoActivity
                                 mAdapter.notifyDataSetChanged();
                             }
                         });
-                    } catch (Exception e)
+                    }
+                    catch (Exception e)
                     {
                         // TODO: handle exception
-                    } finally
+                    }
+                    finally
                     {
                         database.close();
                     }
@@ -820,7 +820,8 @@ public class FavoritesActivity extends MangoActivity
                     if (size != 0)
                         autoBackup();
                 }
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 Mango.log("Autobackup crashed with a " + e.toString() + "... favorites data is probably corrupt.");
             }
@@ -873,7 +874,8 @@ public class FavoritesActivity extends MangoActivity
                 super.logEvent("View Favorites", parameters);
                 mEventsSent = true;
             }
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             Mango.alert(
                     "Mango encountered an error while loading your favorites.  If this happens repeatedly, you may need to clear your favorites by going to <b>Settings and Help >> Clear User Data</b>.<br><br><small><b>Stack Trace:</b><br>"
@@ -890,158 +892,15 @@ public class FavoritesActivity extends MangoActivity
         mAdapter.notifyDataSetChanged();
     }
 
-    private class CoverArtLoader extends AsyncTask<Void, Void, Void>
-    {
-        @Override
-        protected void onProgressUpdate(Void... values)
-        {
-            activity.mAdapter.notifyDataSetChanged();
-            super.onProgressUpdate(values);
-        }
-
-        FavoritesActivity activity = null;
-
-        public CoverArtLoader(FavoritesActivity activity)
-        {
-            attach(activity);
-        }
-
-        @Override
-        protected Void doInBackground(Void... params)
-        {
-            while (mPendingThumbnails.size() > 0)
-            {
-                int index = mPendingThumbnails.get(0).intValue();
-                mPendingThumbnails.remove(0);
-                Bitmap b = activity.mNoCoverArt;
-                if (MangoCache.checkCacheForImage("cover/", mFavorites[index].coverArtUrl))
-                    b = createCoverArt(MangoCache.readBitmapFromCache("cover/", mFavorites[index].coverArtUrl, 1));
-                else if (mFavorites[index].coverArtUrl.startsWith("file@"))
-                    b = createCoverArt(MangoCache.readCustomCoverArt(mFavorites[index].coverArtUrl, 1));
-                else if (mFavorites[index].coverArtUrl.length() > 5)
-                    downloadCoverArt(index);
-
-                activity.mCoverCache.put(mFavorites[index].coverArtUrl, new SoftReference<Bitmap>(b));
-
-                if (index >= mListview.getFirstVisiblePosition() && index <= mListview.getLastVisiblePosition())
-                    this.publishProgress((Void[]) null);
-                mQueued[index] = false;
-            }
-            mLoader = null;
-            return null;
-        }
-
-        void downloadCoverArt(int index)
-        {
-            boolean alreadyQueued = false;
-            synchronized (mPendingDownloads)
-            {
-                for (int i = 0; i < mPendingDownloads.size(); i++)
-                {
-                    if (mPendingDownloads.get(i).intValue() == index)
-                        alreadyQueued = true;
-                }
-            }
-
-            if (!alreadyQueued)
-            {
-                Mango.log("Adding cover art to download queue: " + mFavorites[index].mangaTitle);
-                mPendingDownloads.add(new Integer(index));
-            }
-
-            if (mDownloader == null)
-            {
-                mDownloader = new CoverArtDownloader(FavoritesActivity.this);
-                mListview.postDelayed(new Runnable()
-                {
-
-                    @Override
-                    public void run()
-                    {
-                        mDownloader.execute((Void[]) null);
-                    }
-                }, 200);
-            }
-        }
-
-        void detach()
-        {
-            activity = null;
-        }
-
-        void attach(FavoritesActivity activity)
-        {
-            this.activity = activity;
-        }
-    }
-
-    private class CoverArtDownloader extends AsyncTask<Void, Void, Void>
-    {
-        @Override
-        protected void onProgressUpdate(Void... values)
-        {
-            activity.mAdapter.notifyDataSetChanged();
-            super.onProgressUpdate(values);
-        }
-
-        FavoritesActivity activity = null;
-
-        public CoverArtDownloader(FavoritesActivity activity)
-        {
-            attach(activity);
-        }
-
-        @Override
-        protected Void doInBackground(Void... params)
-        {
-            Mango.log("downloader: starting.");
-
-            synchronized (mPendingDownloads)
-            {
-                try
-                {
-                    while (mPendingDownloads.size() > 0)
-                    {
-                        int index = mPendingDownloads.get(0).intValue();
-                        MangoHttpResponse ret = MangoHttp.downloadData(mFavorites[index].coverArtUrl, activity);
-                        if (!ret.exception)
-                        {
-                            ret.writeEncodedImageToCache(0, "cover/", mFavorites[index].coverArtUrl);
-                            mCoverCache.remove(mFavorites[index].coverArtUrl);
-                        }
-
-                        mPendingDownloads.remove(0);
-                        this.publishProgress((Void[]) null);
-                    }
-                } catch (Exception ex)
-                {
-                    Mango.log("downloader: " + ex.toString());
-                }
-            }
-
-            mDownloader = null;
-            return null;
-        }
-
-        void detach()
-        {
-            activity = null;
-        }
-
-        void attach(FavoritesActivity activity)
-        {
-            this.activity = activity;
-        }
-    }
-
     private Bitmap createCoverArt(Bitmap img)
     {
         try
         {
             DisplayMetrics metrics = new DisplayMetrics();
             getWindowManager().getDefaultDisplay().getMetrics(metrics);
-            Bitmap overlay = BitmapFactory.decodeResource(getResources(), R.drawable.coverart_overlay);
-            Bitmap thumbnail = Bitmap.createBitmap(overlay.getWidth(), overlay.getHeight(), Bitmap.Config.ARGB_8888);
+            if (mOverlay == null)
+                mOverlay = BitmapFactory.decodeResource(getResources(), R.drawable.coverart_overlay);
+            Bitmap thumbnail = Bitmap.createBitmap(mOverlay.getWidth(), mOverlay.getHeight(), Bitmap.Config.ARGB_8888);
             Bitmap artInset = Bitmap.createBitmap((int) (93 * metrics.density), (int) (93 * metrics.density), Bitmap.Config.RGB_565);
 
             float downscaleFactor = 1;
@@ -1054,17 +913,23 @@ public class FavoritesActivity extends MangoActivity
             c.drawBitmap(Bitmap.createScaledBitmap(img, (int) (img.getWidth() * downscaleFactor), (int) (img.getHeight() * downscaleFactor), true), 0, 0, null);
 
             c = new Canvas(thumbnail);
-            c.drawBitmap(overlay, 0, 0, null);
-            c.drawBitmap(artInset, 1 * metrics.density, 1 * metrics.density, null);
+            c.drawBitmap(mOverlay, 0, 0, null);
+            c.drawBitmap(artInset, 2 * metrics.density, 2 * metrics.density, null);
 
-            overlay.recycle();
+            mOverlay.recycle();
             artInset.recycle();
             img.recycle();
-            overlay = null;
+            mOverlay = null;
             artInset = null;
             img = null;
             return thumbnail;
-        } catch (OutOfMemoryError e)
+        }
+        catch (NullPointerException e)
+        {
+            Mango.log("createCoverArt: NullPointerException");
+            return null;
+        }
+        catch (OutOfMemoryError e)
         {
             Mango.log("No memory to generate thumbnails.");
             return null;
@@ -1199,7 +1064,7 @@ public class FavoritesActivity extends MangoActivity
                     Manga argManga = new Manga();
                     argManga.id = f.mangaId;
                     argManga.title = f.mangaTitle;
-                    argManga.generateSimpleName();
+                    argManga.generateSimpleName(null);
                     chaptersIntent.putExtra("manga", argManga);
                     startActivity(chaptersIntent);
                 }
@@ -1230,6 +1095,564 @@ public class FavoritesActivity extends MangoActivity
         db.deleteFavorite(mFavorites[index].rowId);
         db.close();
         initializeFavorites(true);
+    }
+
+    public void pendingItemFailed(MangoHttpResponse data)
+    {
+        Mango.DIALOG_DOWNLOADING.dismiss();
+        Mango.alert(data.toString(), this);
+    }
+
+    public void popupBackupFavorites()
+    {
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+        alert.setTitle("Backup Favorites");
+        alert.setMessage("Mango can backup your Favorites to the SD card, allowing you to restore them later in case you re-install the app or get a new phone.\n\nWhat would you like this backup to be named?");
+        final EditText input = new EditText(this);
+        alert.setView(input);
+        input.setText("MyFavorites");
+        input.selectAll();
+        alert.setPositiveButton("Okay", new DialogInterface.OnClickListener()
+        {
+            public void onClick(DialogInterface dialog, int whichButton)
+            {
+                String value = input.getText().toString();
+                if (value.length() > 20)
+                    value = value.substring(0, 20);
+                final File f = new File(Mango.getDataDirectory() + "/Mango/user/" + value + ".json");
+                if (f.exists())
+                {
+                    AlertDialog.Builder a = new AlertDialog.Builder(FavoritesActivity.this);
+                    a.setTitle("Overwrite Backup?");
+                    a.setMessage("A backup file with this name already exists.  Would you like to overwrite it?");
+                    a.setPositiveButton("Yes, overwrite", new DialogInterface.OnClickListener()
+                    {
+                        public void onClick(DialogInterface dialog, int whichButton)
+                        {
+                            backupFavorites(f.getAbsolutePath());
+                        }
+                    });
+                    a.setNegativeButton("No, cancel", new DialogInterface.OnClickListener()
+                    {
+                        public void onClick(DialogInterface dialog, int whichButton)
+                        {}
+                    });
+                    a.show();
+                }
+                else
+                    backupFavorites(f.getAbsolutePath());
+            }
+        });
+        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener()
+        {
+            public void onClick(DialogInterface dialog, int whichButton)
+            {}
+        });
+        alert.show();
+    }
+
+    public void popupRestoreFavorites()
+    {
+        FileFilter filter = new FileFilter()
+        {
+            @Override
+            public boolean accept(File file)
+            {
+                return file.getAbsolutePath().endsWith("ser") || file.getAbsolutePath().endsWith("json");
+            }
+        };
+        File f = new File(Mango.getDataDirectory() + "/Mango/user/");
+        File[] files = f.listFiles(filter);
+        if (files == null || files.length == 0)
+        {
+            Mango.alert("There are no backup files located in the " + Mango.getDataDirectory() + "/Mango/user/ folder.", FavoritesActivity.this);
+            return;
+        }
+
+        MangoFileSelector fs = new MangoFileSelector(this);
+        fs.setTitle("Select File to Restore");
+        fs.allowFolders = false;
+        fs.title = "Select File to Restore";
+        fs.setListener(new MangoFileSelector.FileSelectorListener()
+        {
+            public void onClick(final String path)
+            {
+                AlertDialog alert = new AlertDialog.Builder(FavoritesActivity.this).create();
+                alert.setTitle("Restore Favorites");
+                alert.setMessage(Html.fromHtml("Mango will now load the Favorites from " + new File(path).getName() + " into your Favorites List.<br><br><b>This will delete any existing Favorites and replace them with the ones in the backup file.</b><br><br>Is this alright?"));
+                alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes, restore!", new DialogInterface.OnClickListener()
+                {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        restoreFavorites(path);
+                    }
+                });
+                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, never mind", new DialogInterface.OnClickListener()
+                {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+
+                    }
+                });
+                alert.show();
+            }
+        });
+        fs.showSelector(Mango.getDataDirectory() + "/Mango/user/", filter);
+    }
+
+    public void backupFavorites(String path)
+    {
+        writeGson(path, false);
+    }
+
+    public void restoreFavorites(String path)
+    {
+        if (path.endsWith("json"))
+            readGson(path);
+        else
+            readSerializedObject(path);
+    }
+
+    public void readSerializedObject(String path)
+    {
+        File file;
+        ObjectInputStream in = null;
+        try
+        {
+            file = new File(path);
+            if (!file.exists())
+            {
+                Mango.alert("File does not exist (" + file.getAbsolutePath() + ")", FavoritesActivity.this);
+                return;
+            }
+
+
+            long time = System.currentTimeMillis();
+
+            in = new ObjectInputStream(new FileInputStream(file));
+            Favorite[] f = (Favorite[]) in.readObject();
+            in.close();
+
+            MangoSqlite db = new MangoSqlite(this);
+            db.open();
+            db.db.execSQL("DELETE FROM tFavorites");
+            for (int i = 0; i < f.length; i++)
+            {
+                db.insertFavorite(f[i]);
+            }
+            db.close();
+            initializeFavorites(true);
+            Mango.alert("Mango successfully finished restoring " + f.length + " Favorites from " + file.getName() + ".", this);
+        }
+        catch (Exception e)
+        {
+            Mango.alert("The backup file isn't valid.  Please send it to mango@leetsoft.net.<br><br>(" + e.getClass().getSimpleName() + " using file " + path + ")", this);
+        }
+        finally
+        {
+            try
+            {
+                if (in != null)
+                    in.close();
+                in = null;
+            }
+            catch (IOException e)
+            {
+
+            }
+        }
+    }
+
+    public void readGson(String path)
+    {
+        File file;
+        try
+        {
+            file = new File(path);
+            if (!file.exists())
+            {
+                Mango.alert("File does not exist (" + file.getAbsolutePath() + ")", FavoritesActivity.this);
+                return;
+            }
+
+
+            long time = System.currentTimeMillis();
+
+            Gson g = new Gson();
+
+            Favorite[] f = (Favorite[]) g.fromJson(new InputStreamReader(new FileInputStream(file)), Favorite[].class);
+
+            MangoSqlite db = new MangoSqlite(this);
+            db.open();
+            db.db.execSQL("DELETE FROM tFavorites");
+            for (int i = 0; i < f.length; i++)
+            {
+                db.insertFavorite(f[i]);
+            }
+            db.close();
+            Mango.alert("Mango successfully finished restoring " + f.length + " Favorites from " + file.getName() + ".", this);
+            initializeFavorites(true);
+        }
+        catch (Exception e)
+        {
+            Mango.alert("The backup file isn't valid.  Please send it to mango@leetsoft.net.<br><br>(" + e.getClass().getSimpleName() + " using file " + path + ")", this);
+        }
+    }
+
+    public void writeGson(String path, boolean silent)
+    {
+        String state = Environment.getExternalStorageState();
+        if (!state.startsWith(Environment.MEDIA_MOUNTED))
+        {
+            if (!silent)
+                Mango.alert("Mango wasn't able to access the SD card.", FavoritesActivity.this);
+            return;
+        }
+
+        File file = new File(path).getParentFile();
+        Gson gson = new Gson();
+        BufferedWriter out = null;
+
+        try
+        {
+            file.mkdirs();
+            file = new File(path);
+            if (file.exists())
+                file.delete();
+            file.createNewFile();
+
+            MangoSqlite db = new MangoSqlite(this);
+            db.open();
+            Favorite[] f = db.getAllFavorites(null);
+            db.close();
+
+            long time = System.currentTimeMillis();
+            out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
+            out.write(gson.toJson(f));
+            out.flush();
+            if (!silent)
+                Mango.alert("Your Favorites have been successfully backed up to the following location:\n\n" + file.getAbsolutePath(), this);
+        }
+        catch (IOException ioe)
+        {
+        }
+        finally
+        {
+            try
+            {
+                if (out != null)
+                    out.close();
+                out = null;
+            }
+            catch (IOException e)
+            {
+
+            }
+        }
+    }
+
+    public void autoBackup()
+    {
+        String state = Environment.getExternalStorageState();
+        if (!state.startsWith(Environment.MEDIA_MOUNTED))
+        {
+            Mango.log("Could not backup favorites because SD card isn't mounted!");
+            Mango.getSharedPreferences().edit().putLong("favoritesLastBackup", System.currentTimeMillis() + (1000 * 60 * 60)).commit();
+            return;
+        }
+
+        MangoSqlite db = new MangoSqlite(this);
+        db.open();
+        Favorite[] f = db.getAllFavorites(null);
+        db.close();
+        if (f.length == 0)
+        {
+            Mango.log("Not making autobackup because favorites is empty");
+            return;
+        }
+
+        File file = new File(Mango.getDataDirectory() + "/Mango/user/FavoritesAutoBackupOld.json");
+        if (file.exists())
+            file.delete();
+
+        file = new File(Mango.getDataDirectory() + "/Mango/user/FavoritesAutoBackup.json");
+        file.renameTo(new File(Mango.getDataDirectory() + "/Mango/user/FavoritesAutoBackupOld.json"));
+
+        writeGson(Mango.getDataDirectory() + "/Mango/user/FavoritesAutoBackupOld.json", true);
+
+        Mango.getSharedPreferences().edit().putLong("favoritesLastBackup", System.currentTimeMillis() + (1000 * 60 * 60 * 24 * 3)).commit();
+    }
+
+    public void loadPendingFavorite(Favorite favorite)
+    {
+        try
+        {
+            Mango.DIALOG_DOWNLOADING.dismiss();
+            dismissDialog(0);
+        }
+        catch (Exception e)
+        {
+        }
+        Intent prIntent = new Intent();
+        prIntent.setClass(Mango.CONTEXT, PagereaderActivity.class);
+        prIntent.putExtra("manga", favorite.mangaObject);
+        prIntent.putExtra("chapterid", favorite.progressChapterId);
+        prIntent.putExtra("initialpage", favorite.progressPageIndex);
+        prIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(prIntent);
+        overridePendingTransition(R.anim.fadein, R.anim.expandout);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event)
+    {
+        if (keyCode == KeyEvent.KEYCODE_BACK)
+        {
+            if (mFilterOverlay.getVisibility() == View.VISIBLE)
+            {
+                toggleSearch();
+                return true;
+            }
+            if (mSearchString != null)
+            {
+                mSearchString = null;
+                mFilterEdit.setText("");
+                initializeFavorites(true);
+                return true;
+            }
+            if (mTapMode == 1)
+            {
+                mTapMode = 0;
+                Toast.makeText(this, "You're no longer in Tag Mode.", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+            if (mTapMode == 2)
+            {
+                mTapMode = 0;
+                Toast.makeText(this, "You're no longer in Notification Mode.", Toast.LENGTH_SHORT).show();
+                if (!Mango.getSharedPreferences().getBoolean("notifierEnabled", false))
+                    Mango.alert("Remember to go to Settings and Help >> Notification Preferences to enable notifications!", "Don't forget!", FavoritesActivity.this);
+                return true;
+            }
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onSearchRequested()
+    {
+        toggleSearch();
+        return true;
+    }
+
+    private void searchTextChanged()
+    {
+        if (mSearchString != null && mSearchString.equals(mFilterEdit.getText().toString()))
+            mFilterButton.setImageResource(R.drawable.toolbar_delete);
+        else
+            mFilterButton.setImageResource(R.drawable.toolbar_find);
+    }
+
+    private void searchClicked()
+    {
+        if (mFilterEdit.getText().toString().trim().length() == 0)
+            return;
+
+        if (mSearchString == null || !mSearchString.equals(mFilterEdit.getText().toString()))
+        {
+            mSearchString = mFilterEdit.getText().toString();
+            mFilterButton.setImageResource(R.drawable.toolbar_delete);
+        }
+        else if (mSearchString.equals(mFilterEdit.getText().toString()))
+        {
+            mSearchString = null;
+            mFilterEdit.setText("");
+        }
+
+        toggleSearch();
+        initializeFavorites(true);
+    }
+
+    public void toggleSearch()
+    {
+        mFilterOverlay.bringToFront();
+        if (mFilterOverlay.getVisibility() == View.VISIBLE)
+        {
+            mFilterOverlay.clearAnimation();
+            AnimationSet as = (AnimationSet) AnimationUtils.loadAnimation(this, R.anim.titlebarout);
+            as.scaleCurrentDuration(0.75f);
+            mFilterOverlay.startAnimation(as);
+            mFilterOverlay.setVisibility(View.INVISIBLE);
+            InputMethodManager mgr = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            mgr.hideSoftInputFromWindow(mFilterEdit.getWindowToken(), 0);
+        }
+        else
+        {
+            mFilterOverlay.clearAnimation();
+            AnimationSet as = (AnimationSet) AnimationUtils.loadAnimation(this, R.anim.titlebarin);
+            as.scaleCurrentDuration(0.75f);
+            mFilterOverlay.startAnimation(as);
+            mFilterOverlay.setVisibility(View.VISIBLE);
+            mFilterEdit.requestFocus();
+            InputMethodManager mgr = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            mgr.showSoftInput(mFilterEdit, InputMethodManager.SHOW_IMPLICIT);
+        }
+    }
+
+    public View getTutorialHighlightView(int index)
+    {
+        if (index == -1)
+            return mFilterOverlay;
+        return mListview.getChildAt(index);
+    }
+
+    private class CoverArtLoader extends AsyncTask<Void, Void, Void>
+    {
+        FavoritesActivity activity = null;
+
+        public CoverArtLoader(FavoritesActivity activity)
+        {
+            attach(activity);
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values)
+        {
+            activity.mAdapter.notifyDataSetChanged();
+            super.onProgressUpdate(values);
+        }
+
+        @Override
+        protected Void doInBackground(Void... params)
+        {
+            while (mPendingThumbnails.size() > 0)
+            {
+                int index = mPendingThumbnails.get(0).intValue();
+                mPendingThumbnails.remove(0);
+                Bitmap b = activity.mNoCoverArt;
+                if (MangoCache.checkCacheForImage("cover/", mFavorites[index].coverArtUrl))
+                {
+                    b = createCoverArt(MangoCache.readBitmapFromCache("cover/", mFavorites[index].coverArtUrl, 1));
+                }
+                else if (mFavorites[index].coverArtUrl.startsWith("file@"))
+                    b = createCoverArt(MangoCache.readCustomCoverArt(mFavorites[index].coverArtUrl, 1));
+                else if (mFavorites[index].coverArtUrl.length() > 5)
+                    downloadCoverArt(index);
+
+                activity.mCoverCache.put(mFavorites[index].coverArtUrl, new SoftReference<Bitmap>(b));
+
+                if (index >= mListview.getFirstVisiblePosition() && index <= mListview.getLastVisiblePosition())
+                    this.publishProgress((Void[]) null);
+                mQueued[index] = false;
+            }
+            mLoader = null;
+            return null;
+        }
+
+        void downloadCoverArt(int index)
+        {
+            boolean alreadyQueued = false;
+            synchronized (mPendingDownloads)
+            {
+                for (int i = 0; i < mPendingDownloads.size(); i++)
+                {
+                    if (mPendingDownloads.get(i).intValue() == index)
+                        alreadyQueued = true;
+                }
+            }
+
+            if (!alreadyQueued)
+            {
+                Mango.log("Adding cover art to download queue: " + mFavorites[index].mangaTitle);
+                mPendingDownloads.add(new Integer(index));
+            }
+
+            if (mDownloader == null)
+            {
+                mDownloader = new CoverArtDownloader(FavoritesActivity.this);
+                mListview.postDelayed(new Runnable()
+                {
+
+                    @Override
+                    public void run()
+                    {
+                        mDownloader.execute((Void[]) null);
+                    }
+                }, 200);
+            }
+        }
+
+        void detach()
+        {
+            activity = null;
+        }
+
+        void attach(FavoritesActivity activity)
+        {
+            this.activity = activity;
+        }
+    }
+
+    private class CoverArtDownloader extends AsyncTask<Void, Void, Void>
+    {
+        FavoritesActivity activity = null;
+
+        public CoverArtDownloader(FavoritesActivity activity)
+        {
+            attach(activity);
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values)
+        {
+            activity.mAdapter.notifyDataSetChanged();
+            super.onProgressUpdate(values);
+        }
+
+        @Override
+        protected Void doInBackground(Void... params)
+        {
+            Mango.log("downloader: starting.");
+
+            synchronized (mPendingDownloads)
+            {
+                try
+                {
+                    while (mPendingDownloads.size() > 0)
+                    {
+                        int index = mPendingDownloads.get(0).intValue();
+                        MangoHttpResponse ret = MangoHttp.downloadData(mFavorites[index].coverArtUrl, activity);
+                        if (!ret.exception)
+                        {
+                            ret.writeEncodedImageToCache(0, "cover/", mFavorites[index].coverArtUrl);
+                            mCoverCache.remove(mFavorites[index].coverArtUrl);
+                        }
+
+                        mPendingDownloads.remove(0);
+                        this.publishProgress((Void[]) null);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Mango.log("downloader: " + ex.toString());
+                }
+            }
+
+            mDownloader = null;
+            return null;
+        }
+
+        void detach()
+        {
+            activity = null;
+        }
+
+        void attach(FavoritesActivity activity)
+        {
+            this.activity = activity;
+        }
     }
 
     class ViewHolder
@@ -1423,409 +1846,5 @@ public class FavoritesActivity extends MangoActivity
             }
             return o1.mangaTitle.compareTo(o2.mangaTitle);
         }
-    }
-
-    public void pendingItemFailed(MangoHttpResponse data)
-    {
-        Mango.DIALOG_DOWNLOADING.dismiss();
-        Mango.alert(data.toString(), this);
-    }
-
-    public void popupBackupFavorites()
-    {
-        AlertDialog.Builder alert = new AlertDialog.Builder(this);
-        alert.setTitle("Backup Favorites");
-        alert.setMessage("Mango can backup your Favorites to the SD card, allowing you to restore them later in case you re-install the app or get a new phone.\n\nWhat would you like this backup to be named?");
-        final EditText input = new EditText(this);
-        alert.setView(input);
-        input.setText("MyFavorites");
-        input.selectAll();
-        alert.setPositiveButton("Okay", new DialogInterface.OnClickListener()
-        {
-            public void onClick(DialogInterface dialog, int whichButton)
-            {
-                String value = input.getText().toString();
-                if (value.length() > 20)
-                    value = value.substring(0, 20);
-                final File f = new File(Mango.getDataDirectory() + "/Mango/user/" + value + ".json");
-                if (f.exists())
-                {
-                    AlertDialog.Builder a = new AlertDialog.Builder(FavoritesActivity.this);
-                    a.setTitle("Overwrite Backup?");
-                    a.setMessage("A backup file with this name already exists.  Would you like to overwrite it?");
-                    a.setPositiveButton("Yes, overwrite", new DialogInterface.OnClickListener()
-                    {
-                        public void onClick(DialogInterface dialog, int whichButton)
-                        {
-                            backupFavorites(f.getAbsolutePath());
-                        }
-                    });
-                    a.setNegativeButton("No, cancel", new DialogInterface.OnClickListener()
-                    {
-                        public void onClick(DialogInterface dialog, int whichButton)
-                        {}
-                    });
-                    a.show();
-                }
-                else
-                    backupFavorites(f.getAbsolutePath());
-            }
-        });
-        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener()
-        {
-            public void onClick(DialogInterface dialog, int whichButton)
-            {}
-        });
-        alert.show();
-    }
-
-    public void popupRestoreFavorites()
-    {
-        FileFilter filter = new FileFilter()
-        {
-            @Override
-            public boolean accept(File file)
-            {
-                return file.getAbsolutePath().endsWith("ser") || file.getAbsolutePath().endsWith("json");
-            }
-        };
-        File f = new File(Mango.getDataDirectory() + "/Mango/user/");
-        File[] files = f.listFiles(filter);
-        if (files == null || files.length == 0)
-        {
-            Mango.alert("There are no backup files located in the " + Mango.getDataDirectory() + "/Mango/user/ folder.", FavoritesActivity.this);
-            return;
-        }
-
-        MangoFileSelector fs = new MangoFileSelector(this);
-        fs.setTitle("Select File to Restore");
-        fs.allowFolders = false;
-        fs.title = "Select File to Restore";
-        fs.setListener(new MangoFileSelector.FileSelectorListener()
-        {
-            public void onClick(final String path)
-            {
-                AlertDialog alert = new AlertDialog.Builder(FavoritesActivity.this).create();
-                alert.setTitle("Restore Favorites");
-                alert.setMessage(Html.fromHtml("Mango will now load the Favorites from " + new File(path).getName() + " into your Favorites List.<br><br><b>This will delete any existing Favorites and replace them with the ones in the backup file.</b><br><br>Is this alright?"));
-                alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes, restore!", new DialogInterface.OnClickListener()
-                {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which)
-                    {
-                        restoreFavorites(path);
-                    }
-                });
-                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, never mind", new DialogInterface.OnClickListener()
-                {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which)
-                    {
-
-                    }
-                });
-                alert.show();
-            }
-        });
-        fs.showSelector(Mango.getDataDirectory() + "/Mango/user/", filter);
-    }
-
-
-    public void backupFavorites(String path)
-    {
-        writeGson(path, false);
-    }
-
-    public void restoreFavorites(String path)
-    {
-        if (path.endsWith("json"))
-            readGson(path);
-        else
-            readSerializedObject(path);
-    }
-
-    public void readSerializedObject(String path)
-    {
-        File file;
-        ObjectInputStream in = null;
-        try
-        {
-            file = new File(path);
-            if (!file.exists())
-            {
-                Mango.alert("File does not exist (" + file.getAbsolutePath() + ")", FavoritesActivity.this);
-                return;
-            }
-
-
-            long time = System.currentTimeMillis();
-
-            in = new ObjectInputStream(new FileInputStream(file));
-            Favorite[] f = (Favorite[]) in.readObject();
-            in.close();
-
-            MangoSqlite db = new MangoSqlite(this);
-            db.open();
-            db.db.execSQL("DELETE FROM tFavorites");
-            for (int i = 0; i < f.length; i++)
-            {
-                db.insertFavorite(f[i]);
-            }
-            db.close();
-            initializeFavorites(true);
-            Mango.alert("Mango successfully finished restoring " + f.length + " Favorites from " + file.getName() + ".", this);
-        } catch (Exception e)
-        {
-            Mango.alert("The backup file isn't valid.  Please send it to mango@leetsoft.net.<br><br>(" + e.getClass().getSimpleName() + " using file " + path + ")", this);
-        } finally
-        {
-            try
-            {
-                if (in != null)
-                    in.close();
-                in = null;
-            } catch (IOException e)
-            {
-
-            }
-        }
-    }
-
-    public void readGson(String path)
-    {
-        File file;
-        try
-        {
-            file = new File(path);
-            if (!file.exists())
-            {
-                Mango.alert("File does not exist (" + file.getAbsolutePath() + ")", FavoritesActivity.this);
-                return;
-            }
-
-
-            long time = System.currentTimeMillis();
-
-            Gson g = new Gson();
-
-            Favorite[] f = (Favorite[]) g.fromJson(new InputStreamReader(new FileInputStream(file)), Favorite[].class);
-
-            MangoSqlite db = new MangoSqlite(this);
-            db.open();
-            db.db.execSQL("DELETE FROM tFavorites");
-            for (int i = 0; i < f.length; i++)
-            {
-                db.insertFavorite(f[i]);
-            }
-            db.close();
-            Mango.alert("Mango successfully finished restoring " + f.length + " Favorites from " + file.getName() + ".", this);
-            initializeFavorites(true);
-        } catch (Exception e)
-        {
-            Mango.alert("The backup file isn't valid.  Please send it to mango@leetsoft.net.<br><br>(" + e.getClass().getSimpleName() + " using file " + path + ")", this);
-        }
-    }
-
-    public void writeGson(String path, boolean silent)
-    {
-        String state = Environment.getExternalStorageState();
-        if (!state.startsWith(Environment.MEDIA_MOUNTED))
-        {
-            if (!silent)
-                Mango.alert("Mango wasn't able to access the SD card.", FavoritesActivity.this);
-            return;
-        }
-
-        File file = new File(path).getParentFile();
-        Gson gson = new Gson();
-        BufferedWriter out = null;
-
-        try
-        {
-            file.mkdirs();
-            file = new File(path);
-            if (file.exists())
-                file.delete();
-            file.createNewFile();
-
-            MangoSqlite db = new MangoSqlite(this);
-            db.open();
-            Favorite[] f = db.getAllFavorites(null);
-            db.close();
-
-            long time = System.currentTimeMillis();
-            out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
-            out.write(gson.toJson(f));
-            out.flush();
-            if (!silent)
-                Mango.alert("Your Favorites have been successfully backed up to the following location:\n\n" + file.getAbsolutePath(), this);
-        } catch (IOException ioe)
-        {
-        } finally
-        {
-            try
-            {
-                if (out != null)
-                    out.close();
-                out = null;
-            } catch (IOException e)
-            {
-
-            }
-        }
-    }
-
-    public void autoBackup()
-    {
-        String state = Environment.getExternalStorageState();
-        if (!state.startsWith(Environment.MEDIA_MOUNTED))
-        {
-            Mango.log("Could not backup favorites because SD card isn't mounted!");
-            Mango.getSharedPreferences().edit().putLong("favoritesLastBackup", System.currentTimeMillis() + (1000 * 60 * 60)).commit();
-            return;
-        }
-
-        MangoSqlite db = new MangoSqlite(this);
-        db.open();
-        Favorite[] f = db.getAllFavorites(null);
-        db.close();
-        if (f.length == 0)
-        {
-            Mango.log("Not making autobackup because favorites is empty");
-            return;
-        }
-
-        File file = new File(Mango.getDataDirectory() + "/Mango/user/FavoritesAutoBackupOld.json");
-        if (file.exists())
-            file.delete();
-
-        file = new File(Mango.getDataDirectory() + "/Mango/user/FavoritesAutoBackup.json");
-        file.renameTo(new File(Mango.getDataDirectory() + "/Mango/user/FavoritesAutoBackupOld.json"));
-
-        writeGson(Mango.getDataDirectory() + "/Mango/user/FavoritesAutoBackupOld.json", true);
-
-        Mango.getSharedPreferences().edit().putLong("favoritesLastBackup", System.currentTimeMillis() + (1000 * 60 * 60 * 24 * 3)).commit();
-    }
-
-    public void loadPendingFavorite(Favorite favorite)
-    {
-        try
-        {
-            Mango.DIALOG_DOWNLOADING.dismiss();
-            dismissDialog(0);
-        } catch (Exception e)
-        {
-        }
-        Intent prIntent = new Intent();
-        prIntent.setClass(Mango.CONTEXT, PagereaderActivity.class);
-        prIntent.putExtra("manga", favorite.mangaObject);
-        prIntent.putExtra("chapterid", favorite.progressChapterId);
-        prIntent.putExtra("initialpage", favorite.progressPageIndex);
-        prIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(prIntent);
-        overridePendingTransition(R.anim.fadein, R.anim.expandout);
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event)
-    {
-        if (keyCode == KeyEvent.KEYCODE_BACK)
-        {
-            if (mFilterOverlay.getVisibility() == View.VISIBLE)
-            {
-                toggleSearch();
-                return true;
-            }
-            if (mSearchString != null)
-            {
-                mSearchString = null;
-                mFilterEdit.setText("");
-                initializeFavorites(true);
-                return true;
-            }
-            if (mTapMode == 1)
-            {
-                mTapMode = 0;
-                Toast.makeText(this, "You're no longer in Tag Mode.", Toast.LENGTH_SHORT).show();
-                return true;
-            }
-            if (mTapMode == 2)
-            {
-                mTapMode = 0;
-                Toast.makeText(this, "You're no longer in Notification Mode.", Toast.LENGTH_SHORT).show();
-                if (!Mango.getSharedPreferences().getBoolean("notifierEnabled", false))
-                    Mango.alert("Remember to go to Settings and Help >> Notification Preferences to enable notifications!", "Don't forget!", FavoritesActivity.this);
-                return true;
-            }
-        }
-        return super.onKeyDown(keyCode, event);
-    }
-
-    @Override
-    public boolean onSearchRequested()
-    {
-        toggleSearch();
-        return true;
-    }
-
-    private void searchTextChanged()
-    {
-        if (mSearchString != null && mSearchString.equals(mFilterEdit.getText().toString()))
-            mFilterButton.setImageResource(R.drawable.toolbar_delete);
-        else
-            mFilterButton.setImageResource(R.drawable.toolbar_find);
-    }
-
-    private void searchClicked()
-    {
-        if (mFilterEdit.getText().toString().trim().length() == 0)
-            return;
-
-        if (mSearchString == null || !mSearchString.equals(mFilterEdit.getText().toString()))
-        {
-            mSearchString = mFilterEdit.getText().toString();
-            mFilterButton.setImageResource(R.drawable.toolbar_delete);
-        }
-        else if (mSearchString.equals(mFilterEdit.getText().toString()))
-        {
-            mSearchString = null;
-            mFilterEdit.setText("");
-        }
-
-        toggleSearch();
-        initializeFavorites(true);
-    }
-
-    public void toggleSearch()
-    {
-        mFilterOverlay.bringToFront();
-        if (mFilterOverlay.getVisibility() == View.VISIBLE)
-        {
-            mFilterOverlay.clearAnimation();
-            AnimationSet as = (AnimationSet) AnimationUtils.loadAnimation(this, R.anim.titlebarout);
-            as.scaleCurrentDuration(0.75f);
-            mFilterOverlay.startAnimation(as);
-            mFilterOverlay.setVisibility(View.INVISIBLE);
-            InputMethodManager mgr = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            mgr.hideSoftInputFromWindow(mFilterEdit.getWindowToken(), 0);
-        }
-        else
-        {
-            mFilterOverlay.clearAnimation();
-            AnimationSet as = (AnimationSet) AnimationUtils.loadAnimation(this, R.anim.titlebarin);
-            as.scaleCurrentDuration(0.75f);
-            mFilterOverlay.startAnimation(as);
-            mFilterOverlay.setVisibility(View.VISIBLE);
-            mFilterEdit.requestFocus();
-            InputMethodManager mgr = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            mgr.showSoftInput(mFilterEdit, InputMethodManager.SHOW_IMPLICIT);
-        }
-    }
-
-    public View getTutorialHighlightView(int index)
-    {
-        if (index == -1)
-            return mFilterOverlay;
-        return mListview.getChildAt(index);
     }
 }

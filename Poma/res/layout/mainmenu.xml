@@ -33,7 +33,7 @@
 			android:layout_height="fill_parent"
 			android:gravity="center_vertical|center_horizontal"
 			android:layout_weight="3"
-			android:text="No items to display!"
+			android:text="No items to display."
 			android:id="@+id/mainMenuEmpty"
 			android:textStyle="bold"
 			android:textSize="16sp"

@@ -56,7 +56,7 @@
 			android:layout_width="fill_parent"
 			android:layout_height="fill_parent"
 			android:gravity="center_vertical|center_horizontal"
-			android:text="No favorites to display!"
+			android:text="No favorites to display."
 			android:id="@+id/favoritesEmpty"
 			android:textStyle="bold"
 			android:textSize="16sp"></TextView>

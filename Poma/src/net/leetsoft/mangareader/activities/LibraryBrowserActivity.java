@@ -655,11 +655,12 @@ public class LibraryBrowserActivity extends MangoActivity
         {
             db.open();
             updateProgressDialog("Querying...");
-            lc = db.getAllLibraryChapters(MangoSqlite.KEY_MANGATITLE + " = '" + m.title + "'");
+            lc = db.getAllLibraryChapters(m.title);
             db.close();
         }
         catch (SQLException ex)
         {
+            Mango.log("initializeChapters: " + ex.toString());
             return "Mango encountered an error while retrieving your Library from the SQLite database! If this happens again, please let us know, along with the following data:\n\n"
                     + ex.getClass().getSimpleName() + ": " + ex.getMessage();
         }
@@ -1127,7 +1128,7 @@ public class LibraryBrowserActivity extends MangoActivity
         if (mViewMode == VIEW_SUBFOLDER)
             cName = mChapters[0].manga.title;
         alert.setMessage("This tool will scan " + cName
-                + " and re-download any bad pages.\n\nMake sure you have an active 3G/4G/WiFi connection and don't close this screen while the scan is running.\n\nPress Back to cancel.");
+                + " and re-download any bad pages.\n\nMake sure you have a solid mobile data or Wi-Fi connection and don't close this screen while the scan is running.\n\nPress Back to cancel.");
         alert.setButton(DialogInterface.BUTTON_POSITIVE, "Start!", new DialogInterface.OnClickListener()
         {
             @Override
@@ -1308,7 +1309,7 @@ public class LibraryBrowserActivity extends MangoActivity
         try
         {
             db.open();
-            lcArray = db.getAllLibraryChapters(MangoSqlite.KEY_MANGATITLE + " = '" + chapter.manga.title + "'");;
+            lcArray = db.getAllLibraryChapters(chapter.manga.title);;
             for (int i = 0; i < lcArray.length; i++)
             {
                 db.deleteLibraryChapter(lcArray[i].rowId);

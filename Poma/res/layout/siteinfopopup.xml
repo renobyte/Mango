@@ -28,7 +28,7 @@
 				android:layout_marginRight="4dp"
 				android:layout_marginLeft="4dp"
 				android:layout_marginTop="6dp"
-				android:text="herp derp description goes here! you shouldn't ever see this."></TextView>
+				android:text="description"></TextView>
 			<Button
 				android:layout_centerHorizontal="true"
 				android:layout_below="@id/siteInfoDescription"
