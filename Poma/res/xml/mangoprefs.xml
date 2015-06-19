@@ -110,10 +110,15 @@
                 android:summary="Skips menu background compositing, making menus load slightly faster. But then you&apos;ll have ugly menus. :&apos;("
                 android:title="Disable Menu Backgrounds"/>
         <CheckBoxPreference
-                android:defaultValue="false"
-                android:key="invertTheme"
-                android:summary="Inverts the color scheme of Mango&apos;s menus (white text, black background). Backgrounds will be disabled. (Experimental)"
-                android:title="White-on-Black Menus (beta)"/>
+            android:defaultValue="false"
+            android:key="invertTheme"
+            android:summary="Inverts the color scheme of Mango&apos;s menus (white text, black background). Backgrounds will be disabled. (Experimental)"
+            android:title="White-on-Black Menus (beta)"/>
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="jpBackgrounds"
+            android:summary="Re-enables the Japanese menu watermark décor"
+            android:title="Enable Legacy Menu Décor"/>
     </PreferenceCategory>
     <PreferenceCategory android:title="Other">
         <CheckBoxPreference

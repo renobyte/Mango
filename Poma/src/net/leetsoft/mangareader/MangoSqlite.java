@@ -28,7 +28,7 @@ public class MangoSqlite
     // tLibrary only
     public static final String KEY_CHAPTERURL = "chapterUrl";
     public static final String KEY_LOCALPATH = "localPath";
-    private static final String DATABASE_NAME = "pomaDB";
+    private static final String DATABASE_NAME = "mangoDB";
     private static final String TABLE_BOOKMARKS = "tBookmarks";
     private static final String TABLE_LIBRARY = "tLibrary";
     private static final String TABLE_FAVORITES = "tFavorites";

@@ -49,11 +49,11 @@ public class Mango extends Application implements Thread.UncaughtExceptionHandle
     // 1.6.190
 
     // Versioning and identification
-    public static final String VERSION_FULL = "1.6.190";
+    public static final String VERSION_FULL = "1.7.193 beta";
     public static final String VERSION_BUILDID = "Kon";
-    public static final String VERSION_NETID = "android_play_1.6.190";
+    public static final String VERSION_NETID = "android_play_1.6.193";
     public static final String TAG = "Mango";
-    public static final int VERSION_REVISION = 190;
+    public static final int VERSION_REVISION = 193;
     public static final boolean DONT_LOGCAT = false;
     // Site codes
     public static final int SITE_LOCAL = 1;
@@ -130,8 +130,7 @@ public class Mango extends Application implements Thread.UncaughtExceptionHandle
         Mango.log(currentDateTimeString + ", " + System.currentTimeMillis());
         Mango.log("Mango is initializing. (" + CONTEXT.toString() + ")");
 
-        if (CONTEXT.getPackageName().contains("com.ls"))
-            WEBSITE_VERSION = true;
+        WEBSITE_VERSION = true;
 
         MANGO_SHAREDPREFS = PreferenceManager.getDefaultSharedPreferences(CONTEXT);
         RANDOM = new Random(System.currentTimeMillis());

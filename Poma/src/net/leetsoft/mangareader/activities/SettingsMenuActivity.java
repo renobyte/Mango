@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -21,8 +22,6 @@ import java.io.IOException;
 
 public class SettingsMenuActivity extends MangoActivity
 {
-    private MenuChoice[] mActiveMenu;
-
     private final MenuChoice[] NORMAL_MENU = new MenuChoice[]{new MenuChoice("Preferences", 1, R.drawable.ic_options),
             new MenuChoice("Notification Preferences", 2, R.drawable.ic_notifications),
             new MenuChoice("Mango Bankai (ad-free)", 6, R.drawable.icon_bankai),
@@ -34,6 +33,7 @@ public class SettingsMenuActivity extends MangoActivity
             new MenuChoice("SharedPreferences Editor", 51, R.drawable.ic_error),
             new MenuChoice("Stop App Process", 52, R.drawable.ic_error),
             new MenuChoice("Disable Tutorials", 54, R.drawable.ic_error),};
+    private MenuChoice[] mActiveMenu;
     private ListView mSettingsMenu;
     private int mMenuLevel = 0;
 
@@ -117,11 +117,20 @@ public class SettingsMenuActivity extends MangoActivity
         }
         else if (itemId == 6)
         {
-            if (1==1)
-                return;
-            Intent myIntent = new Intent();
-            myIntent.setClass(Mango.CONTEXT, BankaiActivity.class);
-            startActivity(myIntent);
+            if (!Mango.DISABLE_ADS)
+            {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse("http://" + Mango.getSharedPreferences().getString("serverUrl", "kagami.leetsoft.net") + "/buyBankai.aspx?did=" + Mango.getPin()));
+                startActivity(intent);
+                overridePendingTransition(R.anim.fadein, R.anim.expandout);
+            }
+            else
+            {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse("http://" + Mango.getSharedPreferences().getString("serverUrl", "kagami.leetsoft.net") + "/resetBankai.aspx"));
+                startActivity(intent);
+                overridePendingTransition(R.anim.fadein, R.anim.expandout);
+            }
         }
         else if (itemId == 7)
         {
@@ -175,7 +184,7 @@ public class SettingsMenuActivity extends MangoActivity
     {
         AlertDialog.Builder a = new AlertDialog.Builder(this);
         a.setTitle("Select data to clear:");
-        String[] options = new String[]{"SharedPreferences",
+        String[] options = new String[]{"Preferences",
                 "Favorites Database",
                 "History Database",
                 "Library Database"};
@@ -204,7 +213,7 @@ public class SettingsMenuActivity extends MangoActivity
                         AlertDialog alert = new AlertDialog.Builder(SettingsMenuActivity.this).create();
                         alert.setTitle("Clear User Data");
                         alert.setMessage("The selected data will be permanently erased.\n\nWARNING: This action cannot be reversed! Are you certain?");
-                        alert.setButton(-1, "Yes!", new DialogInterface.OnClickListener()
+                        alert.setButton(-1, "Yes, delete data", new DialogInterface.OnClickListener()
                         {
                             @Override
                             public void onClick(DialogInterface dialog, int which)
@@ -212,7 +221,7 @@ public class SettingsMenuActivity extends MangoActivity
                                 wipeData(selection);
                             }
                         });
-                        alert.setButton(-3, "No, cancel!", new
+                        alert.setButton(-3, "No, cancel", new
                                 DialogInterface.OnClickListener()
                                 {
                                     @Override
@@ -222,7 +231,7 @@ public class SettingsMenuActivity extends MangoActivity
                         alert.show();
                     }
                 });
-        a.setNegativeButton("Never mind", new
+        a.setNegativeButton("No, cancel", new
                 OnClickListener()
                 {
 
@@ -240,7 +249,7 @@ public class SettingsMenuActivity extends MangoActivity
         db.open();
         if (args[0])
         {
-            report += "SharedPreferences\n";
+            report += "Preferences\n";
             Mango.getSharedPreferences().edit().clear().commit();
         }
         if (args[1])
@@ -264,7 +273,7 @@ public class SettingsMenuActivity extends MangoActivity
         report += "\n";
 
         Mango.initializeApp(SettingsMenuActivity.this);
-        Mango.alert(report + "Mango will restart in three seconds. Here's to a fresh start!", SettingsMenuActivity.this);
+        Mango.alert(report + "Mango will restart in three seconds.", SettingsMenuActivity.this);
 
         mSettingsMenu.postDelayed(new Runnable()
         {

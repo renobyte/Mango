@@ -55,9 +55,9 @@ public class MainMenuActivity extends MangoActivity
             "Please support mangaka and publishers by purchasing official manga volumes when they're licensed in English.",
             "Support English publishers and mangaka by buying licensed manga!  Even Mango isn't as good as a real book.",
             "Enable Notifications to have Mango automatically check for new chapters of your favorite series.",
-            "Sick of Bleach, Naruto, and One Piece? Use the Advanced Search feature to find new manga from genres you enjoy!",
-            "The Mango Service checks for new chapters every half-hour. If a brand new chapter doesn't show up, just wait a bit for it to be discovered.",
-            "The Mango Service checks for new manga daily. If a new manga is not in the All Manga list yet, it should be there by the next day."};
+            "Sick of Bleach, Naruto, and One Piece? Use the Advanced Search feature to find new manga from genres you enjoy.",
+            "The server checks for new chapters every half-hour. If a brand new chapter doesn't show up, just wait a bit for it to be discovered.",
+            "The server checks for new manga daily. If a new manga is not in the All Manga list yet, it should be there by the next day."};
     private TextSwitcher tipSwitcher;
     private TextSwitcher alertSwitcher;
     private ImageView alertIcon;
@@ -233,9 +233,10 @@ public class MainMenuActivity extends MangoActivity
                 @Override
                 public void onClick(View v)
                 {
-                    Intent myIntent = new Intent();
-                    myIntent.setClass(Mango.CONTEXT, BankaiActivity.class);
-                    startActivity(myIntent);
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(Uri.parse("http://" + Mango.getSharedPreferences().getString("serverUrl", "kagami.leetsoft.net") + "/buyBankai.aspx?did=" + Mango.getPin()));
+                    startActivity(intent);
+                    overridePendingTransition(R.anim.fadein, R.anim.expandout);
                 }
             };
             setToast("Want to permanently get rid of ads?  Tap here to upgrade to Bankai!", l, true);
@@ -392,13 +393,29 @@ public class MainMenuActivity extends MangoActivity
             changelog.append("<b>New in v" + Mango.VERSION_FULL + "</b><br>");
             changelog.append("<small>");
             changelog.append("<b>-Added: Content Filtering option</b><br>");
-            changelog.append("Hides all manga tagged as mature, ecchi, or adult.  This can be adjusted from the Settings menu.<br><br>");
+            changelog.append("Hides all manga tagged as mature, ecchi, or adult.  This can be adjusted from the Preferences menu.<br><br>");
+            changelog.append("<b>-Fixed: MangaHere broken pages</b><br>");
+            changelog.append("Mango did not support gzip encoded downloads, which caused broken pages on MangaHere.  This has been resolved.<br><br>");
             changelog.append("<b>-Fixed: Various bugs</b><br>");
-            changelog.append("Fixed some crashes, addressed some My Library issues<br><br>");
+            changelog.append("Fixed minor bugs throughout the app which might cause crashes, addressed some My Library issues.<br><br>");
             changelog.append("<b>-Fixed: Android 4.4 issues</b><br>");
             changelog.append("Fixed crashes caused by SD card access changes on Android 4.4.<br><br>");
+            changelog.append("<b>-Fixed: String escaping issues with series names</b><br>");
+            changelog.append("Quotation marks in manga titles should appear properly now (ie. \"Gokko\" instead of &quot;Gokko&quot;)<br><br>");
+            changelog.append("<b>-Improved: Add-to-Favorites button scrollbar overlap</b><br>");
+            changelog.append("The Favorites star button on the All Manga list has been offset by about 10 dp to reduce the overlap with the scrollbar.  Additionally, the touch hitbox has been greatly enlarged, so you can tap the space beside the star and still have it register.<br><br>");
             changelog.append("<b>-Improved: Faster All Manga load times</b><br>");
             changelog.append("The All Manga list's 'Processing Data' period has been improved by about 15%.<br><br>");
+            changelog.append("<b>-Improved: Sqlite backend</b><br>");
+            changelog.append("This should improve performance for users with very large favorites/history databases.<br><br>");
+            changelog.append("<b>-Changed: Menu icons</b><br>");
+            changelog.append("Menu icons have been reverted to their pre-1.6 versions.<br><br>");
+            changelog.append("<b>-Changed: Text wording</b><br>");
+            changelog.append("Text in dialog boxes and menus throughout the app has been adjusted in an attempt to improve clarity and reduce wordiness.<br><br>");
+            changelog.append("<b>-Changed: Logging system overhaul</b><br>");
+            changelog.append("Mango no longer writes to the Android system log (logcat) and uses its own logging provider instead.<br><br>");
+            changelog.append("<b>-Removed: Japanese watermarks in menus</b><br>");
+            changelog.append("They were improperly translated in most cases and kind of ugly.  You can re-enable them in the Preferences menu if you really want to.");
             changelog.append("</small>");
             // MangoCache.writeDataToCache(changelog.toString(), "changelog");
             Mango.alert(changelog.toString(), "What's new in this update?", MainMenuActivity.this, new DialogInterface.OnClickListener()

@@ -4,22 +4,22 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.Log;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
+import org.apache.http.*;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
+
+import java.io.IOException;
 
 public class MangoHttp
 {
     private static int BUFFER_SIZE = 8192;
     private static int CONNECTION_TIMEOUT = 7000;
     private static int SOCKET_TIMEOUT = 11000;
-
 
     public static boolean isOfflineMode()
     {
@@ -58,14 +58,34 @@ public class MangoHttp
             HttpConnectionParams.setConnectionTimeout(httpParameters, CONNECTION_TIMEOUT);
             HttpConnectionParams.setSoTimeout(httpParameters, SOCKET_TIMEOUT);
             HttpConnectionParams.setSocketBufferSize(httpParameters, BUFFER_SIZE);
-
             DefaultHttpClient httpClient = new DefaultHttpClient(httpParameters);
+            httpClient.addResponseInterceptor(new HttpResponseInterceptor()
+            {
+                public void process(final HttpResponse response, final HttpContext context) throws HttpException, IOException
+                {
+                    HttpEntity entity = response.getEntity();
+                    Header encheader = entity.getContentEncoding();
+                    if (encheader != null)
+                    {
+                        HeaderElement[] codecs = encheader.getElements();
+                        for (HeaderElement codec : codecs)
+                        {
+                            if (codec.getName().equalsIgnoreCase("gzip"))
+                            {
+                                response.setEntity(new GzipDecompressingEntity(
+                                        entity));
+                                return;
+                            }
+                        }
+                    }
+                }
+            });
             HttpResponse httpResponse = httpClient.execute(httpGet);
             HttpEntity entity = httpResponse.getEntity();
 
-            Header contentEncoding = httpResponse.getFirstHeader("Content-Encoding");
-            if (contentEncoding != null && contentEncoding.getValue().equalsIgnoreCase("gzip"))
-                throw new Exception("The server's response was gzip-encoded, which is not currently supported.  Please contact the developer.");
+            //Header contentEncoding = httpResponse.getFirstHeader("Content-Encoding");
+            //if (1 == 2 && contentEncoding != null && contentEncoding.getValue().equalsIgnoreCase("gzip"))
+//                throw new Exception("The server's response was gzip-encoded, which is not currently supported.  Please contact the developer.");
 
             response.responseCode = httpResponse.getStatusLine().getStatusCode();
             if (response.responseCode != 200)
@@ -85,7 +105,7 @@ public class MangoHttp
         }
         catch (Exception ex)
         {
-            Mango.log("MangoHttp", "<!> " + (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getClass().getSimpleName() + " - " +  ex.getMessage()) + " [" + url.hashCode() + "]");
+            Mango.log("MangoHttp", "<!> " + (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getClass().getSimpleName() + " - " + ex.getMessage()) + " [" + url.hashCode() + "]");
             response.data = (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage()).getBytes();
             response.exception = true;
         }

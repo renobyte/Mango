@@ -45,7 +45,7 @@ public class AboutActivity extends MangoActivity
         builder.append("This product and its developer are not affiliated with or endorsed by any of the third-party websites linked in this app in any way.\n\n");
         builder.append("All content is user-submitted and hosted by third parties.\n\n");
         builder.append("Android is a trademark of Google Inc. Use of this trademark is subject to Google Permissions.\n\n");
-        builder.append("Privacy Notice: As with most other websites and online services, the Mango Service logs any traffic passing through the Service. The information in these logs include your device ID, your Mango version ID, date/time of access, and the data requested. This information is used only for troubleshooting or for aggregated traffic analysis and is never shared or disclosed with any other party.\n\n");
+        builder.append("Privacy Notice: As with most other websites and online services, the Mango Service logs traffic passing through it. The information in these logs include your device ID, your Mango version ID, date/time of access, and the data requested. This information is used only for troubleshooting or for aggregated traffic analysis and is never shared or disclosed with any other party.\n\n");
         builder.append("Use of this app is subject to the Terms of Service, which can be read by going to:\n<http://mango.leetsoft.net/terms.php>\n\n");
         builder.append("\nFor support, product updates, or to contact the developer with comments or suggestions, just select Send Feedback from the menu or go to Settings and Help >> Send Feedback. You can also visit:\n<http://mango.leetsoft.net>\n\n");
         builder.append("Follow Mango on Facebook (/MangoApp) and Twitter (@MangoApp)!\n\n");

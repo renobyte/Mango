@@ -92,7 +92,7 @@ public class BrowseByActivity extends MangoActivity
 				}
 				else
 				{
-					Mango.alert("This menu item doesn't exist! :o", BrowseByActivity.this);
+					Mango.alert("Invalid menu item selection.", BrowseByActivity.this);
 				}
 			}
 		});

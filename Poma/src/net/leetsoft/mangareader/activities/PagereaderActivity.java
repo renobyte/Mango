@@ -627,7 +627,7 @@ public class PagereaderActivity extends MangoActivity
     public void adExplainClicked()
     {
         Mango.alert(
-                "These ads allow you to use Mango for free by helping me pay for the server bill, which is around $150 per month.  You're also helping me pay for part of my college tuition every semester, so thanks!\n\nThese larger ads will only appear once every 90 minutes.  To get rid of them, please consider upgrading to Mango Bankai!",
+                "These ads allow you to use Mango for free by helping me pay for the server and bandwidth bill, which runs around $75 a month.\n\nThese larger ads will only appear once every 90 minutes.  To get rid of them, please consider upgrading to Mango Bankai!",
                 this);
     }
 
@@ -907,7 +907,7 @@ public class PagereaderActivity extends MangoActivity
                         checkReadingProgress();
                     }
                 });
-                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, never mind!", new DialogInterface.OnClickListener()
+                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, cancel", new DialogInterface.OnClickListener()
                 {
                     @Override
                     public void onClick(DialogInterface dialog, int which)
@@ -1391,10 +1391,10 @@ public class PagereaderActivity extends MangoActivity
         catch (ArrayIndexOutOfBoundsException e)
         {
             Mango.log("Arrayindexoutofbounds: " + mActiveManga.chapters.length + ", " + mChapterIndex + ", " + mPageIndex);
-            // for some reason the Mango Service returned an empty pagelist. we'll try to re-open the chapter
-            // while forcing the Mango Service to skip the cache.
+            // for some reason the server returned an empty pagelist. we'll try to re-open the chapter
+            // while forcing the server to skip the cache.
             AlertDialog alert = new AlertDialog.Builder(PagereaderActivity.this).create();
-            alert.setTitle("Problem! T___T");
+            alert.setTitle("Something went wrong.");
             alert.setMessage("The list of pages for this chapter is not available. This might just be a temporary issue, or else the chapter simply isn't available on "
                     + Mango.getSiteName(Mango.getSiteId()) + ".\n\nWould you like to try again?");
             alert.setButton(DialogInterface.BUTTON_POSITIVE, "Reload Chapter", new DialogInterface.OnClickListener()
@@ -1630,7 +1630,7 @@ public class PagereaderActivity extends MangoActivity
                     mAnimatorView.postDelayed(mTitlebarHideRunnable, 4000 - elapsed);
                     return;
                 }
-                mTitlebar.bringToFront();
+                //mTitlebar.bringToFront();
                 mTitlebar.clearAnimation();
                 mTitlebar.startAnimation(AnimationUtils.loadAnimation(PagereaderActivity.this, R.anim.titlebarout));
                 mTitlebar.setVisibility(View.INVISIBLE);

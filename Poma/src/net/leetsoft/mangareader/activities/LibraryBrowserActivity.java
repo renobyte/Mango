@@ -465,8 +465,8 @@ public class LibraryBrowserActivity extends MangoActivity
         if (id == 0)
         {
             ProgressDialog dialog = new ProgressDialog(this);
-            dialog.setTitle("Now Loading!");
-            dialog.setMessage("This'll just take a sec.");
+            dialog.setTitle("Now Loading...");
+            dialog.setMessage("Please wait a moment...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(true);
             Mango.DIALOG_DOWNLOADING = dialog;
@@ -498,7 +498,7 @@ public class LibraryBrowserActivity extends MangoActivity
             if (!Mango.getSharedPreferences().getBoolean("multiSelectPopup", false))
             {
                 Mango.alert(
-                        "Multi-select mode allows you to quickly delete a bunch of chapters.\n\nTap the first chapter you wish to remove, then the last.  Finally, tap the check button.  Press Back to cancel.",
+                        "Multi-select mode allows you to quickly delete a number of chapters.\n\nTap the first chapter you wish to remove, then the last.  Finally, tap the check button.  Press Back to cancel.",
                         "Alert", LibraryBrowserActivity.this);
                 Mango.getSharedPreferences().edit().putBoolean("multiSelectPopup", true).commit();
             }
@@ -696,7 +696,7 @@ public class LibraryBrowserActivity extends MangoActivity
         try
         {
             if (!path.exists())
-                throw new FileNotFoundException("The system couldn't find the file specified!");
+                throw new FileNotFoundException("The system couldn't find the file specified.");
 
             updateProgressDialog("Listing folder...");
 
@@ -712,7 +712,7 @@ public class LibraryBrowserActivity extends MangoActivity
                 }
             });
             if (files == null || files.length == 0)
-                throw new FileNotFoundException("This folder has no subfolders to display!");
+                throw new FileNotFoundException("This folder has no subfolders to display.");
 
             for (int i = 0; i < files.length; i++)
             {
@@ -852,7 +852,7 @@ public class LibraryBrowserActivity extends MangoActivity
             {
                 mViewMode = VIEW_ROOTFOLDER;
                 dismissDialog(0);
-                Mango.alert("Mango had a bit of a problem opening the chapter. Please try closing the My Library screen and trying again.", LibraryBrowserActivity.this);
+                Mango.alert("Mango encountered an error opening this chapter. Please close the My Library screen and try again.", LibraryBrowserActivity.this);
             }
         }
         else
@@ -932,7 +932,7 @@ public class LibraryBrowserActivity extends MangoActivity
                         promptRestore();
                     }
                 });
-                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "Nah", new DialogInterface.OnClickListener()
+                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, cancel", new DialogInterface.OnClickListener()
                 {
                     @Override
                     public void onClick(DialogInterface dialog, int which)
@@ -1177,9 +1177,9 @@ public class LibraryBrowserActivity extends MangoActivity
                             public void run()
                             {
                                 if (retval)
-                                    Mango.alert("Restore process finished successfully!", LibraryBrowserActivity.this);
+                                    Mango.alert("Restore process finished successfully.", LibraryBrowserActivity.this);
                                 else
-                                    Mango.alert("Mango could not restore the backup file! :'(\n\nContact us for more help.", LibraryBrowserActivity.this);
+                                    Mango.alert("Mango could not restore the backup file.\n\nContact us for more help.", LibraryBrowserActivity.this);
                                 initializeLibrary();
                             }
                         });
@@ -1254,7 +1254,7 @@ public class LibraryBrowserActivity extends MangoActivity
                 }
                 catch (ArrayIndexOutOfBoundsException e)
                 {
-                    Mango.alert("There was a problem deleting the folder. :'(\nPlease provide the following technical data:\n\nArray index out of bounds. mChapters.length=" + mChapters.length
+                    Mango.alert("There was a problem deleting the folder.\nPlease provide the following technical data:\n\nArray index out of bounds. mChapters.length=" + mChapters.length
                             + "\nindex=" + index + "\nmRootMode=" + mViewMode, LibraryBrowserActivity.this);
                 }
             }
@@ -1270,7 +1270,7 @@ public class LibraryBrowserActivity extends MangoActivity
                 }
                 catch (ArrayIndexOutOfBoundsException e)
                 {
-                    Mango.alert("There was a problem deleting the folder. :'(\nPlease provide the following technical data:\n\nArray index out of bounds. mChapters.length=" + mChapters.length
+                    Mango.alert("There was a problem deleting the folder.\nPlease provide the following technical data:\n\nArray index out of bounds. mChapters.length=" + mChapters.length
                             + "\nindex=" + index + "\nmRootMode=" + mViewMode, LibraryBrowserActivity.this);
                 }
             }
@@ -1320,7 +1320,7 @@ public class LibraryBrowserActivity extends MangoActivity
         }
         catch (SQLException e)
         {
-            Mango.alert("There was a problem deleting the item from the SQLite database!\n\n" + e.getClass().getSimpleName() + ": " + e.getMessage(), LibraryBrowserActivity.this);
+            Mango.alert("There was a problem deleting the item from the SQLite database.\n\n" + e.getClass().getSimpleName() + ": " + e.getMessage(), LibraryBrowserActivity.this);
         }
         finally
         {
@@ -1348,7 +1348,7 @@ public class LibraryBrowserActivity extends MangoActivity
         }
         catch (SQLException e)
         {
-            Mango.alert("There was a problem deleting the item from the SQLite database!\n\n" + e.getClass().getSimpleName() + ": " + e.getMessage(), LibraryBrowserActivity.this);
+            Mango.alert("There was a problem deleting the item from the SQLite database.\n\n" + e.getClass().getSimpleName() + ": " + e.getMessage(), LibraryBrowserActivity.this);
         }
         finally
         {
@@ -1380,12 +1380,12 @@ public class LibraryBrowserActivity extends MangoActivity
         }
         catch (SQLException e)
         {
-            Mango.alert("There was a problem deleting the item from the SQLite database!\n\n" + e.getClass().getSimpleName() + ": " + e.getMessage(), LibraryBrowserActivity.this);
+            Mango.alert("There was a problem deleting the item from the SQLite database.\n\n" + e.getClass().getSimpleName() + ": " + e.getMessage(), LibraryBrowserActivity.this);
             Mango.log(e.getClass().getSimpleName() + ": " + e.getMessage());
         }
         catch (Exception e)
         {
-            Mango.alert("There was a problem deleting the selected items. :'(\nPlease provide the following technical data:\n\n" + e.getClass().getSimpleName() + "\nmChapters.length="
+            Mango.alert("There was a problem deleting the selected items.\nPlease provide the following technical data:\n\n" + e.getClass().getSimpleName() + "\nmChapters.length="
                     + mChapters.length + "\nfirstIndex=" + mMultiFirstIndex + "\nsecondIndex=" + mMultiSecondIndex + "\nrootMode=" + mViewMode, this);
             Mango.log(e.getClass().getSimpleName() + ", mChapters.length=" + mChapters.length + ", firstIndex=" + mMultiFirstIndex + ", secondIndex=" + mMultiSecondIndex + ", viewMode=" + mViewMode);
         }
@@ -1741,7 +1741,7 @@ public class LibraryBrowserActivity extends MangoActivity
 
                 if (!parseXml(MangoLibraryIO.readIndexData(lc.path)))
                 {
-                    report.append(lc.manga.title + " " + lc.chapter.id + " could not be opened. Please redownload the entire chapter.\n\n");
+                    report.append(lc.manga.title + " " + lc.chapter.id + " could not be opened. Please redownload the chapter.\n\n");
                     continue;
                 }
 

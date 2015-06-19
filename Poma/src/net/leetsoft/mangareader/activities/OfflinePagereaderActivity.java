@@ -1279,7 +1279,7 @@ public class OfflinePagereaderActivity extends MangoActivity
                     mAnimatorView.postDelayed(mTitlebarHideRunnable, 4000 - elapsed);
                     return;
                 }
-                mTitlebar.bringToFront();
+                //mTitlebar.bringToFront();
                 mTitlebar.clearAnimation();
                 mTitlebar.startAnimation(AnimationUtils.loadAnimation(OfflinePagereaderActivity.this, R.anim.titlebarout));
                 mTitlebar.setVisibility(View.INVISIBLE);
@@ -1389,7 +1389,7 @@ public class OfflinePagereaderActivity extends MangoActivity
                         checkReadingProgress();
                     }
                 });
-                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, never mind!", new DialogInterface.OnClickListener()
+                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, cancel", new DialogInterface.OnClickListener()
                 {
                     @Override
                     public void onClick(DialogInterface dialog, int which)

@@ -141,7 +141,7 @@ public class FavoritesActivity extends MangoActivity
         if (id == 0)
         {
             ProgressDialog dialog = new ProgressDialog(this);
-            dialog.setTitle("Hang tight...");
+            dialog.setTitle("Downloading data...");
             dialog.setMessage("Mango is downloading some more information about this favorite...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(true);
@@ -186,7 +186,7 @@ public class FavoritesActivity extends MangoActivity
             if (len == 0)
             {
                 Mango.alert(
-                        "Before Mango can check for new chapters, you need to tell it which favorites you want it to check!\n\nPress Menu, select Notifications, then mark favorites you want Mango to check by tapping on them!",
+                        "Before Mango can check for new chapters, you need to tell it which favorites you want it to check.\n\nPress Menu, select Notifications, then mark favorites you want Mango to check by tapping on them.",
                         "No favorites to check!", FavoritesActivity.this);
                 return true;
             }
@@ -202,7 +202,7 @@ public class FavoritesActivity extends MangoActivity
                 mTapMode = 0;
                 Toast.makeText(this, "You're no longer in Notification Mode.", Toast.LENGTH_SHORT).show();
                 if (!Mango.getSharedPreferences().getBoolean("notifierEnabled", false))
-                    Mango.alert("Remember to go to Settings and Help >> Notification Preferences to enable notifications!", "Don't forget!", FavoritesActivity.this);
+                    Mango.alert("Remember to go to Settings and Help >> Notification Preferences to enable notifications.", "Don't forget!", FavoritesActivity.this);
                 return true;
             }
 
@@ -211,7 +211,7 @@ public class FavoritesActivity extends MangoActivity
                 AlertDialog alert = new AlertDialog.Builder(FavoritesActivity.this).create();
                 alert.setTitle("Notifications are disabled!");
                 alert.setMessage("Notications are not enabled.  Would you like to go to the Notification Preferences screen now?");
-                alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes!", new DialogInterface.OnClickListener()
+                alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes.", new DialogInterface.OnClickListener()
                 {
                     @Override
                     public void onClick(DialogInterface dialog, int which)
@@ -413,7 +413,7 @@ public class FavoritesActivity extends MangoActivity
                     alert.setMessage("Type a new name for the '" + Mango.getTagName(which + 1) + "' tag.");
                     final EditText input = new EditText(FavoritesActivity.this);
                     alert.setView(input);
-                    alert.setPositiveButton("Rename!", new DialogInterface.OnClickListener()
+                    alert.setPositiveButton("Rename", new DialogInterface.OnClickListener()
                     {
                         @Override
                         public void onClick(DialogInterface dialog, int whichButton)
@@ -424,7 +424,7 @@ public class FavoritesActivity extends MangoActivity
                             Mango.getSharedPreferences().edit().putString("tag" + (which + 1) + "Name", value).commit();
                         }
                     });
-                    alert.setNegativeButton("Never mind", new DialogInterface.OnClickListener()
+                    alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener()
                     {
                         @Override
                         public void onClick(DialogInterface dialog, int whichButton)
@@ -1180,7 +1180,7 @@ public class FavoritesActivity extends MangoActivity
                 AlertDialog alert = new AlertDialog.Builder(FavoritesActivity.this).create();
                 alert.setTitle("Restore Favorites");
                 alert.setMessage(Html.fromHtml("Mango will now load the Favorites from " + new File(path).getName() + " into your Favorites List.<br><br><b>This will delete any existing Favorites and replace them with the ones in the backup file.</b><br><br>Is this alright?"));
-                alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes, restore!", new DialogInterface.OnClickListener()
+                alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes, restore", new DialogInterface.OnClickListener()
                 {
                     @Override
                     public void onClick(DialogInterface dialog, int which)
@@ -1188,7 +1188,7 @@ public class FavoritesActivity extends MangoActivity
                         restoreFavorites(path);
                     }
                 });
-                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, never mind", new DialogInterface.OnClickListener()
+                alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, cancel", new DialogInterface.OnClickListener()
                 {
                     @Override
                     public void onClick(DialogInterface dialog, int which)

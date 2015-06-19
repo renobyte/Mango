@@ -253,7 +253,7 @@ public class DownloaderActivity extends MangoActivity
         AlertDialog alert = new AlertDialog.Builder(DownloaderActivity.this).create();
         alert.setTitle("Are you sure?");
         alert.setMessage("This will immediately stop the current download and drop the queue.");
-        alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes, cancel", new DialogInterface.OnClickListener()
+        alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes, drop queue", new DialogInterface.OnClickListener()
         {
             @Override
             public void onClick(DialogInterface dialog, int which)
@@ -261,7 +261,7 @@ public class DownloaderActivity extends MangoActivity
                 mService.cancelAll();
             }
         });
-        alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, never mind", new DialogInterface.OnClickListener()
+        alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, cancel", new DialogInterface.OnClickListener()
         {
             @Override
             public void onClick(DialogInterface dialog, int which)
@@ -418,12 +418,12 @@ public class DownloaderActivity extends MangoActivity
                     case 1:
                         if (position == 0)
                         {
-                            Mango.alert("This is already the first item in the queue!", DownloaderActivity.this);
+                            Mango.alert("This is already the first item in the queue.", DownloaderActivity.this);
                             return;
                         }
                         if (getQueue().get(position - 1).statusCode == 0)
                         {
-                            Mango.alert("This item can't be moved because the one before it has already started downloading!", DownloaderActivity.this);
+                            Mango.alert("This item can't be moved because the one before it has already started downloading.", DownloaderActivity.this);
                             return;
                         }
                         mService.moveUp(position);
@@ -432,12 +432,12 @@ public class DownloaderActivity extends MangoActivity
                     case 2:
                         if (position == getQueue().size() - 1)
                         {
-                            Mango.alert("This is already the last item in the queue!", DownloaderActivity.this);
+                            Mango.alert("This is already the last item in the queue.", DownloaderActivity.this);
                             return;
                         }
                         if (getQueue().get(position).statusCode == DownloaderService.STATUS_INPROGRESS)
                         {
-                            Mango.alert("This item can't be moved because it has already started downloading!", DownloaderActivity.this);
+                            Mango.alert("This item can't be moved because it has already started downloading.", DownloaderActivity.this);
                             return;
                         }
                         mService.moveDown(position);
@@ -446,12 +446,12 @@ public class DownloaderActivity extends MangoActivity
                     case 3:
                         if (position == 0)
                         {
-                            Mango.alert("This is already the first item in the queue!", DownloaderActivity.this);
+                            Mango.alert("This is already the first item in the queue.", DownloaderActivity.this);
                             return;
                         }
                         if (getQueue().get(position - 1).statusCode == 0)
                         {
-                            Mango.alert("This item can't be moved because the one before it has already started downloading!", DownloaderActivity.this);
+                            Mango.alert("This item can't be moved because the one before it has already started downloading.", DownloaderActivity.this);
                             return;
                         }
                         mService.moveToTop(position);
@@ -460,12 +460,12 @@ public class DownloaderActivity extends MangoActivity
                     case 4:
                         if (position == getQueue().size() - 1)
                         {
-                            Mango.alert("This is already the last item in the queue!", DownloaderActivity.this);
+                            Mango.alert("This is already the last item in the queue.", DownloaderActivity.this);
                             return;
                         }
                         if (getQueue().get(position).statusCode == DownloaderService.STATUS_INPROGRESS)
                         {
-                            Mango.alert("This item can't be moved because it has already started downloading!", DownloaderActivity.this);
+                            Mango.alert("This item can't be moved because it has already started downloading.", DownloaderActivity.this);
                             return;
                         }
                         mService.moveToEnd(position);
@@ -485,7 +485,7 @@ public class DownloaderActivity extends MangoActivity
             if (mService.getPause())
             {
                 if (mService.getForcePause())
-                    return "paused (no signal)";
+                    return "paused (no connection)";
                 return "paused";
             }
             else
@@ -496,7 +496,7 @@ public class DownloaderActivity extends MangoActivity
             if (mService.getPause())
             {
                 if (mService.getForcePause())
-                    return "paused (no signal)";
+                    return "paused (no connection)";
                 return "paused";
             }
             else

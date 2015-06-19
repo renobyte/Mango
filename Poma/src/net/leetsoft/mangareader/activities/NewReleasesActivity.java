@@ -110,7 +110,7 @@ public class NewReleasesActivity extends MangoActivity
         {
             ProgressDialog dialog = new ProgressDialog(this);
             dialog.setTitle("Downloading data...");
-            dialog.setMessage("Retrieving the newest releases list from the Mango Service...");
+            dialog.setMessage("Retrieving the newest releases list from the server...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(true);
             Mango.DIALOG_DOWNLOADING = dialog;

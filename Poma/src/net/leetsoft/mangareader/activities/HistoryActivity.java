@@ -171,19 +171,20 @@ public class HistoryActivity extends MangoActivity
                 }
                 else if (i > 3500)
                 {
-                    Mango.alert("Your history database is becoming rather large (" + i
-                            + " items), which might slow down Mango.\n\nYou may want to consider clearing your history by selecting Menu >> Clear History.", this);
+                    Mango.alert("Your history database is becoming rather large (" + i + " items), which might slow down Mango.\n\nYou may want to consider clearing your history by selecting Menu >> Clear History.", this);
                     Mango.getSharedPreferences().edit().putLong("nextHistoryWarning", System.currentTimeMillis() + (1000 * 60 * 60 * 24 * 3)).commit();
                 }
             }
             history = db.getAllHistoryArray(MangoSqlite.KEY_UPDATETIME + " DESC", null, false);
-        } catch (SQLException ex)
+        }
+        catch (SQLException ex)
         {
             Mango.alert("Mango encountered an error while retrieving your history from the SQLite database! If this happens again, please let us know, along with the following data:\n\n"
-                    + ex.getClass().getSimpleName() + ": " + ex.getMessage(), "Serious Business", this);
+                    + ex.getClass().getSimpleName() + ": " + ex.getMessage(), "Sqlite Error", this);
             mListview.setAdapter(new ArrayAdapter<String>(HistoryActivity.this, android.R.layout.simple_list_item_1, new String[]{"Error loading history!"}));
             return;
-        } finally
+        }
+        finally
         {
             db.close();
         }
@@ -211,7 +212,7 @@ public class HistoryActivity extends MangoActivity
         if (mHistory.length == 0)
         {
             mEmptyView.setVisibility(View.VISIBLE);
-            mEmptyView.setText("Your reading history is empty.\n\nGet to it already!");
+            mEmptyView.setText("Your reading history is empty.");
         }
     }
 
@@ -267,10 +268,12 @@ public class HistoryActivity extends MangoActivity
             initializeHistory();
             if (mHistory.length > 0)
                 mListview.setSelection(index - 1);
-        } catch (SQLException e)
+        }
+        catch (SQLException e)
         {
             Mango.alert("There was a problem deleting the history item from the SQLite database!\n\n" + e.getClass().getSimpleName() + ": " + e.getMessage(), HistoryActivity.this);
-        } finally
+        }
+        finally
         {
             db.close();
         }
@@ -296,6 +299,12 @@ public class HistoryActivity extends MangoActivity
         Bookmark itembookmark = mHistory[index];
         itemdisplay = itembookmark.mangaName + ": " + itembookmark.chapterId;
         return itemdisplay;
+    }
+
+    public void pendingItemFailed(MangoHttpResponse data)
+    {
+        Mango.DIALOG_DOWNLOADING.dismiss();
+        Mango.alert(data.toString(), this);
     }
 
     class ViewHolder
@@ -357,11 +366,5 @@ public class HistoryActivity extends MangoActivity
                 return -1;
             return 0;
         }
-    }
-
-    public void pendingItemFailed(MangoHttpResponse data)
-    {
-        Mango.DIALOG_DOWNLOADING.dismiss();
-        Mango.alert(data.toString(), this);
     }
 }

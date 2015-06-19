@@ -45,10 +45,10 @@ public class StartupActivity extends SherlockActivity
         layout = (LinearLayout) findViewById(R.id.StartupLayout);
         this.setTitle("Welcome to Mango!");
         statusLabel = (TextView) findViewById(R.id.startupStatus);
-        statusLabel.setText("Connecting to the Mango Service...");
+        statusLabel.setText("Connecting to the server...");
 
         Mango.getSharedPreferences().edit().putBoolean("offlineMode", false).commit();
-        Mango.getSharedPreferences().edit().putString("serverUrl", "kagami.leetsoft.net").commit();
+        Mango.getSharedPreferences().edit().putString("serverUrl", "tsukasa.leetsoft.net").commit();
 
         //		try
         //		{
@@ -69,7 +69,7 @@ public class StartupActivity extends SherlockActivity
                 MangoHttpResponse resp = MangoHttp.downloadData("http://www.leetsoft.net/mangoweb/serverurl.txt", StartupActivity.this);
                 String serverurl = resp.toString();
                 if (resp.exception)
-                    serverurl = "kagami.leetsoft.net";
+                    serverurl = "tsukasa.leetsoft.net";
                 Mango.getSharedPreferences().edit().putString("serverUrl", serverurl).commit();
             }
         });
@@ -142,8 +142,6 @@ public class StartupActivity extends SherlockActivity
             {
                 String response = MangoHttp.downloadData("http://%SERVER_URL%/getbankaistatus.aspx?did=" + Mango.getPin(), StartupActivity.this).toString();
                 String target = Mango.getPin() + "asalt";
-                String lol = "wut up brah";
-                lol = lol.toUpperCase();
                 byte[] bhash;
 
                 try
@@ -152,7 +150,7 @@ public class StartupActivity extends SherlockActivity
                 }
                 catch (Exception e)
                 {
-                    throw new RuntimeException(lol, e);
+                    throw new RuntimeException("Bankai activation problem.", e);
                 }
 
                 StringBuilder hex = new StringBuilder(bhash.length * 2);
@@ -186,29 +184,29 @@ public class StartupActivity extends SherlockActivity
 
         if (mhr.exception)
         {
-            statusLabel.setText("Connection failed.");
+            statusLabel.setText("Connection failed");
             errorText = "Mango couldn't connect to the internet. Check your mobile data or Wi-Fi connection and try again.\n" + data;
         }
         if (data.startsWith("2"))
         {
-            statusLabel.setText("Device is banned.");
-            errorText = "Your phone has been banned from the Mango Service due to abuse. For more information please see:\nhttp://mango.leetsoft.net/banned.php\n[Error 2]";
+            statusLabel.setText("Device is blocked");
+            errorText = "This device has been blocked from the server due to abuse. For more information please see:\nhttp://mango.leetsoft.net/banned.php\n[Error 2]";
         }
         if (data.startsWith("3"))
         {
-            statusLabel.setText("Unrecognized version ID.");
-            errorText = "The Mango Service doesn't recognize this version. Please reinstall the newest version of Mango from mango.leetsoft.net.\n[Error 3]";
+            statusLabel.setText("Unrecognized version ID");
+            errorText = "The server doesn't recognize this version. Please reinstall the newest version of Mango from mango.leetsoft.net.\n[Error 3]";
         }
         if (data.startsWith("4"))
         {
-            statusLabel.setText("Outdated version!");
+            statusLabel.setText("Outdated version");
             errorText = "There is a new version of Mango available! This version no longer works, so please update Mango from mango.leetsoft.net.\n[Error 4]";
         }
 
         if (data.startsWith("error"))
         {
-            statusLabel.setText("Mango Service is temporarily offline!");
-            errorText = "The Mango Service is temporarily offline for maintenance. Read the message below for more info.\n\n" + data;
+            statusLabel.setText("Server is temporarily offline");
+            errorText = "The server is temporarily offline for maintenance. Read the message below for more info.\n\n" + data;
         }
 
         if (data.startsWith("1") || data.startsWith("6"))
@@ -233,8 +231,8 @@ public class StartupActivity extends SherlockActivity
 
         if (errorText == null)
         {
-            statusLabel.setText("Unexpected response!");
-            errorText = "Mango received an unexpected response from the Mango Service. It may be experiencing server issues.\n\n" + data;
+            statusLabel.setText("Unexpected response");
+            errorText = "Mango received an unexpected response from the server. It may be experiencing server issues.\n\n" + data;
         }
 
         statusLabel.setText(statusLabel.getText() + "\n\nTap the globe icon in the action bar to enter Offline Mode.");

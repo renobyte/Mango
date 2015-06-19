@@ -102,8 +102,8 @@ public class NotifierPrefsActivity extends PreferenceActivity
 
                     if (n.length == 0)
                         Mango.alert(
-                                "You've enabled notifications, but you haven't told Mango which Favorites you want it to check!\n\nGo to the Favorites screen, press Menu, and press Notifications.  Then you can mark the Favorites you want Mango to check by tapping on them!",
-                                "Hey, wait!", NotifierPrefsActivity.this);
+                                "You've enabled notifications, but you haven't told Mango which Favorites you want it to check.\n\nGo to the Favorites screen, press Menu, and press Notifications.  Then you can mark the Favorites you want Mango to check by tapping on them.",
+                                "Important", NotifierPrefsActivity.this);
                 }
                 else
                 {

@@ -44,7 +44,7 @@ public class SharedPrefsActivity extends Activity
 
         initialize();
 
-        Mango.alert("This screen allows you to change Mango's internal SharedPreferences data.  You should only mess with this if you know what you're doing or if you're receiving instructions from support.<br /><br /><strong>Be careful!  Entering invalid values here can cause the app to stop working!</strong>", "Here be dragons!", this);
+        Mango.alert("This screen allows you to change Mango's internal SharedPreferences data.  You should only mess with this if you know what you're doing or if you're receiving instructions from support.<br /><br /><strong>Be careful; entering invalid values here can cause the app to stop working!</strong>", "Here be dragons!", this);
     }
 
     private void initialize()

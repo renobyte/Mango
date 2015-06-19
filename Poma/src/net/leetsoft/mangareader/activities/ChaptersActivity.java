@@ -489,7 +489,7 @@ public class ChaptersActivity extends MangoActivity
         {
             ProgressDialog dialog = new ProgressDialog(this);
             dialog.setTitle("Downloading data...");
-            dialog.setMessage("Retrieving chapters for " + mActiveManga.title + " from the Mango Service...");
+            dialog.setMessage("Retrieving chapters for " + mActiveManga.title + " from the server...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(true);
             Mango.DIALOG_DOWNLOADING = dialog;
@@ -513,7 +513,7 @@ public class ChaptersActivity extends MangoActivity
             if (!Mango.getSharedPreferences().getBoolean("multiSelectPopup", false))
             {
                 Mango.alert(
-                        "Multi-select mode allows you to quickly queue a bunch of chapters to download.\n\nTap the first chapter you wish to download, then the last.  Finally, press the check button.  Press Back to cancel.",
+                        "Multi-select mode allows you to quickly queue a number of chapters to download.\n\nTap the first chapter you wish to download, then the last.  Finally, press the check button.  Press Back to cancel.",
                         ChaptersActivity.this);
                 Mango.getSharedPreferences().edit().putBoolean("multiSelectPopup", true).commit();
             }
@@ -992,7 +992,7 @@ public class ChaptersActivity extends MangoActivity
                     addChapterToQueue(getChapter(pos).id, false);
                     if (!Mango.getSharedPreferences().getBoolean("multiselectTip", false))
                     {
-                        Mango.alert("Want to quickly add a bunch of chapters to your download queue? Just press your phone's Menu key and choose Multi-Select!", "Tip", ChaptersActivity.this,
+                        Mango.alert("Choose Multi-Select from the top-right corner to quicky add many chapters to your queue.", "Tip", ChaptersActivity.this,
                                 new DialogInterface.OnClickListener()
                                 {
                                     @Override

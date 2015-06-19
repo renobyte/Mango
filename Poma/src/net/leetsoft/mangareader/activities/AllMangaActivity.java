@@ -46,6 +46,8 @@ public class AllMangaActivity extends MangoActivity
     private ListView mListview;
     private TextWatcher mTextfilter;
     private boolean mSkipRestore;
+    private Favorite[] mFavoriteList;
+    private Pattern mSimpleNameRegex = Pattern.compile("[^a-z0-9]");
 
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -108,7 +110,9 @@ public class AllMangaActivity extends MangoActivity
             save = null;
             if (mMangaList == null || mMangaList.length == 0)
                 return;
-            mListview.setAdapter(new AllMangaAdapter(AllMangaActivity.this));
+            if (mFavoriteList == null)
+                populateFavoriteList(this);
+            mListview.setAdapter(new AllMangaAdapter(this));
             mListview.setOnItemClickListener(new AllMangaOnClickListener());
             return;
         }
@@ -171,6 +175,8 @@ public class AllMangaActivity extends MangoActivity
             else
                 return;
         }
+        if (mFavoriteList == null)
+            populateFavoriteList(AllMangaActivity.this);
         mListview.setAdapter(new AllMangaAdapter(AllMangaActivity.this));
         mListview.setOnItemClickListener(new AllMangaOnClickListener());
     }
@@ -206,7 +212,7 @@ public class AllMangaActivity extends MangoActivity
         {
             ProgressDialog dialog = new ProgressDialog(this);
             dialog.setTitle("Downloading data...");
-            dialog.setMessage("Retrieving manga list from server...");
+            dialog.setMessage("Retrieving manga list from the server...");
             dialog.setIndeterminate(true);
             dialog.setCancelable(true);
             Mango.DIALOG_DOWNLOADING = dialog;
@@ -225,6 +231,25 @@ public class AllMangaActivity extends MangoActivity
         return super.onCreateDialog(id);
     }
 
+    private void populateFavoriteList(Context c)
+    {
+        // connect to the database to set bookmarked status
+        MangoSqlite db = new MangoSqlite(c);
+        try
+        {
+            mFavoriteList = db.getAllFavorites(null);
+        }
+        catch (Exception ex)
+        {
+            Mango.log("Error when retrieving favorites from sqlite database.");
+
+        }
+        finally
+        {
+            db.close();
+        }
+    }
+
     public void initializeMangaList()
     {
         showDialog(0);
@@ -232,6 +257,8 @@ public class AllMangaActivity extends MangoActivity
         mDownloadTask = new XmlDownloader(this);
         mDownloadTask.execute("http://%SERVER_URL%/getserieslist.aspx?pin=" + Mango.getPin() + "&site=" + Mango.getSiteId());
     }
+
+    private long startTime = 0;
 
     private void callback(final MangoHttpResponse data, final boolean save)
     {
@@ -260,6 +287,7 @@ public class AllMangaActivity extends MangoActivity
         }
         Mango.MANGA_LIST_CACHED = true;
         showDialog(1);
+        startTime = System.currentTimeMillis();
         mParserTask = new XmlParser(this);
         mParserTask.execute(new String[]{data.toString(), String.valueOf(save)});
     }
@@ -283,6 +311,8 @@ public class AllMangaActivity extends MangoActivity
         mListview.setOnItemClickListener(new AllMangaOnClickListener());
         Mango.DIALOG_DOWNLOADING.dismiss();
         removeDialog(1);
+
+        Mango.log("Done loading. Time=" + String.valueOf(System.currentTimeMillis() - startTime) + "ms.");
 
         if (!Mango.getSharedPreferences().getBoolean("tutorial" + MangoTutorialHandler.MANGA_LIST + "Done", false))
             MangoTutorialHandler.startTutorial(MangoTutorialHandler.MANGA_LIST, this);
@@ -466,6 +496,13 @@ public class AllMangaActivity extends MangoActivity
                 holder.star.setVisibility(View.INVISIBLE);
             else
                 holder.star.setVisibility(View.VISIBLE);
+            if (mFavoriteList != null && mFavoriteList.length > 0)
+            {
+                if (getManga(position).simpleName == null)
+                {
+                    getManga(position).generateSimpleName(mSimpleNameRegex);
+                }
+            }
             if (getManga(position).bookmarked)
                 holder.star.setImageResource(android.R.drawable.btn_star_big_on);
             else
@@ -558,21 +595,14 @@ public class AllMangaActivity extends MangoActivity
                 throw new Exception("parseXml: data parameter is null.  Try restarting the app.");
             }
             ArrayList<Manga> mangaArrayList = new ArrayList<Manga>();
-            Favorite[] f = new Favorite[0];
             Manga random = new Manga();
             random.id = "randommanga";
             random.title = "Try a random manga!";
             random.completed = true;
             mangaArrayList.add(random);
 
-            // connect to the database to set bookmarked status
-            MangoSqlite db = new MangoSqlite(activity);
             try
             {
-                db.open();
-                publishProgress("Getting Favorite status...");
-                f = db.getAllFavorites(null);
-
                 publishProgress("Parsing XML...");
                 SAXParserFactory saxFactory = SAXParserFactory.newInstance();
                 SAXParser parser = saxFactory.newSAXParser();
@@ -588,13 +618,13 @@ public class AllMangaActivity extends MangoActivity
                 Mango.MANGA_LIST_CACHED = false;
                 throw ex;
             }
-            finally
-            {
-                db.close();
-            }
+
 
             publishProgress("Setting Favorite flags...");
-
+            MangoSqlite db = new MangoSqlite(activity);
+            db.open();
+            Favorite[] f = db.getAllFavorites(null);
+            db.close();
             for (int i = 1; i < mangaArrayList.size(); i++)
             {
                 Manga m = mangaArrayList.get(i);
@@ -640,7 +670,6 @@ public class AllMangaActivity extends MangoActivity
             ArrayList<Manga> allManga;
             Manga currentManga;
             boolean blockEcchi = Mango.getSharedPreferences().getBoolean("ecchiFilter", false);
-            Pattern p = Pattern.compile("[^a-z0-9]");
 
             public ArrayList<Manga> getAllManga()
             {
@@ -669,7 +698,7 @@ public class AllMangaActivity extends MangoActivity
                     currentManga.title = currentManga.title.replace("&amp;", "&");
                     currentManga.title = currentManga.title.replace("&lt;", "<");
                     currentManga.title = currentManga.title.replace("&gt;", ">");
-                    currentManga.generateSimpleName(p);
+                    currentManga.generateSimpleName(mSimpleNameRegex);
                 }
                 else if (localName.equalsIgnoreCase("url"))
                 {
@@ -699,7 +728,7 @@ public class AllMangaActivity extends MangoActivity
                     {
                         if (!(blockEcchi && currentManga.ecchi))
                             allManga.add(currentManga);
-                        if (allManga.size() % 100 == 0)
+                        if (allManga.size() % 1000 == 0)
                         {
                             publishProgress("Parsing XML ("+ allManga.size() + " completed)");
                         }

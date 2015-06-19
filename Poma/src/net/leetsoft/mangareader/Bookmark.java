@@ -79,7 +79,7 @@ public class Bookmark
             reader.parse(new InputSource(new StringReader(data.toString())));
             chapterArrayList.addAll(handler.getAllChapters());
             if (chapterArrayList.size() == 0)
-                throw new Exception("Mango Service returned an empty chapter list.");
+                throw new Exception("Server returned an empty chapter list.");
             manga.details = handler.getDetails();
         }
         catch (Exception ex)
