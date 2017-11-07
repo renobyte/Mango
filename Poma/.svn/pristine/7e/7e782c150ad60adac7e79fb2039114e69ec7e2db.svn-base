@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="horizontal"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:padding="3dp"
+	android:id="@+id/ChapterNotifierLayout"
+	android:gravity="center_vertical"
+	android:paddingLeft="3dp">
+	<ImageView
+		android:id="@+id/ChapterNotifierLogo"
+		android:layout_width="wrap_content"
+		android:layout_marginRight="2dp"
+		android:src="@drawable/icon"
+		android:layout_height="wrap_content"
+		android:maxHeight="35dp"
+		android:maxWidth="35dp"
+		android:adjustViewBounds="true"
+		android:scaleType="fitXY" />
+	<TextView
+		android:id="@+id/ChapterNotifierHeader"
+		android:layout_width="wrap_content"
+		android:textColor="#000"
+		android:layout_height="wrap_content"
+		android:layout_toRightOf="@+id/ChapterNotifierLogo"
+		android:textSize="16sp"
+		android:text="Looking for new chapters..."
+		android:layout_marginTop="-2sp"
+		android:textStyle="bold" />
+	<TextView
+		android:id="@+id/ChapterNotifierText"
+		android:layout_width="wrap_content"
+		android:textColor="#000"
+		android:layout_height="wrap_content"
+		android:layout_toRightOf="@+id/ChapterNotifierLogo"
+		android:layout_below="@+id/ChapterNotifierHeader"
+		android:textSize="13sp"
+		android:text="Checking History's Strongest Disciple Kenichi (11 more)"
+		android:layout_marginTop="-2sp"
+		android:ellipsize="middle"
+		android:singleLine="true" />
+		<!-- 
+	<ProgressBar
+		android:id="@+id/ChapterNotifierProgress"
+		android:layout_marginTop="2sp"
+		android:layout_marginBottom="2sp"
+		android:indeterminateOnly="false"
+		android:progressDrawable="@android:drawable/progress_horizontal"
+		android:indeterminateDrawable="@android:drawable/progress_indeterminate_horizontal"
+		android:layout_height="wrap_content"
+		android:layout_width="fill_parent"
+		android:minHeight="20sp"
+		android:maxHeight="20sp"
+		android:layout_below="@+id/ChapterNotifierLogo"></ProgressBar> -->
+</RelativeLayout>

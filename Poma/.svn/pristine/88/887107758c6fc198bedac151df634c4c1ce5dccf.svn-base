@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+  xmlns:android="http://schemas.android.com/apk/res/android">
+  	<item
+		android:id="@+id/menuBookmarkSave"
+		android:orderInCategory="1"
+		android:title="Backup"
+		android:titleCondensed="Backup"
+		android:icon="@drawable/ic_backup"></item>
+  	<item
+		android:id="@+id/menuBookmarkLoad"
+		android:orderInCategory="1"
+		android:title="Restore"
+		android:titleCondensed="Restore"
+		android:icon="@drawable/ic_restore"></item>
+</menu>

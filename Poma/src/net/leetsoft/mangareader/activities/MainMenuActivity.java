@@ -392,6 +392,8 @@ public class MainMenuActivity extends MangoActivity
             StringBuilder changelog = new StringBuilder();
             changelog.append("<b>New in v" + Mango.VERSION_FULL + "</b><br>");
             changelog.append("<small>");
+            changelog.append("<b>-Improved: My Library load times</b><br>");
+            changelog.append("The My Library screen should load within one second even for libraries with 20k+ chapters, as opposed to 45-60 seconds.<br><br>");
             changelog.append("<b>-Added: Content Filtering option</b><br>");
             changelog.append("Hides all manga tagged as mature, ecchi, or adult.  This can be adjusted from the Preferences menu.<br><br>");
             changelog.append("<b>-Fixed: MangaHere broken pages</b><br>");

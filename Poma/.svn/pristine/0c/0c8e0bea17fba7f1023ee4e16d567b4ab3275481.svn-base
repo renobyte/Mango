@@ -1,0 +1,510 @@
+package com.ls.manga.services;
+
+import android.app.*;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.database.SQLException;
+import android.graphics.Color;
+import android.net.Uri;
+import android.os.Binder;
+import android.os.IBinder;
+import android.text.format.DateFormat;
+import android.util.Log;
+import android.widget.RemoteViews;
+import com.ls.manga.*;
+import com.ls.manga.activities.ChaptersActivity.ChaptersSaxHandler;
+import com.ls.manga.activities.FavoritesActivity;
+import com.ls.manga.services.DownloaderService.DownloaderBinder;
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
+
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+
+public class NotifierService extends Service
+{
+    // service variables
+    private final IBinder mBinder = new NotifierBinder();
+
+    // notification framework variables
+    private Notification mNotification;
+    private NotificationManager mNotificationManager;
+    private RemoteViews mNotificationViews;
+    private int mNotificationCounter;
+
+    // auto-downloader variables
+    private boolean mAutodownloadEnabled;
+    private DownloaderService mDownloaderService;
+
+    // misc variables
+    private int mNewChapters = 0;
+
+    public class NotifierBinder extends Binder
+    {
+        public NotifierService getService()
+        {
+            return NotifierService.this;
+        }
+    }
+
+    @Override
+    public void onCreate()
+    {
+        super.onCreate();
+        Mango.reflect(this, "setForeground", false);
+
+        Mango.log("NotifierService", "onCreate!");
+
+        mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        mNotificationViews = new RemoteViews(getPackageName(), R.layout.chapternotification);
+        mNotificationViews.setTextViewText(R.id.ChapterNotifierText, "Starting Notifier Service...");
+        // mNotificationViews.setViewVisibility(R.id.ChapterNotifierProgress, View.GONE);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, FavoritesActivity.class), 0);
+
+        mNotification = new Notification(R.drawable.icon_notify_progress, "Checking for new manga...", System.currentTimeMillis());
+        mNotification.contentIntent = pendingIntent;
+        mNotification.contentView = mNotificationViews;
+        mNotification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_NO_CLEAR | Notification.FLAG_ONLY_ALERT_ONCE;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId)
+    {
+        Mango.log("NotifierService", "onStartCommand! " + intent + ", StartId = " + startId);
+
+        if (intent != null && intent.getAction().equals("UPDATECHECK"))
+        {
+            long ONE_HOUR = 1000 * 60 * 60;
+            long interval = ONE_HOUR * Integer.parseInt(Mango.getSharedPreferences().getString("notifierInterval", "6"));
+            Mango.getSharedPreferences().edit().putLong("notifierNextRun", System.currentTimeMillis() + interval).commit();
+            mNotificationManager.notify(1340, mNotification);
+            checkForNewChapters();
+        }
+        else if (intent != null && intent.getAction().equals("MANUALCHECK"))
+        {
+            mNotificationManager.notify(1340, mNotification);
+            checkForNewChapters();
+        }
+
+        return Service.START_NOT_STICKY;
+    }
+
+    @Override
+    public IBinder onBind(Intent intent)
+    {
+        Mango.log("NotifierService", "onBind!");
+        return mBinder;
+    }
+
+    public static void scheduleOnBoot(Context c)
+    {
+        Mango.log("BootReceiver", "Scheduling initial notifier check!");
+        long time = Mango.getSharedPreferences().getLong("notifierNextRun", 0);
+
+        Intent intent = new Intent(c, NotifierService.class);
+        intent.setAction("UPDATECHECK");
+        PendingIntent pending = PendingIntent.getService(c, 0, intent, 0);
+        AlarmManager alarm = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        alarm.cancel(pending);
+        long ONE_HOUR = 1000 * 60 * 60;
+        long interval = ONE_HOUR * Integer.parseInt(Mango.getSharedPreferences().getString("notifierInterval", "6"));
+
+        // if we missed an alarm while the phone was off,
+        // schedule an alarm for 2 minutes from now.
+        // otherwise, just schedule it at notifierNextRun.
+        if (time < System.currentTimeMillis())
+        {
+            Mango.log("BootReceiver", "Missed an alarm while the device was off; scheduling one for two minutes from now.");
+            Mango.getSharedPreferences().edit().putLong("notifierNextRun", System.currentTimeMillis() + (2000 * 60)).commit();
+            alarm.setRepeating(AlarmManager.RTC, System.currentTimeMillis() + (2000 * 60), interval, pending);
+        }
+        else
+        {
+            Mango.log("BootReceiver", "Still a pending alarm, rescheduling it for notifierNextRun.");
+            Mango.getSharedPreferences().edit().putLong("notifierNextRun", Mango.getSharedPreferences().getLong("notifierNextRun", System.currentTimeMillis() + 10000)).commit();
+            alarm.setRepeating(AlarmManager.RTC, Mango.getSharedPreferences().getLong("notifierNextRun", System.currentTimeMillis() + 10000), interval, pending);
+        }
+    }
+
+    public void scheduleNextRun()
+    {
+        Mango.log("NotifierService", "Re-scheduling alarm.");
+
+        Intent intent = new Intent(this, NotifierService.class);
+        intent.setAction("UPDATECHECK");
+        PendingIntent pending = PendingIntent.getService(this, 0, intent, 0);
+        AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        alarm.cancel(pending);
+        long ONE_HOUR = 1000 * 60 * 60;
+        long interval = ONE_HOUR * Integer.parseInt(Mango.getSharedPreferences().getString("notifierInterval", "6"));
+        Mango.getSharedPreferences().edit().putLong("notifierNextRun", System.currentTimeMillis() + interval).commit();
+        alarm.setRepeating(AlarmManager.RTC, System.currentTimeMillis() + interval, interval, pending);
+    }
+
+    public void cancelAlarm()
+    {
+        Mango.log("NotifierService", "Canceling alarm.");
+
+        Intent intent = new Intent(this, NotifierService.class);
+        intent.setAction("UPDATECHECK");
+        PendingIntent pending = PendingIntent.getService(this, 0, intent, 0);
+        AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        alarm.cancel(pending);
+        Mango.getSharedPreferences().edit().putLong("notifierNextRun", -1).commit();
+    }
+
+    @Override
+    public void onDestroy()
+    {
+        Mango.log("NotifierService", "onDestroy!");
+        super.onDestroy();
+    }
+
+    private void shutdownService()
+    {
+        mNotificationManager.cancel(1340);
+        Mango.log("NotifierService", "Shutting down.");
+
+        if (mNewChapters != 0)
+            createNotification();
+
+        stopSelf();
+    }
+
+    private void createNotification()
+    {
+        if (Mango.getSharedPreferences().getBoolean("notifierHide", false))
+            return;
+        Mango.log("NotifierService", "Creating notification for " + mNewChapters + " new chapters.");
+        Notification notification = new Notification(R.drawable.icon_notify_done, "New chapters are available!", System.currentTimeMillis());
+        CharSequence contentTitle = "Mango";
+        CharSequence contentText = "There " + (mNewChapters == 1 ? "is " : "are ") + mNewChapters + " new chapter" + (mNewChapters == 1 ? "" : "s") + " available!";
+        Intent notificationIntent = new Intent(this, FavoritesActivity.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+        notification.flags |= Notification.FLAG_AUTO_CANCEL;
+        notification.setLatestEventInfo(this, contentTitle, contentText, contentIntent);
+        if (Mango.getSharedPreferences().getString("notifierRingtone", null) != null)
+            notification.sound = Uri.parse(Mango.getSharedPreferences().getString("notifierRingtone", null));
+        if (Mango.getSharedPreferences().getBoolean("notifierLED", false))
+        {
+            notification.ledARGB = Color.MAGENTA;
+            notification.ledOnMS = 300;
+            notification.ledOffMS = 3000;
+            notification.flags |= Notification.FLAG_SHOW_LIGHTS;
+        }
+
+        mNotificationManager.notify(1339, notification);
+    }
+
+    private void checkForNewChapters()
+    {
+        Runnable r = new Runnable()
+        {
+
+            @Override
+            public void run()
+            {
+                ArrayList<DownloadRequest> requests = new ArrayList<DownloadRequest>();
+                String report = "";
+                MangoSqlite db = null;
+                try
+                {
+                    Favorite[] n = null;
+                    db = new MangoSqlite(NotifierService.this);
+                    db.open();
+                    n = db.getAllFavorites("notificationsEnabled = 1");
+                    Mango.log("Notifications", n.length + " favorites to check.");
+
+                    for (int i = 0; i < n.length; i++)
+                    {
+                        try
+                        {
+                            Chapter c = null;
+                            mNotificationViews.setTextViewText(R.id.ChapterNotifierText, "Checking " + n[i].mangaTitle + " (" + (n.length - (i + 1)) + " more)");
+                            mNotificationManager.notify(1340, mNotification);
+                            String response = MangoHttp.downloadData(
+                                    "http://%SERVER_URL%/getchapterlist.aspx?pin=" + Mango.getPin() + "&url=" + n[i].mangaId + "&site=" + n[i].siteId + "&latest=true", NotifierService.this);
+
+                            SAXParserFactory saxFactory = SAXParserFactory.newInstance();
+                            SAXParser parser = saxFactory.newSAXParser();
+                            XMLReader reader = parser.getXMLReader();
+                            LatestChapterSaxHandler handler = new LatestChapterSaxHandler();
+                            reader.setContentHandler(handler);
+                            reader.parse(new InputSource(new StringReader(response)));
+                            c = handler.getChapter();
+
+                            // Mango.Log(n[i].mangaId + ": Current = " + n[i].lastChapterId + ", Latest = " + c.id +
+                            // ", Time = " + n[i].lastChapterTime);
+
+                            if (!c.id.equals(n[i].lastChapterId)) // new chapter
+                            {
+                                c.date = fixDate(c.date);
+                                Mango.log("New chapter for " + n[i].mangaId + " (" + c.date + ", " + (c.date != null ? parseDate(c.date) : "null") + ")!");
+                                n[i].lastChapterId = c.id;
+                                n[i].lastChapterIndex = 9999;
+                                n[i].lastChapterName = c.title;
+                                n[i].lastChapterUrl = c.url;
+                                if (c.date == null)
+                                    n[i].lastChapterTime = -1;
+                                else
+                                    n[i].lastChapterTime = parseDate(c.date).getTime();
+                                n[i].newChapterAvailable = true;
+                                db.updateFavorite(n[i]);
+                                mNewChapters++;
+                                report += n[i].mangaTitle + " (Chapter " + c.id + ")\n";
+
+                                if (Mango.getSharedPreferences().getBoolean("notifierAutoDownload", false))
+                                {
+                                    saxFactory = SAXParserFactory.newInstance();
+                                    parser = saxFactory.newSAXParser();
+                                    reader = parser.getXMLReader();
+                                    ChaptersSaxHandler chandler = new ChaptersSaxHandler();
+                                    reader.setContentHandler(chandler);
+                                    reader.parse(new InputSource(new StringReader(MangoHttp.downloadData(
+                                            "http://%SERVER_URL%/getchapterlist.aspx?pin=" + Mango.getPin() + "&url=" + n[i].mangaId + "&site=" + n[i].siteId, NotifierService.this))));
+                                    int mangasize = chandler.getAllChapters().size();
+
+                                    DownloadRequest d = new DownloadRequest();
+                                    d.manga = new Manga();
+                                    d.manga.id = n[i].mangaId;
+                                    d.manga.title = n[i].mangaTitle;
+                                    d.manga.chapters = new Chapter[mangasize];
+                                    for (int j = 0; j < d.manga.chapters.length; j++)
+                                    {
+                                        d.manga.chapters[j] = new Chapter();
+                                        d.manga.chapters[j].id = "ignoreme!";
+                                    }
+                                    d.manga.chapters[mangasize - 1] = c;
+                                    d.siteId = n[i].siteId;
+                                    d.chapterId = c.id;
+                                    requests.add(d);
+                                    Mango.log("NotifierService", "Adding " + d.manga.title + " " + c.id + " to download request queue.");
+                                }
+                            }
+                        } catch (Exception e)
+                        {
+                            Mango.log("NotifierService", n[i].mangaId + " failed to update... " + e.toString());
+                            Mango.log("Stack trace: " + Log.getStackTraceString(e));
+                            ;
+                        }
+                    }
+                } catch (SQLException e)
+                {
+                    Mango.log("NotifierService", "checkForNewChapters Exception: " + e.toString());
+                } finally
+                {
+                    if (db != null)
+                        db.close();
+                }
+
+                if (mNewChapters > 0)
+                {
+                    enqueueNewChapters(requests);
+
+                    File file = new File(getApplicationContext().getFilesDir().getPath() + "/notifierreport.txt");
+                    BufferedWriter out = null;
+
+                    try
+                    {
+                        file = new File(getApplicationContext().getFilesDir().getPath() + "/notifierreport.txt");
+                        out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, true), "UTF-8"));
+                        out.append(report);
+                    } catch (IOException ioe)
+                    {
+                        Mango.log("NotifierService", "IOException when writing report to disk! (" + String.valueOf(file.getAbsolutePath()) + ", " + "notifierreport.txt, " + ioe.getMessage() + ")");
+                    } finally
+                    {
+                        try
+                        {
+                            if (out != null)
+                                out.close();
+                            out = null;
+                        } catch (IOException e)
+                        {
+
+                        }
+                    }
+
+                }
+                shutdownService();
+            }
+
+        };
+        Thread t = new Thread(r);
+        t.start();
+    }
+
+    private String fixDate(String date)
+    {
+        String newdate = date;
+
+        if (date == null)
+            return null;
+
+        if (date.equalsIgnoreCase("today"))
+            newdate = DateFormat.getDateFormat(NotifierService.this).format(new Date(System.currentTimeMillis()));
+        else if (date.equalsIgnoreCase("yesterday"))
+            newdate = DateFormat.getDateFormat(NotifierService.this).format(new Date(System.currentTimeMillis() - 86400000));
+
+        newdate = newdate.replace("-", "/");
+
+        return newdate;
+    }
+
+    public Date parseDate(String dtStr)
+    {
+        Date d = null;
+
+        try
+        {
+            d = new Date(Date.parse(dtStr));
+        } catch (Exception e)
+        {
+            d = null;
+        }
+
+        if (d != null)
+            return d;
+
+        try
+        {
+            SimpleDateFormat formatter1 = new SimpleDateFormat("MM/dd/yyyy");
+            formatter1.setLenient(true);
+            d = formatter1.parse(dtStr);
+        } catch (Exception e)
+        {
+            Mango.log("nope " + dtStr);
+            d = null;
+        }
+
+        return d;
+    }
+
+    public static class LatestChapterSaxHandler extends DefaultHandler
+    {
+        private Chapter currentChapter;
+
+        public Chapter getChapter()
+        {
+            return currentChapter;
+        }
+
+        @Override
+        public void startDocument() throws SAXException
+        {
+            super.startDocument();
+            currentChapter = null;
+        }
+
+        @Override
+        public void endDocument()
+        {}
+
+        @Override
+        public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException
+        {
+            if (localName.equalsIgnoreCase("chapter"))
+            {
+                currentChapter = new Chapter();
+            }
+            else if (localName.equalsIgnoreCase("title"))
+            {
+                currentChapter.title = attributes.getValue(0);
+            }
+            else if (localName.equalsIgnoreCase("id"))
+            {
+                currentChapter.id = attributes.getValue(0);
+                currentChapter.url = attributes.getValue(0);
+            }
+            else if (localName.equalsIgnoreCase("url"))
+            {
+                currentChapter.url = attributes.getValue(0);
+            }
+            else if (localName.equalsIgnoreCase("scan"))
+            {
+                currentChapter.scanlator = attributes.getValue(0);
+            }
+            else if (localName.equalsIgnoreCase("date"))
+            {
+                currentChapter.date = attributes.getValue(0);
+            }
+        }
+
+        @Override
+        public void endElement(String uri, String localName, String name) throws SAXException
+        {
+            super.endElement(uri, localName, name);
+        }
+    }
+
+    private class DownloadRequest
+    {
+        String chapterId;
+        Manga manga;
+        int siteId;
+    }
+
+    private void enqueueNewChapters(final ArrayList<DownloadRequest> downloads)
+    {
+        if (!Mango.getSharedPreferences().getBoolean("notifierAutoDownload", false))
+            return;
+        if (Mango.getSharedPreferences().getBoolean("notifierAutoDownloadWifi", false))
+        {
+            if (!MangoHttp.isWifi(this))
+            {
+                Mango.log("NotifierService", "Not starting downloader because we're not on Wi-Fi");
+                return;
+            }
+        }
+
+        ServiceConnection sConnection = new ServiceConnection()
+        {
+            @Override
+            public void onServiceConnected(ComponentName className, IBinder service)
+            {
+                Mango.log("NotifierService", "Connected to DownloaderService. (" + service.toString() + ")");
+                DownloaderBinder binder = (DownloaderBinder) service;
+                mDownloaderService = binder.getService();
+                int retval = 0;
+                for (int i = 0; i < downloads.size(); i++)
+                {
+                    retval = mDownloaderService.addToQueue(downloads.get(i).manga, downloads.get(i).chapterId, downloads.get(i).siteId, true);
+                    if (retval != 0)
+                        Mango.log("NotifierService", "addToQueue returned " + retval);
+                }
+
+                Mango.log("NotifierService", "Unbinding from DownloaderService!");
+                unbindService(this);
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName arg0)
+            {
+                Mango.log("NotifierService", "Disconnected from DownloaderService.");
+            }
+        };
+
+        Mango.log("NotifierService", "Binding to DownloaderService!");
+
+        Intent i = new Intent(this, DownloaderService.class);
+        if (!bindService(i, sConnection, Context.BIND_AUTO_CREATE))
+        {
+            Mango.log("NotifierService", "Unable to bind to DownloaderService... cannot enqueue new chapters.");
+            return;
+        }
+        Mango.log("NotifierService", "Bound to DownloaderService. Now calling startService.");
+        startService(i);
+
+    }
+}

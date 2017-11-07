@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="listfind">Find:</string>
+    <string name="startup_welcome">Welcome to PocketManga!</string>
+    <string name="app_name">PocketManga</string>
+
+</resources>

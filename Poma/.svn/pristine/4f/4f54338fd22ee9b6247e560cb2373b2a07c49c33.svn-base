@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.ls.manga.ui.MangoLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" >
+
+    <RelativeLayout
+        android:id="@+id/prAdContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible" >
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:orientation="vertical" >
+
+        <ImageView
+            android:id="@+id/prAnimationView"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:background="#000000" >
+        </ImageView>
+
+        <ImageView
+            android:id="@+id/prAnimationStaticView"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:background="#000000" >
+        </ImageView>
+
+        <ImageView
+            android:id="@+id/prMenuSoftButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginRight="3dp"
+            android:layout_marginTop="3dp"
+            android:adjustViewBounds="true"
+            android:clickable="true"
+            android:scaleType="fitXY"
+            android:src="@drawable/ic_menu_moreoverflow" >
+        </ImageView>
+
+        <RelativeLayout
+            android:id="@+id/prTitlebar"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:background="#8C000000" >
+
+            <TextView
+                android:id="@+id/prTitleSystemText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical|center_horizontal"
+                android:text=""
+                android:textColor="#ffffff"
+                android:textSize="11sp" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/prTitleText"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_toLeftOf="@+id/prTitleSystemText"
+                android:text="prTitleText is not initialized."
+                android:textColor="#ffffff"
+                android:textSize="14sp" >
+            </TextView>
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/prStatusbar"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:background="#8C000000" >
+
+            <TextView
+                android:id="@+id/prStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="prStatusText is not initialized."
+                android:textColor="#ffffff"
+                android:textSize="14sp" >
+            </TextView>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/prPagefieldLayout"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" >
+            <com.ls.manga.ui.MangoZoomableImageView
+                xmlns:android="http://schemas.android.com/apk/res/android"
+                android:id="@+id/prPagefield2"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:background="#000000" />
+<!-- 
+            <com.ls.manga.ui.PageFieldZoomView
+                xmlns:android="http://schemas.android.com/apk/res/android"
+                android:id="@+id/prPagefield"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:background="#000000" >
+            </com.ls.manga.ui.PageFieldZoomView>
+             -->
+        </LinearLayout>
+    </RelativeLayout>
+    <include
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        layout="@layout/tutorial_overlay" >
+    </include>
+
+</com.ls.manga.ui.MangoLayout>

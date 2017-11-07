@@ -1,0 +1,10 @@
+package com.ls.manga;
+
+import java.io.Serializable;
+import com.ls.manga.R;
+
+public class QueueItem implements Serializable
+{
+	public LibraryChapter chapterObj;
+	public int            statusCode;
+}

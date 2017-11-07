@@ -38,10 +38,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Iterator;
+import java.util.*;
 
 public class LibraryBrowserActivity extends MangoActivity
 {
@@ -53,34 +50,21 @@ public class LibraryBrowserActivity extends MangoActivity
     private LibraryLoader mLoader;
     private PageScanner mScanner;
     private int mViewMode;             // 0 = root library folder, 1 = library subfolder, 2 =
+
+
     // filesystem
     private int mContextPosition;
     private boolean[] mReadStatus;
-
     // Filesystem browser
     private String mFilesystemUri;
     private FilesystemChapter[] mFolders;
-
     private boolean mMultiSelectMode;
     private int mMultiFirstIndex = -1;
-    private int mMultiSecondIndex = -1;
-
-    private Handler mProgressHandler;
-
     private static final int VIEW_ROOTFOLDER = 0;
+    private int mMultiSecondIndex = -1;
     private static final int VIEW_SUBFOLDER = 1;
+    private Handler mProgressHandler;
     private static final int VIEW_FILESYSTEM = 2;
-
-    private class InstanceBundle
-    {
-        private LibraryChapter[] allChapters;
-        private LibraryChapter[] chapters;
-        private FilesystemChapter[] folders;
-        private LibraryLoader loader;
-        private PageScanner scanner;
-        private int viewMode;
-        private String filesystemUri;
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -586,7 +570,6 @@ public class LibraryBrowserActivity extends MangoActivity
         }
 
         mChapters = new LibraryChapter[0];
-        ArrayList<LibraryChapter> filteredArrayList = new ArrayList<LibraryChapter>();
         ArrayList<LibraryChapter> chaptersArrayList = new ArrayList<LibraryChapter>();
         MangoSqlite db = new MangoSqlite(this);
         try
@@ -595,6 +578,8 @@ public class LibraryBrowserActivity extends MangoActivity
             updateProgressDialog("Querying...");
             String[] chapters = db.getLibraryChapterIndex();
             updateProgressDialog("Processing 0 of " + chapters.length + "...");
+
+            HashMap<String, LibraryChapter> map = new HashMap<String, LibraryChapter>();
             for (int i = 0; i < chapters.length; i++)
             {
                 LibraryChapter newLc = new LibraryChapter();
@@ -602,25 +587,24 @@ public class LibraryBrowserActivity extends MangoActivity
                 newLc.manga = new Manga();
                 newLc.manga.title = chapters[i];
 
-                boolean dontAdd = false;
-                for (int j = 0; j < filteredArrayList.size(); j++)
+                if (map.containsKey(newLc.manga.title))
                 {
-                    if (filteredArrayList.size() > 0 && filteredArrayList.get(j).manga.title.equals(newLc.manga.title))
-                        dontAdd = true;
+                    LibraryChapter item = map.get(newLc.manga.title);
+                    item.chapterCount++;
+                }
+                else
+                {
+                    newLc.chapterCount = 1;
+                    map.put(newLc.manga.title, newLc);
                 }
 
-                for (int k = 0; k < chaptersArrayList.size(); k++)
-                {
-                    if (chaptersArrayList.get(k).manga.title.equals(newLc.manga.title))
-                        chaptersArrayList.get(k).chapterCount++;
-                }
-
-                filteredArrayList.add(newLc);
-
-                if (!dontAdd)
-                    chaptersArrayList.add(newLc);
-
+                if (i % 50 == 0)
                 updateProgressDialog("Processing " + (i + 1) + " of " + chapters.length + "...");
+            }
+
+            for (LibraryChapter chapter : map.values())
+            {
+                chaptersArrayList.add(chapter);
             }
         }
         catch (SQLException ex)
@@ -1309,7 +1293,8 @@ public class LibraryBrowserActivity extends MangoActivity
         try
         {
             db.open();
-            lcArray = db.getAllLibraryChapters(chapter.manga.title);;
+            lcArray = db.getAllLibraryChapters(chapter.manga.title);
+            ;
             for (int i = 0; i < lcArray.length; i++)
             {
                 db.deleteLibraryChapter(lcArray[i].rowId);
@@ -1436,6 +1421,42 @@ public class LibraryBrowserActivity extends MangoActivity
         {
             return "null";
         }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event)
+    {
+        if (keyCode == KeyEvent.KEYCODE_BACK)
+        {
+            if (mMultiSelectMode)
+            {
+                toggleMultiselect(true);
+                return true;
+            }
+
+            if (mViewMode == VIEW_SUBFOLDER)
+            {
+                showDialog(0);
+                mViewMode = VIEW_ROOTFOLDER;
+                mLoader = new LibraryLoader(this);
+                mLoader.execute((Manga) null);
+            }
+            else
+                finish();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    private class InstanceBundle
+    {
+        private LibraryChapter[] allChapters;
+        private LibraryChapter[] chapters;
+        private FilesystemChapter[] folders;
+        private LibraryLoader loader;
+        private PageScanner scanner;
+        private int viewMode;
+        private String filesystemUri;
     }
 
     class ViewHolder
@@ -1624,31 +1645,6 @@ public class LibraryBrowserActivity extends MangoActivity
         }
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event)
-    {
-        if (keyCode == KeyEvent.KEYCODE_BACK)
-        {
-            if (mMultiSelectMode)
-            {
-                toggleMultiselect(true);
-                return true;
-            }
-
-            if (mViewMode == VIEW_SUBFOLDER)
-            {
-                showDialog(0);
-                mViewMode = VIEW_ROOTFOLDER;
-                mLoader = new LibraryLoader(this);
-                mLoader.execute((Manga) null);
-            }
-            else
-                finish();
-            return true;
-        }
-        return super.onKeyDown(keyCode, event);
-    }
-
     private class LibraryLoader extends AsyncTask<Manga, Void, Object>
     {
         LibraryBrowserActivity activity = null;
@@ -1695,17 +1691,13 @@ public class LibraryBrowserActivity extends MangoActivity
     private class PageScanner extends AsyncTask<Manga, String, String>
     {
         LibraryBrowserActivity activity = null;
-
         ArrayList<LibraryChapter> chapters = new ArrayList<LibraryChapter>();
         ArrayList<Page> pages = new ArrayList<Page>();
-
         String substringStart;
         String substringAltStart;
         String urlPrefix;
-
         int failedPages = 0;
         int repairedPages = 0;
-
         StringBuilder report = new StringBuilder();
 
         public PageScanner(LibraryBrowserActivity activity)

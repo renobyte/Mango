@@ -1,0 +1,15 @@
+package com.ls.manga;
+
+import java.io.Serializable;
+import com.ls.manga.R;
+
+@SuppressWarnings("serial")
+public class Chapter implements Serializable
+{
+	public String title;
+	public String id;
+	public String url;
+	public Page[] pages;
+	public String scanlator;
+	public String date;
+}

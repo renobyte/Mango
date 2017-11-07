@@ -1,0 +1,9 @@
+package com.ls.manga;
+
+public class SyncManager
+{
+	public static final int CHANGE_ADD    = 0; // New fav
+	public static final int CHANGE_REMOVE = 1; //
+	public static final int CHANGE_UPDATE = 2;
+	public static final int CHANGE_READ   = 3;
+}

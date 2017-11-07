@@ -1,0 +1,35 @@
+package com.ls.manga;
+
+import java.io.Serializable;
+import java.util.HashMap;
+
+public class SyncChange implements Serializable
+{
+
+	/*
+	public String           mangaTitle;
+	public String           mangaAltTitles;
+	public String           mangaSimpleName;
+	public String           mangaId;
+
+	public String           progressChapterId;
+	public String           progressChapterName;
+	public String           progressChapterUrl;
+	public int              progressChapterIndex;
+	public int              progressPageIndex;
+
+	public long             readDate;
+
+	public int              siteId;
+
+	public int              tagId;
+	public String           coverArtUrl   = "";
+	*/
+
+	String                  syncQueryString;
+
+	Favorite                syncFavorite;
+	long                    syncIndex;
+	int                     syncChangeType;
+	HashMap<String, Object> syncModifiedData;
+}

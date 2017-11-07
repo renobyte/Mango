@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_height="wrap_content"
+	android:layout_width="fill_parent"
+	android:layout_gravity="center_horizontal">
+	<ScrollView
+		android:layout_height="fill_parent"
+		android:layout_width="fill_parent">
+		<RelativeLayout
+			android:layout_gravity="center_horizontal"
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:paddingLeft="4dp"
+			android:paddingRight="4dp">
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:id="@+id/DetailsMangaTitle"
+				android:layout_centerHorizontal="true"
+				android:layout_marginBottom="5px"
+				android:textStyle="bold"
+				android:gravity="center_horizontal"
+				android:text="Placeholder Manga of Pure Win"
+				android:textColor="#ffffff"
+				android:textSize="22sp"></TextView>
+			<ImageView
+				android:layout_height="wrap_content"
+				android:layout_width="wrap_content"
+				android:layout_centerHorizontal="true"
+				android:id="@+id/DetailsCoverArt"
+				android:layout_below="@+id/DetailsMangaTitle"></ImageView>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@+id/DetailsCoverArt"
+				android:id="@+id/DetailsArtistAuthor"
+				android:textSize="15sp"
+				android:textStyle="italic"
+				android:text="Art and story by Nagi Senzenin"
+				android:textColor="#cccccc"></TextView>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@+id/DetailsArtistAuthor"
+				android:textColor="#ffffff"
+				android:textSize="18sp"
+				android:id="@+id/DetailsPopularityHeader"
+				android:layout_marginTop="4dp"
+				android:textStyle="bold"
+				android:text="Popularity/Views:"></TextView>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@+id/DetailsPopularityHeader"
+				android:id="@+id/DetailsPopularity"
+				android:text="1stndrdth (999,99,999 monthly views)"
+				android:layout_marginLeft="20dp"
+				android:textSize="15sp"
+				android:textColor="#cccccc"></TextView>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="Genres:"
+				android:layout_below="@+id/DetailsPopularity"
+				android:textColor="#ffffff"
+				android:textSize="18sp"
+				android:id="@+id/DetailsGenreHeader"
+				android:layout_marginTop="4dp"
+				android:textStyle="bold"></TextView>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@+id/DetailsGenreHeader"
+				android:id="@+id/DetailsGenre"
+				android:text="lulz, win, epic"
+				android:layout_marginLeft="20dp"
+				android:textSize="15sp"
+				android:textColor="#cccccc"></TextView>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="Chapters:"
+				android:layout_below="@+id/DetailsGenre"
+				android:textColor="#ffffff"
+				android:textSize="18sp"
+				android:id="@+id/DetailsChaptersHeader"
+				android:layout_marginTop="4dp"
+				android:textStyle="bold"></TextView>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@+id/DetailsChaptersHeader"
+				android:id="@+id/DetailsChapters"
+				android:text="9001"
+				android:layout_marginLeft="20dp"
+				android:textSize="15sp"
+				android:textColor="#cccccc"></TextView>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="Summary:"
+				android:layout_below="@+id/DetailsChapters"
+				android:textColor="#ffffff"
+				android:textSize="18sp"
+				android:id="@+id/DetailsSummaryHeader"
+				android:layout_marginTop="4dp"
+				android:textStyle="bold"></TextView>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@+id/DetailsSummaryHeader"
+				android:id="@+id/DetailsSummary"
+				android:text="If you can read this, some crazy shit went down."
+				android:layout_marginLeft="20dp"
+				android:textSize="15sp"
+				android:textColor="#cccccc"></TextView>
+
+		</RelativeLayout>
+	</ScrollView>
+
+
+
+</LinearLayout>

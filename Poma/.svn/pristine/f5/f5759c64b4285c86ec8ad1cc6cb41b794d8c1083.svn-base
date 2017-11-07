@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.ls.manga.ui.PomaLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:ads="http://schemas.android.com/apk/lib/com.google.ads"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<LinearLayout
+		android:layout_width="wrap_content"
+		android:layout_height="fill_parent"
+		android:orientation="vertical">
+		<LinearLayout
+			android:layout_height="wrap_content"
+			android:layout_width="fill_parent"
+			android:orientation="vertical"
+			android:gravity="center_vertical|center_horizontal">
+			<LinearLayout
+				android:layout_height="wrap_content"
+				android:layout_width="fill_parent"
+				android:orientation="horizontal"
+				android:gravity="center_vertical|center_horizontal">
+				<Button
+					android:layout_height="wrap_content"
+					android:layout_width="wrap_content"
+					android:text="Pause"
+					android:id="@+id/queueScreenPause"
+					android:minWidth="140sp"></Button>
+				<Button
+					android:layout_height="wrap_content"
+					android:layout_width="wrap_content"
+					android:text="Cancel All"
+					android:id="@+id/queueScreenCancel"
+					android:minWidth="140sp"></Button>
+			</LinearLayout>
+			<LinearLayout
+				android:layout_height="wrap_content"
+				android:layout_width="fill_parent"
+				android:orientation="horizontal"
+				android:gravity="center_vertical|center_horizontal">
+				<Button
+					android:layout_height="wrap_content"
+					android:layout_width="wrap_content"
+					android:text="View Download Report"
+					android:id="@+id/queueScreenReport"
+					android:minWidth="140sp"></Button>
+			</LinearLayout>
+		</LinearLayout>
+		<View
+			android:layout_width="fill_parent"
+			android:layout_height="1dip"
+			android:background="#999999" />
+		<LinearLayout
+			android:id="@+id/queueScreenLayout"
+			android:layout_height="fill_parent"
+			android:layout_width="fill_parent">
+			<ListView
+				android:id="@+id/queueScreenList"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:layout_weight="1"
+				android:drawSelectorOnTop="false"
+				android:background="@android:color/transparent"
+				android:cacheColorHint="#00000000"
+				android:fadingEdge="none"></ListView>
+			<TextView
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:gravity="center_vertical|center_horizontal"
+				android:text="Download queue is empty!"
+				android:id="@+id/queueScreenEmpty"
+				android:textStyle="bold"
+				android:textSize="16sp"></TextView>
+		</LinearLayout>
+	</LinearLayout>
+</com.ls.manga.ui.PomaLayout>

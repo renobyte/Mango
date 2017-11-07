@@ -1,0 +1,777 @@
+package com.ls.manga;
+
+import java.util.ArrayList;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class MangoSqlite
+{
+	public static final String  KEY_ROWID                 = "_id";
+	public static final String  KEY_MANGAID               = "mangaId";
+	public static final String  KEY_MANGATITLE            = "mangaName";
+	public static final String  KEY_CHAPTERINDEX          = "chapterIndex";
+	public static final String  KEY_CHAPTERNAME           = "chapterName";
+	public static final String  KEY_CHAPTERID             = "chapterId";
+	public static final String  KEY_CHAPTERCOUNT          = "chapterCount";
+	public static final String  KEY_PAGEINDEX             = "pageIndex";
+	public static final String  KEY_PAGEID                = "pageId";
+
+	// tBookmarks only
+	public static final String  KEY_MANGASITE             = "mangaSite";
+	public static final String  KEY_UPDATETIME            = "updateTime";
+	public static final String  KEY_BOOKMARKTYPE          = "bookmarkType";
+
+	// tLibrary only
+	public static final String  KEY_CHAPTERURL            = "chapterUrl";
+	public static final String  KEY_LOCALPATH             = "localPath";
+
+	private static final String DATABASE_NAME             = "pomaDB";
+	private static final String TABLE_BOOKMARKS           = "tBookmarks";
+	private static final String TABLE_LIBRARY             = "tLibrary";
+	private static final String TABLE_FAVORITES           = "tFavorites";
+
+	private static final int    DATABASE_VERSION          = 7;
+
+	public static final String  DATABASE_CREATE_BOOKMARKS = "CREATE TABLE " + TABLE_BOOKMARKS + " (" + KEY_ROWID + " integer primary key autoincrement, " + KEY_MANGAID + " text not null, "
+	                                                              + KEY_MANGATITLE + " text, " + KEY_CHAPTERINDEX + " integer, " + KEY_CHAPTERNAME + " text, " + KEY_CHAPTERID + " text, "
+	                                                              + KEY_CHAPTERCOUNT + " integer, " + KEY_PAGEINDEX + " integer, " + KEY_PAGEID + " text, " + KEY_MANGASITE + " text, "
+	                                                              + KEY_UPDATETIME + " text, " + KEY_BOOKMARKTYPE + " integer)";
+
+	public static final String  DATABASE_CREATE_LIBRARY   = "CREATE TABLE " + TABLE_LIBRARY + " (" + KEY_ROWID + " integer primary key autoincrement, " + KEY_MANGAID + " text not null, "
+	                                                              + KEY_MANGATITLE + " text, " + KEY_CHAPTERINDEX + " integer, " + KEY_CHAPTERNAME + " text, " + KEY_CHAPTERID + " text, "
+	                                                              + KEY_CHAPTERCOUNT + " integer, " + KEY_CHAPTERURL + " text, " + KEY_MANGASITE + " integer, " + KEY_LOCALPATH
+	                                                              + " text, mangaSimpleName text)";
+
+	public static final String  DATABASE_CREATE_FAVORITES = "CREATE TABLE tFavorites (rowId integer primary key autoincrement, mangaTitle text, mangaId text, mangaSimpleName text, mangaAltName text, progressChapterId text, progressChapterUrl text, progressChapterName text, progressChapterIndex integer, progressPageIndex integer, siteId integer, lastChapterTime integer, lastChapterId text, lastChapterUrl text, lastChapterName text, lastChapterIndex integer, coverArtUrl text, notificationsEnabled integer, tagId integer, isOngoing integer, readDate integer, newChapterAvailable integer)";
+
+	private final Context       context;
+
+	public DatabaseHelper       DBHelper;
+	public SQLiteDatabase       db;
+
+	public MangoSqlite(Context ctx)
+	{
+		this.context = ctx;
+		DBHelper = new DatabaseHelper(context);
+	}
+
+	public static class DatabaseHelper extends SQLiteOpenHelper
+	{
+		private Context c;
+
+		DatabaseHelper(Context context)
+		{
+			super(context, DATABASE_NAME, null, DATABASE_VERSION);
+			c = context;
+		}
+
+		@Override
+		public void onCreate(SQLiteDatabase db)
+		{
+			db.execSQL(DATABASE_CREATE_BOOKMARKS);
+			db.execSQL(DATABASE_CREATE_LIBRARY);
+			db.execSQL(DATABASE_CREATE_FAVORITES);
+			Mango.Log("PomaSqlite >> Created initial database structure!");
+		}
+
+		@Override
+		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
+		{
+			Mango.Log("PomaSqlite >> onUpgrade is being called (from " + oldVersion + " to " + newVersion + ".)");
+			if (oldVersion == 2) // version 3 adds My Library
+			{
+				Mango.Log("PomaSqlite >> upgrading database from version 2 to version 3.");
+				db.execSQL("DROP TABLE IF EXISTS tLibrary");
+				db.execSQL(DATABASE_CREATE_LIBRARY);
+				oldVersion = 3;
+			}
+			if (oldVersion == 3) // version 4 adds Favorites
+			{
+				Mango.Log("PomaSqlite >> upgrading database from version 3 to version 4.");
+				db.execSQL("DROP TABLE IF EXISTS tFavorites");
+				db.execSQL(DATABASE_CREATE_FAVORITES);
+				oldVersion = 4;
+			}
+			// version 5 introduces changes to Library table structure
+			if (oldVersion < 6) // ...but it was buggy as hell so version 6 fixes that.
+			{
+				Mango.Log("PomaSqlite >> upgrading database to version 6.");
+				Mango.Log("PomaSqlite >>\tDropping table...");
+				db.execSQL("DROP TABLE IF EXISTS tLibrary");
+				Mango.Log("PomaSqlite >>\tRe-creating table...");
+				db.execSQL(DATABASE_CREATE_LIBRARY);
+				oldVersion = 6;
+			}
+			// version 7 adds a column to favorites
+			if (oldVersion == 6)
+			{
+				Mango.Log("PomaSqlite >> adding new boolean column 'newChapterAvailable'");
+				Cursor c = db.query(true, TABLE_FAVORITES, null, null, null, null, null, null, null);
+				if (c != null && c.getCount() > 0)
+				{
+					c.moveToFirst();
+				}
+				if (c.getColumnIndex("newChapterAvailable") == -1)
+				{
+					db.execSQL("ALTER TABLE tFavorites ADD COLUMN newChapterAvailable integer");
+					Mango.Log("PomaSqlite >> added column newChapterAvailable!");
+				}
+				else
+				{
+					Mango.Log("It already exists!");
+				}
+				oldVersion = 7;
+			}
+		}
+
+		public void wipeDatabase(SQLiteDatabase db)
+		{
+			db.execSQL("DROP TABLE IF EXISTS tBookmarks");
+			db.execSQL("DROP TABLE IF EXISTS tLibrary");
+			db.execSQL("DROP TABLE IF EXISTS tFavorites");
+			onCreate(db);
+		}
+	}
+
+	public MangoSqlite open() throws SQLException
+	{
+		try
+		{
+			db = DBHelper.getWritableDatabase();
+		}
+		catch (SQLException e)
+		{
+			Mango.Log("MangoSqlite.open: " + e.toString());
+			db = DBHelper.getReadableDatabase();
+		}
+		return this;
+	}
+
+	// ---closes the database---
+	public void close()
+	{
+		DBHelper.close();
+	}
+
+	// FAVORITES
+	public long insertFavorite(Favorite fav)
+	{
+		ContentValues initialValues = new ContentValues();
+		initialValues.put("mangaTitle", fav.mangaTitle);
+		initialValues.put("mangaId", fav.mangaId);
+		initialValues.put("mangaSimpleName", fav.mangaSimpleName);
+		initialValues.put("mangaAltName", fav.mangaAltTitles);
+		initialValues.put("progressChapterId", fav.progressChapterId);
+		initialValues.put("progressChapterUrl", fav.progressChapterUrl);
+		initialValues.put("progressChapterName", fav.progressChapterName);
+		initialValues.put("progressChapterIndex", fav.progressChapterIndex);
+		initialValues.put("progressPageIndex", fav.progressPageIndex);
+		initialValues.put("lastChapterId", fav.lastChapterId);
+		initialValues.put("lastChapterUrl", fav.lastChapterUrl);
+		initialValues.put("lastChapterName", fav.lastChapterName);
+		initialValues.put("lastChapterIndex", fav.lastChapterIndex);
+		initialValues.put("lastChapterTime", fav.lastChapterTime);
+		initialValues.put("siteId", fav.siteId);
+		initialValues.put("coverArtUrl", fav.coverArtUrl);
+		initialValues.put("notificationsEnabled", fav.notificationsEnabled);
+		initialValues.put("tagId", fav.tagId);
+		initialValues.put("isOngoing", fav.isOngoing);
+		initialValues.put("readDate", fav.readDate);
+		initialValues.put("newChapterAvailable", fav.newChapterAvailable);
+		return db.insert(TABLE_FAVORITES, null, initialValues);
+	}
+
+	// uses rowId of the "fav" parameter to update an existing item
+	public long updateFavorite(Favorite fav)
+	{
+		ContentValues initialValues = new ContentValues();
+		initialValues.put("mangaTitle", fav.mangaTitle);
+		initialValues.put("mangaId", fav.mangaId);
+		initialValues.put("mangaSimpleName", fav.mangaSimpleName);
+		initialValues.put("mangaAltName", fav.mangaAltTitles);
+		initialValues.put("progressChapterId", fav.progressChapterId);
+		initialValues.put("progressChapterUrl", fav.progressChapterUrl);
+		initialValues.put("progressChapterName", fav.progressChapterName);
+		initialValues.put("progressChapterIndex", fav.progressChapterIndex);
+		initialValues.put("progressPageIndex", fav.progressPageIndex);
+		initialValues.put("lastChapterId", fav.lastChapterId);
+		initialValues.put("lastChapterUrl", fav.lastChapterUrl);
+		initialValues.put("lastChapterName", fav.lastChapterName);
+		initialValues.put("lastChapterIndex", fav.lastChapterIndex);
+		initialValues.put("lastChapterTime", fav.lastChapterTime);
+		initialValues.put("siteId", fav.siteId);
+		initialValues.put("coverArtUrl", fav.coverArtUrl);
+		initialValues.put("notificationsEnabled", fav.notificationsEnabled);
+		initialValues.put("tagId", fav.tagId);
+		initialValues.put("isOngoing", fav.isOngoing);
+		initialValues.put("readDate", fav.readDate);
+		initialValues.put("newChapterAvailable", fav.newChapterAvailable);
+		return db.update(TABLE_FAVORITES, initialValues, "rowId = " + fav.rowId, null);
+	}
+
+	// uses rowId of the "fav" parameter to update an existing item
+	public long updateLibraryChapter(LibraryChapter lc)
+	{
+		lc.manga.generateSimpleName();
+		ContentValues initialValues = new ContentValues();
+		initialValues.put(KEY_MANGAID, lc.manga.id);
+		initialValues.put(KEY_MANGATITLE, lc.manga.title);
+		initialValues.put(KEY_CHAPTERINDEX, lc.chapterIndex);
+		initialValues.put(KEY_CHAPTERNAME, lc.chapter.title);
+		initialValues.put(KEY_CHAPTERID, lc.chapter.id);
+		initialValues.put(KEY_CHAPTERCOUNT, lc.chapterCount);
+		initialValues.put(KEY_CHAPTERURL, lc.chapter.url);
+		initialValues.put(KEY_LOCALPATH, lc.path);
+		initialValues.put(KEY_MANGASITE, lc.siteId);
+		initialValues.put("mangaSimpleName", lc.manga.simpleName);
+		return db.update(TABLE_LIBRARY, initialValues, "rowId = " + lc.rowId, null);
+	}
+
+	public Favorite[] getAllFavorites(String whereClause)
+	{
+		ArrayList<Favorite> list = new ArrayList<Favorite>();
+
+		Cursor c = db.query(true, TABLE_FAVORITES, new String[] { "rowId" }, whereClause, null, null, null, null, null);
+		if (c != null && c.getCount() > 0)
+		{
+			c.moveToFirst();
+		}
+		for (int i = 0; i < c.getCount(); i++)
+		{
+			Favorite f = getFavorite("rowId = " + c.getLong(0));
+			list.add(f);
+			c.moveToNext();
+		}
+		c.close();
+		Favorite[] fArray = new Favorite[list.size()];
+		return list.toArray(fArray);
+	}
+
+	public Favorite getFavoriteForManga(Manga manga)
+	{
+		manga.generateSimpleName();
+		String safeTitle = manga.title.replace("'", "''");
+		String whereClause = "lower(mangaTitle) = '" + safeTitle + "' OR lower(mangaId) = '" + manga.id.toLowerCase() + "' OR lower(mangaSimpleName) = '" + manga.simpleName.toLowerCase() + "'";
+		return getFavorite(whereClause);
+	}
+
+	public LibraryChapter[] getLibraryChaptersForManga(Manga manga)
+	{
+		manga.generateSimpleName();
+		String whereClause = "lower(mangaId) = '" + manga.id.toLowerCase() + "' OR lower(mangaSimpleName) = '" + manga.simpleName.toLowerCase() + "'";
+		return getAllLibraryChapters(whereClause);
+	}
+
+//	public void updateMissingColumn()
+//	{
+//		Cursor c = db.query(true, TABLE_FAVORITES, null, null, null, null, null, null, null);
+//		if (c != null && c.getCount() > 0)
+//		{
+//			c.moveToFirst();
+//		}
+//		if (c.getColumnIndex("readDate") == -1)
+//		{
+//			db.execSQL("ALTER TABLE tFavorites ADD COLUMN readDate integer");
+//			PocketManga.Log("added column readDate!");
+//		}
+//	}
+
+	public Favorite getFavorite(String whereClause)
+	{
+		Cursor c = db.query(true, TABLE_FAVORITES, null, whereClause, null, null, null, null, null);
+		if (c != null && c.getCount() > 0)
+		{
+			c.moveToFirst();
+		}
+		else
+			return null;
+
+		Favorite f = new Favorite();
+		f.mangaTitle = "[null]";
+		f.rowId = c.getInt(0);
+		f.mangaTitle = c.getString(1);
+		f.mangaId = c.getString(2);
+		f.mangaSimpleName = c.getString(3);
+		if (f.mangaSimpleName == null)
+			f.mangaSimpleName = f.mangaTitle.toLowerCase().replaceAll("[^a-z0-9]", "");
+		f.mangaAltTitles = c.getString(4);
+		f.progressChapterId = c.getString(5);
+		f.progressChapterUrl = c.getString(6);
+		f.progressChapterName = c.getString(7);
+		f.progressChapterIndex = c.getInt(8);
+		f.progressPageIndex = c.getInt(9);
+		f.siteId = c.getInt(10);
+		f.lastChapterTime = c.getLong(11);
+		f.lastChapterId = c.getString(12);
+		f.lastChapterUrl = c.getString(13);
+		f.lastChapterName = c.getString(14);
+		f.lastChapterIndex = c.getInt(15);
+		f.coverArtUrl = c.getString(16);
+		if (f.coverArtUrl == null)
+			f.coverArtUrl = ".";
+		f.notificationsEnabled = (c.getInt(17) == 0 ? false : true);
+		f.tagId = c.getInt(18);
+		f.isOngoing = (c.getInt(19) == 0 ? false : true);
+		f.readDate = c.getLong(20);
+		f.newChapterAvailable = (c.getInt(21) == 0 ? false : true);
+		c.close();
+		return f;
+	}
+
+	public long getFavoriteCount(String whereClause)
+	{
+		if (whereClause == null)
+			whereClause = "1=1";
+
+		int count = 0;
+		Cursor c = db.rawQuery("SELECT COUNT(*) FROM tFavorites WHERE " + whereClause, null);
+		c.moveToFirst();
+		count = c.getInt(0);
+		c.close();
+		return count;
+	}
+
+	public void clearFavoriteLatest(long rowId)
+	{
+		Favorite f = getFavorite("rowId=" + rowId);
+		f.lastChapterId = null;
+		f.lastChapterIndex = 0;
+		f.lastChapterName = null;
+		f.lastChapterTime = 0;
+		f.lastChapterUrl = null;
+		f.newChapterAvailable = false;
+		updateFavorite(f);
+	}
+	
+	public void clearFavoriteProgress(long rowId)
+	{
+		Favorite f = getFavorite("rowId=" + rowId);
+		f.progressChapterId = null;
+		f.progressChapterIndex = 0;
+		f.progressChapterName = null;
+		f.progressChapterUrl = null;
+		f.progressPageIndex = 0;
+		f.readDate = 0;
+		updateFavorite(f);
+	}
+
+	public boolean deleteFavorite(long rowId)
+	{
+		return db.delete(TABLE_FAVORITES, "rowId=" + rowId, null) > 0;
+	}
+
+	// BOOKMARKS
+	public long insertMangaBookmark(String mId, String mName, int mSite) throws SQLException
+	{
+		ContentValues initialValues = new ContentValues();
+		initialValues.put(KEY_MANGAID, mId);
+		initialValues.put(KEY_MANGATITLE, mName);
+		initialValues.put(KEY_BOOKMARKTYPE, Bookmark.MANGA);
+		initialValues.put(KEY_MANGASITE, mSite);
+		return db.insert(TABLE_BOOKMARKS, null, initialValues);
+	}
+
+	public long insertChapterBookmark(String mId, String mName, int cIndex, String cName, String cId, int cCount, int mSite) throws SQLException
+	{
+		ContentValues initialValues = new ContentValues();
+		initialValues.put(KEY_MANGAID, mId);
+		initialValues.put(KEY_MANGATITLE, mName);
+		initialValues.put(KEY_BOOKMARKTYPE, Bookmark.CHAPTER);
+		initialValues.put(KEY_CHAPTERINDEX, cIndex);
+		initialValues.put(KEY_CHAPTERNAME, cName);
+		initialValues.put(KEY_CHAPTERID, cId);
+		initialValues.put(KEY_CHAPTERCOUNT, cCount);
+		initialValues.put(KEY_MANGASITE, mSite);
+		return db.insert(TABLE_BOOKMARKS, null, initialValues);
+	}
+
+	public long insertRecentBookmark(String mId, String mName, int cIndex, String cName, String cId, int cCount, int mSite, boolean hidden) throws SQLException
+	{
+		ContentValues initialValues = new ContentValues();
+		initialValues.put(KEY_MANGAID, mId);
+		initialValues.put(KEY_MANGATITLE, mName);
+		initialValues.put(KEY_BOOKMARKTYPE, Bookmark.RECENT);
+		initialValues.put(KEY_CHAPTERINDEX, cIndex);
+		initialValues.put(KEY_CHAPTERNAME, cName);
+		initialValues.put(KEY_CHAPTERID, cId);
+		initialValues.put(KEY_CHAPTERCOUNT, cCount);
+		initialValues.put(KEY_MANGASITE, mSite);
+		initialValues.put(KEY_UPDATETIME, System.currentTimeMillis());
+		initialValues.put(KEY_PAGEINDEX, (hidden ? 1 : 0));
+		return db.insert(TABLE_BOOKMARKS, null, initialValues);
+	}
+
+	/**
+	 * Inserts a new Bookmark into the database of the type Bookmark.PAGE.
+	 * 
+	 * @return rows affected by query
+	 */
+	public long insertPageBookmark(String mId, String mName, int cIndex, String cName, String cId, int cCount, int pIndex, String pId, int mSite, boolean local) throws SQLException
+	{
+		ContentValues initialValues = new ContentValues();
+		initialValues.put(KEY_MANGAID, mId);
+		initialValues.put(KEY_MANGATITLE, mName);
+		initialValues.put(KEY_CHAPTERINDEX, cIndex);
+		initialValues.put(KEY_CHAPTERNAME, cName);
+		initialValues.put(KEY_CHAPTERID, cId);
+		initialValues.put(KEY_CHAPTERCOUNT, cCount);
+		initialValues.put(KEY_PAGEINDEX, pIndex);
+		initialValues.put(KEY_PAGEID, pId);
+		initialValues.put(KEY_MANGASITE, mSite);
+		if (local)
+			initialValues.put(KEY_BOOKMARKTYPE, Bookmark.PAGE_LOCAL);
+		else
+			initialValues.put(KEY_BOOKMARKTYPE, Bookmark.PAGE);
+		return db.insert(TABLE_BOOKMARKS, null, initialValues);
+	}
+
+	/**
+	 * Deletes the row from the database with the given ROWID.
+	 * 
+	 * @param rowId
+	 *            the ROWID of the record to delete.
+	 * 
+	 * @return cursor containing query results
+	 */
+	public boolean deleteBookmark(long rowId) throws SQLException
+	{
+		return db.delete(TABLE_BOOKMARKS, KEY_ROWID + "=" + rowId, null) > 0;
+	}
+
+	public int getBookmarkCount() throws SQLException
+	{
+		int count = 0;
+		Cursor c = db.rawQuery("SELECT COUNT(*) FROM tBookmarks WHERE NOT (bookmarkType = " + Bookmark.RECENT + ")", null);
+		c.moveToFirst();
+		count = c.getInt(0);
+		c.close();
+		return count;
+	}
+
+	public int getBookmarkCount(int siteId) throws SQLException
+	{
+		int count = 0;
+		Cursor c = db.rawQuery("SELECT COUNT(*) FROM tBookmarks WHERE NOT (bookmarkType = " + Bookmark.RECENT + ") AND mangaSite = " + siteId, null);
+		c.moveToFirst();
+		count = c.getInt(0);
+		c.close();
+		return count;
+	}
+
+	public int getHistoryCount() throws SQLException
+	{
+		int count = 0;
+		Cursor c = db.rawQuery("SELECT COUNT(*) FROM tBookmarks WHERE (bookmarkType = " + Bookmark.RECENT + ")", null);
+		c.moveToFirst();
+		count = c.getInt(0);
+		c.close();
+		return count;
+	}
+
+	/**
+	 * Returns a cursor containing the MANGAIDs of all Bookmarks of type Bookmark.MANGA.
+	 * 
+	 * @param siteId
+	 *            the ID of the manga site to use
+	 * 
+	 * @return cursor containing query results
+	 */
+	public Cursor getMangaBookmarkIds(int siteId) throws SQLException
+	{
+		return db.query(TABLE_BOOKMARKS, new String[] { KEY_MANGAID }, KEY_BOOKMARKTYPE + "=" + Bookmark.MANGA + " AND " + KEY_MANGASITE + "=" + siteId, null, null, null, null);
+	}
+
+	/**
+	 * Returns a cursor containing the CHAPTERIDs and MANGAIDs of all Bookmarks of type Bookmark.CHAPTER.
+	 * 
+	 * @param siteId
+	 *            the ID of the manga site to use
+	 * 
+	 * @return cursor containing query results
+	 */
+	public Cursor getChapterBookmarkIds(int siteId) throws SQLException
+	{
+		return db.query(TABLE_BOOKMARKS, new String[] { KEY_CHAPTERID,
+		        KEY_MANGAID }, KEY_BOOKMARKTYPE + "=" + Bookmark.CHAPTER + " AND " + KEY_MANGASITE + "=" + siteId, null, null, null, null);
+	}
+
+	/**
+	 * Returns a cursor containing the ROWIDs and MANGAIDs of all Bookmarks of type Bookmark.PAGE.
+	 * 
+	 * @param siteId
+	 *            the ID of the manga site to use
+	 * 
+	 * @return cursor containing query results
+	 */
+	public Cursor getPageBookmarkIds(int siteId) throws SQLException
+	{
+		return db.query(TABLE_BOOKMARKS, new String[] { KEY_ROWID,
+		        KEY_MANGAID }, KEY_BOOKMARKTYPE + "=" + Bookmark.PAGE + " AND " + KEY_MANGASITE + "=" + siteId, null, null, null, null);
+	}
+
+	public long getMangaBookmarkRowId(String mId) throws SQLException
+	{
+		Cursor c = db.query(TABLE_BOOKMARKS, new String[] { KEY_ROWID }, KEY_BOOKMARKTYPE + "=" + Bookmark.MANGA + " AND " + KEY_MANGAID + "='" + mId + "'", null, null, null, null);
+		c.moveToFirst();
+		long rowid = c.getLong(0);
+		c.close();
+		return rowid;
+	}
+
+	public long getChapterBookmarkRowId(String cId, String mId) throws SQLException
+	{
+		Cursor c = db.query(TABLE_BOOKMARKS, new String[] { KEY_ROWID }, KEY_BOOKMARKTYPE + "=" + Bookmark.CHAPTER + " AND " + KEY_CHAPTERID + "='" + cId + "' AND " + KEY_MANGAID + "='" + mId + "'",
+		        null, null, null, null);
+		c.moveToFirst();
+		long rowid = c.getLong(0);
+		c.close();
+		return rowid;
+	}
+
+	public Bookmark[] getAllBookmarksArray(String orderBy) throws SQLException
+	{
+		ArrayList<Bookmark> list = new ArrayList<Bookmark>();
+		Cursor c = getAllBookmarks(orderBy);
+		for (int i = 0; i < c.getCount(); i++)
+		{
+			Cursor cbm = getBookmark(c.getLong(0));
+			Bookmark bm = new Bookmark();
+			bm.mangaId = cbm.getString(0);
+			bm.mangaName = cbm.getString(1);
+			bm.chapterIndex = cbm.getInt(2);
+			bm.chapterName = cbm.getString(3);
+			bm.chapterId = cbm.getString(4);
+			bm.chapterCount = cbm.getInt(5);
+			bm.pageIndex = cbm.getInt(6);
+			bm.pageId = cbm.getString(7);
+			bm.bookmarkType = cbm.getInt(8);
+			bm.siteId = cbm.getInt(9);
+			bm.rowId = c.getLong(0);
+			if (bm.bookmarkType != Bookmark.RECENT)
+				list.add(bm);
+			cbm.close();
+			c.moveToNext();
+		}
+		c.close();
+		Bookmark[] bmarray = new Bookmark[list.size()];
+		return list.toArray(bmarray);
+	}
+
+	public Bookmark[] getAllHistoryArray(String orderBy, String whereClause, boolean getHidden) throws SQLException
+	{
+		ArrayList<Bookmark> list = new ArrayList<Bookmark>();
+		Cursor c;
+		if (getHidden)
+			c = getAllRecent(orderBy, whereClause);
+		else
+			c = getAllRecentNotHidden(orderBy, whereClause);
+		for (int i = 0; i < c.getCount(); i++)
+		{
+			Cursor cbm = getBookmark(c.getLong(0));
+			Bookmark bm = new Bookmark();
+			bm.mangaId = cbm.getString(0);
+			bm.mangaName = cbm.getString(1);
+			bm.chapterIndex = cbm.getInt(2);
+			bm.chapterName = cbm.getString(3);
+			bm.chapterId = cbm.getString(4);
+			bm.chapterCount = cbm.getInt(5);
+			bm.pageIndex = cbm.getInt(6);
+			bm.pageId = cbm.getString(7);
+			bm.bookmarkType = cbm.getInt(8);
+			bm.siteId = cbm.getInt(9);
+			bm.rowId = c.getLong(0);
+			bm.updateTime = cbm.getLong(10);
+			if (bm.bookmarkType == Bookmark.RECENT)
+				list.add(bm);
+			cbm.close();
+			c.moveToNext();
+		}
+		c.close();
+		Bookmark[] bmarray = new Bookmark[list.size()];
+		return list.toArray(bmarray);
+	}
+
+	/**
+	 * Returns a cursor containing all the columns of a record with the given ROWID.
+	 * 
+	 * @return KEY_MANGAID, KEY_MANGATITLE, KEY_CHAPTERINDEX, KEY_CHAPTERNAME, KEY_CHAPTERID, KEY_CHAPTERCOUNT,
+	 *         KEY_PAGEINDEX, KEY_PAGEID, KEY_BOOKMARKTYPE, KEY_MANGASITE
+	 */
+	public Cursor getBookmark(long rowId) throws SQLException
+	{
+		Cursor mCursor = db.query(true, TABLE_BOOKMARKS, new String[] { KEY_MANGAID,
+		        KEY_MANGATITLE,
+		        KEY_CHAPTERINDEX,
+		        KEY_CHAPTERNAME,
+		        KEY_CHAPTERID,
+		        KEY_CHAPTERCOUNT,
+		        KEY_PAGEINDEX,
+		        KEY_PAGEID,
+		        KEY_BOOKMARKTYPE,
+		        KEY_MANGASITE,
+		        KEY_UPDATETIME }, KEY_ROWID + "=" + rowId, null, null, null, null, null);
+		if (mCursor != null)
+		{
+			mCursor.moveToFirst();
+		}
+		return mCursor;
+	}
+
+	public Cursor getAllBookmarks() throws SQLException
+	{
+		return getAllBookmarks(null);
+	}
+
+	public Cursor getAllBookmarks(String orderBy) throws SQLException
+	{
+		Cursor mCursor = db.query(true, TABLE_BOOKMARKS, new String[] { KEY_ROWID }, null, null, null, null, orderBy, null);
+		if (mCursor != null)
+		{
+			mCursor.moveToFirst();
+		}
+		return mCursor;
+	}
+	
+	public Cursor getAllRecent(String orderBy, String whereClause) throws SQLException
+	{
+		if (whereClause == null)
+			whereClause = "";
+		else
+			whereClause += " AND ";
+		Cursor mCursor = db.query(true, TABLE_BOOKMARKS, new String[] { KEY_ROWID },whereClause + KEY_BOOKMARKTYPE + " = " + Bookmark.RECENT, null, null, null, orderBy, null);
+		if (mCursor != null)
+		{
+			mCursor.moveToFirst();
+		}
+		return mCursor;
+	}
+	
+	public Cursor getAllRecentNotHidden(String orderBy, String whereClause) throws SQLException
+	{
+		if (whereClause == null)
+			whereClause = "";
+		else
+			whereClause += " AND ";
+		Cursor mCursor = db.query(true, TABLE_BOOKMARKS, new String[] { KEY_ROWID }, whereClause + KEY_PAGEINDEX + " IS NULL OR " + KEY_PAGEINDEX + " = 0 AND " + KEY_BOOKMARKTYPE + " = " + Bookmark.RECENT, null, null, null, orderBy, null);
+		if (mCursor != null)
+		{
+			mCursor.moveToFirst();
+		}
+		return mCursor;
+	}
+
+	public boolean updateChapter(long rowId, int cIndex, String cId, String cName, int cCount) throws SQLException
+	{
+		ContentValues args = new ContentValues();
+		args.put(KEY_CHAPTERINDEX, cIndex);
+		args.put(KEY_CHAPTERID, cId);
+		args.put(KEY_CHAPTERNAME, cName);
+		args.put(KEY_CHAPTERCOUNT, cCount);
+		return db.update(TABLE_BOOKMARKS, args, KEY_ROWID + "=" + rowId, null) > 0;
+	}
+
+	public boolean updatePage(long rowId, int cIndex, String cId, String cName, int cCount, int pIndex, String pId) throws SQLException
+	{
+		ContentValues args = new ContentValues();
+		args.put(KEY_CHAPTERINDEX, cIndex);
+		args.put(KEY_CHAPTERID, cId);
+		args.put(KEY_CHAPTERNAME, cName);
+		args.put(KEY_CHAPTERCOUNT, cCount);
+		args.put(KEY_PAGEINDEX, pIndex);
+		args.put(KEY_PAGEID, pId);
+		return db.update(TABLE_BOOKMARKS, args, KEY_ROWID + "=" + rowId, null) > 0;
+	}
+
+	// LIBRARY
+	public long insertLibraryChapter(String mId, String mName, String mSimpleName, int cIndex, String cName, String cId, int cCount, String cUrl, String path, int siteId) throws SQLException
+	{
+		ContentValues initialValues = new ContentValues();
+		initialValues.put(KEY_MANGAID, mId);
+		initialValues.put(KEY_MANGATITLE, mName);
+		initialValues.put(KEY_CHAPTERINDEX, cIndex);
+		initialValues.put(KEY_CHAPTERNAME, cName);
+		initialValues.put(KEY_CHAPTERID, cId);
+		initialValues.put(KEY_CHAPTERCOUNT, cCount);
+		initialValues.put(KEY_CHAPTERURL, cUrl);
+		initialValues.put(KEY_LOCALPATH, path);
+		initialValues.put(KEY_MANGASITE, siteId);
+		initialValues.put("mangaSimpleName", mSimpleName);
+		return db.insert(TABLE_LIBRARY, null, initialValues);
+	}
+
+	public boolean deleteLibraryChapter(long rowId) throws SQLException
+	{
+		return db.delete(TABLE_LIBRARY, KEY_ROWID + "=" + rowId, null) > 0;
+	}
+
+	public LibraryChapter[] getAllLibraryChapters(String whereClause) throws SQLException
+	{
+		ArrayList<LibraryChapter> list = new ArrayList<LibraryChapter>();
+
+		Cursor c = db.query(true, TABLE_LIBRARY, new String[] { "rowId" }, whereClause, null, null, null, null, null);
+		if (c != null && c.getCount() > 0)
+		{
+			c.moveToFirst();
+		}
+		for (int i = 0; i < c.getCount(); i++)
+		{
+			LibraryChapter l = getLibraryChapter("rowId = " + c.getLong(0));
+			list.add(l);
+			c.moveToNext();
+		}
+		c.close();
+		LibraryChapter[] fArray = new LibraryChapter[list.size()];
+		return list.toArray(fArray);
+	}
+
+	public LibraryChapter getLibraryChapter(String whereClause)
+	{
+		Cursor c = db.query(true, TABLE_LIBRARY, new String[] { KEY_ROWID,
+		        KEY_MANGAID,
+		        KEY_MANGATITLE,
+		        KEY_CHAPTERINDEX,
+		        KEY_CHAPTERNAME,
+		        KEY_CHAPTERID,
+		        KEY_CHAPTERCOUNT,
+		        KEY_CHAPTERURL,
+		        KEY_MANGASITE,
+		        KEY_LOCALPATH,
+		        "mangaSimpleName" }, whereClause, null, null, null, null, null);
+		if (c != null && c.getCount() > 0)
+		{
+			c.moveToFirst();
+		}
+		else
+			return null;
+
+		LibraryChapter l = new LibraryChapter();
+		l.rowId = c.getInt(0);
+		l.manga.id = c.getString(1);
+		l.manga.title = c.getString(2);
+		l.chapterIndex = c.getInt(3);
+		l.chapter.title = c.getString(4);
+		l.chapter.id = c.getString(5);
+		l.chapterCount = c.getInt(6);
+		l.chapter.url = c.getString(7);
+		l.siteId = c.getInt(8);
+		l.path = c.getString(9);
+		l.manga.generateSimpleName();
+		c.close();
+		return l;
+	}
+
+	public int getLibrarySize(String append)
+	{
+		int count = 0;
+		Cursor c = db.rawQuery("SELECT COUNT(*) FROM tLibrary " + append, null);
+		c.moveToFirst();
+		count = c.getInt(0);
+		c.close();
+		return count;
+	}
+}

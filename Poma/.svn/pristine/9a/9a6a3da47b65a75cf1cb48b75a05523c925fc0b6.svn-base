@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.ls.manga"
+          android:installLocation="auto"
+          android:versionCode="177"
+          android:versionName="1.6.177">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.READ_LOGS"/>
+
+    <application
+            android:name=".Mango"
+            android:hardwareAccelerated="false"
+            android:icon="@drawable/icon"
+            android:label="@string/app_name"
+            android:largeHeap="true">
+        <activity
+                android:name="com.ls.manga.activities.StartupActivity"
+                android:label="@string/app_name"
+                android:theme="@style/Theme.Mango_Light">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.MainMenuActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.AboutActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.ContactActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.BrowseByActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.SiteSelectorActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.FavoritesActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.LibraryBrowserActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.HistoryActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.AllMangaActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.FilteredMangaActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.GenreActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.ArtistActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.NewReleasesActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.SearchActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.SearchResultsActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.PreferencesActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.NotifierPrefsActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.SettingsMenuActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.TutorialActivity"
+                android:theme="@style/Theme.Mango_Dark"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.DetailsActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.BankaiActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.LogcatActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.SharedPrefsActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.DownloaderActivity"
+                android:launchMode="singleTop"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.ChaptersActivity"
+                android:theme="@style/Theme.Mango_Light"
+                android:windowSoftInputMode="adjustPan">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.PagereaderActivity"
+                android:theme="@style/Theme.Mango_Dark">
+        </activity>
+        <activity
+                android:name="com.ls.manga.activities.OfflinePagereaderActivity"
+                android:theme="@style/Theme.Mango_Dark">
+        </activity>
+
+        <service
+                android:name="com.ls.manga.services.DownloaderService"
+                android:enabled="true"/>
+        <service
+                android:name="com.ls.manga.services.NotifierService"
+                android:enabled="true"/>
+        <service
+                android:name="com.ls.manga.services.SyncService"
+                android:enabled="true"/>
+
+        <receiver android:name="com.ls.manga.services.BootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+
+        <meta-data
+                android:name="com.mobclix.APPLICATION_ID"
+                android:value="2B6CFCDD-41CE-4509-9CE1-146C48DC218B"/>
+        <meta-data
+                android:name="ADMOB_PUBLISHER_ID"
+                android:value="a14d419d563ddaf"/>
+
+        <activity
+                android:name="com.mobclix.android.sdk.MobclixBrowserActivity"
+                android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
+        <activity
+                android:name="com.google.ads.AdActivity"
+                android:configChanges="keyboard|keyboardHidden|orientation"/>
+    </application>
+
+    <uses-sdk
+            android:minSdkVersion="7"
+            android:targetSdkVersion="14"/>
+
+</manifest>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:ads="http://schemas.android.com/apk/lib/com.google.ads"
+	android:layout_width="fill_parent"
+	android:orientation="vertical"
+	android:layout_height="fill_parent"
+	android:id="@+id/sharedPrefsLayout">
+	<LinearLayout
+		android:id="@+id/sharedPrefsTextLayout"
+		android:layout_alignParentTop="true"
+		android:layout_height="wrap_content"
+		android:layout_width="fill_parent"
+		android:orientation="vertical"
+		android:gravity="center_vertical|center_horizontal">
+		<TextView
+			android:text="Tap on an item to edit it."
+			android:id="@+id/sharedPrefsText"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"></TextView>
+		<EditText
+			android:text=" "
+			android:hint=" "
+			android:id="@+id/sharedPrefsEdit"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:enabled="false"></EditText>
+
+	</LinearLayout>
+	<LinearLayout
+		android:layout_below="@id/sharedPrefsTextLayout"
+		android:id="@+id/sharedPrefsListLayout"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content">
+		<ListView
+			android:id="@+id/sharedPrefsList"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:background="@android:color/transparent"
+			android:cacheColorHint="#00000000"
+			android:fadingEdge="none">
+		</ListView>
+	</LinearLayout>
+</RelativeLayout>

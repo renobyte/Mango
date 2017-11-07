@@ -1,0 +1,290 @@
+package com.ls.manga.activities;
+import java.security.MessageDigest;
+
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.res.Configuration;
+import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.actionbarsherlock.app.SherlockActivity;
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuInflater;
+import com.actionbarsherlock.view.MenuItem;
+import com.ls.manga.Mango;
+import com.ls.manga.MangoHttp;
+import com.ls.manga.R;
+import com.ls.manga.ui.MangoDecorHandler;
+
+public class StartupActivity extends SherlockActivity
+{
+	private TextView       statusLabel;
+	private LinearLayout   layout;
+
+	private ConnectionTask mConnectionTask;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		Mango.Log("==========================");
+		setContentView(R.layout.startup);
+		layout = (LinearLayout) findViewById(R.id.StartupLayout);
+		this.setTitle("Welcome to PocketManga!");
+		statusLabel = (TextView) findViewById(R.id.startupStatus);
+		statusLabel.setText("Connecting to the PocketManga Service...");
+
+		Mango.getSharedPreferences().edit().putBoolean("offlineMode", false).commit();
+		Mango.getSharedPreferences().edit().putBoolean("bankai", false).commit();
+		Mango.getSharedPreferences().edit().putString("serverUrl", "konata.leetsoft.net").commit();
+
+		layout.postDelayed(new Runnable()
+		{
+
+			@Override
+			public void run()
+			{
+				initializeConnection();
+			}
+		}, 1500);
+
+		int orientation = getResources().getConfiguration().orientation;
+		if (orientation == Configuration.ORIENTATION_PORTRAIT)
+		{
+			Mango.getMenuBackgroundPortrait();
+			if (Mango.MENUBG_PORTRAITNAME == "local")
+				layout.setBackgroundResource(R.drawable.img_background_portrait);
+			else
+				layout.setBackgroundDrawable(new BitmapDrawable(MangoDecorHandler.readDecorBitmap(Mango.MENUBG_PORTRAITNAME)));
+		}
+		else
+		{
+			Mango.getMenuBackgroundLandscape();
+			if (Mango.MENUBG_LANDSCAPENAME == "local")
+				layout.setBackgroundResource(R.drawable.img_background_landscape);
+			else
+				layout.setBackgroundDrawable(new BitmapDrawable(MangoDecorHandler.readDecorBitmap(Mango.MENUBG_LANDSCAPENAME)));
+		}
+
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		MenuInflater inflater = getSupportMenuInflater();
+		inflater.inflate(R.menu.startupoffline, menu);
+		return super.onCreateOptionsMenu(menu);
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		if (item.getItemId() == R.id.menuOfflineMode)
+		{
+			Mango.getSharedPreferences().edit().putBoolean("offlineMode", true).commit();
+			Intent myIntent = new Intent();
+			myIntent.putExtra("updateavailable", false);
+			myIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.MainMenuActivity");
+			startActivity(myIntent);
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+	public void initializeConnection()
+	{
+		Mango.bankaiCheck();
+		mConnectionTask = new ConnectionTask(this);
+		mConnectionTask.execute("http://%SERVER_URL%/validate.aspx?pin=" + Mango.getPin() + "&ver=" + Mango.VERSION_NETID + "&os=" + android.os.Build.VERSION.RELEASE + "&model="
+		        + android.os.Build.MODEL + "&bankai=" + Mango.DISABLE_ADS);
+		Thread t = new Thread(new Runnable()
+		{
+
+			@Override
+			public void run()
+			{
+				String response = MangoHttp.downloadData("http://%SERVER_URL%/getbankaistatus.aspx?did=" + Mango.getPin(), StartupActivity.this);
+				String target = Mango.getPin() + "asalt";
+				String lol = "sup cracker? i aint even mad";
+				lol = lol.toUpperCase();
+				byte[] bhash;
+
+				try
+				{
+					bhash = MessageDigest.getInstance("MD5").digest(target.getBytes("UTF-8"));
+				}
+				catch (Exception e)
+				{
+					throw new RuntimeException("Shit went down :o", e);
+				}
+
+				StringBuilder hex = new StringBuilder(bhash.length * 2);
+				for (byte b : bhash)
+				{
+					if ((b & 0xFF) < 0x10)
+						hex.append("0");
+					hex.append(Integer.toHexString(b & 0xFF));
+				}
+
+				target = hex.toString();
+
+				if (response.equals(target))
+				{
+					Mango.DISABLE_ADS = true;
+					Mango.getSharedPreferences().edit().putBoolean("bankai", true).commit();
+					if (Mango.getSharedPreferences().getLong("bankaiInstallDate", -1) == -1)
+						Mango.getSharedPreferences().edit().putLong("bankaiInstallDate", System.currentTimeMillis()).commit();
+				}
+				else
+					Mango.DISABLE_ADS = false;
+			}
+		});
+		t.start();
+	}
+
+	public void callback(String data)
+	{
+		String errorText = null;
+
+		if (data.startsWith("Exception"))
+		{
+			statusLabel.setText("Connection failed! :'(");
+			errorText = "PocketManga couldn't connect to the internet. Check your mobile data connectivity and try again.\n" + data;
+		}
+		if (data.startsWith("2"))
+		{
+			statusLabel.setText("Device is banned.");
+			errorText = "Your phone has been banned from the PocketManga Service due to abuse. For more information please see:\nhttp://pocketmanga.leetsoft.net/banned.php\n[Error 2]";
+		}
+		if (data.startsWith("3"))
+		{
+			statusLabel.setText("Unrecognized version ID.");
+			errorText = "The PocketManga Service doesn't recognize this version. Please reinstall the newest version of PocketManga.\n[Error 3]";
+		}
+		if (data.startsWith("4"))
+		{
+			statusLabel.setText("Outdated version!");
+			errorText = "There is a new version of PocketManga available! This version no longer works, so please update PocketManga from the Android Market.\n[Error 4]";
+		}
+
+		if (data.startsWith("error"))
+		{
+			statusLabel.setText("PocketManga Service is temporarily offline!");
+			errorText = "The PocketManga Service is temporarily offline for maintenence. Read the message below for more info.\n\n" + data;
+		}
+
+		if (data.startsWith("1") || data.startsWith("6"))
+		{
+			statusLabel.setText("Connected!");
+			Mango.getSharedPreferences().edit().putBoolean("offlineMode", false).commit();
+			Intent myIntent = new Intent();
+			if (data.startsWith("6"))
+				myIntent.putExtra("updateavailable", true);
+			else
+				myIntent.putExtra("updateavailable", false);
+			myIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.MainMenuActivity");
+			startActivity(myIntent);
+			finish();
+			overridePendingTransition(R.anim.fadein, R.anim.expandout);
+			return;
+		}
+
+		if (errorText == null)
+		{
+			statusLabel.setText("Unexpected response!");
+			errorText = "PocketManga received an unexpected response from the PocketManga Service. It may be experiencing server issues.\n\n" + data;
+		}
+
+		statusLabel.setText(statusLabel.getText() + "\n\nTap the globe icon at the top-right corner of the screen to enter Offline Mode.");
+
+		if (errorText.length() > 0)
+		{
+			AlertDialog alert = new AlertDialog.Builder(StartupActivity.this).create();
+			alert.setTitle("Problem! T__T");
+			alert.setMessage(errorText);
+			if (data.startsWith("3") || data.startsWith("4"))
+			{
+				alert.setButton(DialogInterface.BUTTON_POSITIVE, "Update", new DialogInterface.OnClickListener()
+				{
+					@Override
+                    public void onClick(DialogInterface dialog, int which)
+					{
+						Intent intent = new Intent(Intent.ACTION_VIEW);
+						String url = MangoHttp.downloadData("http://%SERVER_URL%/getupdateurl.aspx?ver=" + Mango.VERSION_NETID, StartupActivity.this);
+						if (url.startsWith("Exception"))
+							url = "http://pocketmanga.leetsoft.net/install-android.php";
+						intent.setData(Uri.parse(url));
+						startActivity(intent);
+						overridePendingTransition(R.anim.fadein, R.anim.expandout);
+					}
+				});
+			}
+			else
+			{
+				alert.setButton(DialogInterface.BUTTON_POSITIVE, "Okay", new DialogInterface.OnClickListener()
+				{
+					@Override
+                    public void onClick(DialogInterface dialog, int which)
+					{
+
+					}
+				});
+			}
+			try
+			{
+				alert.show();
+			}
+			catch (Exception e)
+			{
+				// catch and ignore BadTokenException if activity is closed
+			}
+		}
+	}
+
+	private class ConnectionTask extends AsyncTask<String, Void, String>
+	{
+		StartupActivity activity = null;
+
+		public ConnectionTask(StartupActivity activity)
+		{
+			attach(activity);
+		}
+
+		@Override
+		protected String doInBackground(String... params)
+		{
+			return MangoHttp.downloadData(params[0], activity);
+		}
+
+		@Override
+		protected void onPostExecute(String data)
+		{
+			if (activity == null)
+			{
+				Mango.Log("AsyncTask skipped onPostExecute because no activity is attached!");
+			}
+			else
+			{
+				activity.callback(data);
+			}
+			detach();
+		}
+
+		void detach()
+		{
+			activity = null;
+		}
+
+		void attach(StartupActivity activity)
+		{
+			this.activity = activity;
+		}
+	}
+}

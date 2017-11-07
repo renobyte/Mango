@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="orientations">
+        <item>Automatic (default)</item>
+        <item>Forced Portrait</item>
+        <item>Forced Landscape</item>
+    </string-array>
+    <string-array name="orientations_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="scalemodes">
+        <item>Automatic (default)</item>
+        <item>Fit to Width</item>
+        <item>Fit to Height</item>
+        <item>Fit to Screen</item>
+        <item>Actual Size</item>
+    </string-array>
+    <string-array name="scalemodes_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+    </string-array>
+    <string-array name="doubletapzoom">
+        <item>1.25x</item>
+        <item>1.5x (default)</item>
+        <item>2x</item>
+        <item>3x</item>
+        <item>4x</item>
+    </string-array>
+    <string-array name="doubletapzoom_values">
+        <item>1.25</item>
+        <item>1.5</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+    </string-array>
+    <string-array name="preloads">
+        <item>1 page</item>
+        <item>2 pages</item>
+        <item>3 pages (default)</item>
+        <item>4 pages</item>
+        <item>5 pages</item>
+        <item>6 pages</item>
+        <item>7 pages</item>
+        <item>8 pages</item>
+        <item>9 pages</item>
+        <item>10 pages (not recommended)</item>
+    </string-array>
+    <string-array name="preloads_values">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+        <item>10</item>
+    </string-array>
+    <string-array name="cachewipe">
+        <item>10 pages</item>
+        <item>20 pages (default)</item>
+        <item>30 pages</item>
+        <item>50 pages</item>
+        <item>75 pages</item>
+        <item>100 pages</item>
+        <item>150 pages</item>
+        <item>200 pages</item>
+        <item>400 pages</item>
+    </string-array>
+    <string-array name="cachewipe_values">
+        <item>10</item>
+        <item>20</item>
+        <item>30</item>
+        <item>50</item>
+        <item>75</item>
+        <item>100</item>
+        <item>150</item>
+        <item>200</item>
+        <item>400</item>
+    </string-array>
+    <string-array name="notifierinterval">
+        <item>3 hours</item>
+        <item>6 hours (default)</item>
+        <item>12 hours</item>
+        <item>1 day</item>
+        <item>2 days</item>
+        <item>3 days</item>
+        <item>5 days</item>
+        <item>7 days</item>
+    </string-array>
+    <string-array name="notifierinterval_values">
+        <item>3</item>
+        <item>6</item>
+        <item>12</item>
+        <item>24</item>
+        <item>48</item>
+        <item>72</item>
+        <item>120</item>
+        <item>168</item>
+    </string-array>
+
+</resources>

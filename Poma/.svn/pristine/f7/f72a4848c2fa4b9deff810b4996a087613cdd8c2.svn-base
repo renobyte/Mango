@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+	xmlns:android="http://schemas.android.com/apk/res/android">
+	<item
+		android:title="Add Bookmark"
+		android:id="@+id/menuAddBookmark"
+		android:orderInCategory="1"
+		android:titleCondensed="Add Bookmark"
+		android:icon="@drawable/ic_addbookmark"></item>
+	<item
+		android:icon="@android:drawable/ic_menu_set_as"
+		android:id="@+id/menuJumpToPage"
+		android:orderInCategory="2"
+		android:titleCondensed="Jump-to-Page"
+		android:title="Jump-to-Page"></item>
+	<item
+		android:id="@+id/menuChapterList"
+		android:orderInCategory="3"
+		android:titleCondensed="Chapter List"
+		android:title="Chapter List"
+		android:icon="@drawable/ic_chapterlist"></item>
+	<item
+		android:orderInCategory="4"
+		android:id="@+id/menuBookmarksLst"
+		android:titleCondensed="My Favorites"
+		android:title="My Favorites"
+		android:icon="@drawable/ic_mybookmarks"></item>
+	<item
+		android:id="@+id/menuRefreshPage"
+		android:title="Reload"
+		android:orderInCategory="5"
+		android:icon="@drawable/ic_reload"
+		android:titleCondensed="Reload"></item>
+	<item
+		android:id="@+id/menuShare"
+		android:title="Share"
+		android:orderInCategory="6"
+		android:titleCondensed="Share"></item>
+	<item
+		android:id="@+id/menuPreviousChapter"
+		android:title="Previous Chapter"
+		android:orderInCategory="6"
+		android:titleCondensed="Previous Chapter"></item>
+	<item
+		android:id="@+id/menuNextChapter"
+		android:title="Next Chapter"
+		android:orderInCategory="7"
+		android:titleCondensed="Next Chapter"></item>
+	<item
+		android:id="@+id/menuSaveToLibrary"
+		android:title="Download this chapter"
+		android:orderInCategory="8"
+		android:titleCondensed="Download this chapter"></item>
+	<item
+		android:id="@+id/menuSavePage"
+		android:title="Save this page"
+		android:orderInCategory="9"
+		android:titleCondensed="Save this page"></item>
+</menu>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/menuChapterAddFavorite"
+        android:icon="@drawable/ic_action_add"
+        android:orderInCategory="1"
+        android:showAsAction="always"
+        android:title="Add Favorite"
+        android:titleCondensed="Add Favorite">
+    </item>
+    <item
+        android:id="@+id/menuChapterMultiSelect"
+        android:icon="@drawable/ic_action_multiselect"
+        android:orderInCategory="2"
+        android:showAsAction="always"
+        android:title="Multi-Select"
+        android:titleCondensed="Multi-Select">
+    </item>
+    <item
+        android:id="@+id/menuChapterMultiSelectDummy"
+        android:icon="@drawable/ic_action_multiselect"
+        android:orderInCategory="3"
+        android:showAsAction="never"
+        android:title="Multi-Select"
+        android:titleCondensed="Multi-Select">
+    </item>
+
+</menu>

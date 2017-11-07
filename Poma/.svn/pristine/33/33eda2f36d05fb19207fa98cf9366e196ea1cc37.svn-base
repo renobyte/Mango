@@ -1,0 +1,488 @@
+package com.ls.manga;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import com.ls.manga.R;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Bitmap.CompressFormat;
+import android.os.Environment;
+import android.os.StatFs;
+
+public class PomaCache
+{
+	public static double getFreeSpace()
+	{
+		StatFs stat = new StatFs(PocketManga.getPomaDataDirectory().getPath());
+		double sdAvailSize = (double) stat.getAvailableBlocks() * (double) stat.getBlockSize();
+		double megabytesAvailable = sdAvailSize / 1048576;
+		return megabytesAvailable;
+	}
+
+	public static void wipeImageCache(boolean forceClear)
+	{
+		if (forceClear)
+			PocketManga.Log("Force-clearing the cache.");
+		String state = Environment.getExternalStorageState();
+		if (state.startsWith(Environment.MEDIA_MOUNTED))
+		{
+			File file;
+			file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/page/");
+			if (file.exists())
+			{
+				long time = System.currentTimeMillis();
+				File[] allFiles = file.listFiles();
+				if (allFiles.length < Integer.parseInt(PocketManga.getSharedPreferences().getString("cacheWipeThreshold", "20")) && !forceClear)
+				{
+					PocketManga.Log("PomaCache", "Skipping cache wipe because there are not enough items in it. (only " + allFiles.length + ", need > " + PocketManga.getSharedPreferences().getString("cacheWipeThreshold", "20") + ")");
+					return;
+				}
+				for (int i = 0; i < allFiles.length; i++)
+				{
+					allFiles[i].delete();
+				}
+				PocketManga.Log("PomaCache", "Deleted " + allFiles.length + " files in " + String.valueOf(System.currentTimeMillis() - time) + "ms.");
+			}
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Couldn't access cache for cleanup because SD Card is not accessible.");
+		}
+	}
+
+	public static void wipeCoverArtCache()
+	{
+		String state = Environment.getExternalStorageState();
+		if (state.startsWith(Environment.MEDIA_MOUNTED))
+		{
+			File file;
+			file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/cover/");
+			if (file.exists())
+			{
+				File[] allFiles = file.listFiles();
+				for (int i = 0; i < allFiles.length; i++)
+				{
+					allFiles[i].delete();
+				}
+			}
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Couldn't access cache for cleanup because SD Card is not accessible.");
+		}
+	}
+
+	public static boolean checkCacheForImage(String filepath, String fileName)
+	{
+		fileName = Integer.toHexString(fileName.hashCode());
+
+		String state = Environment.getExternalStorageState();
+		if (state.startsWith(Environment.MEDIA_MOUNTED))
+		{
+			File file;
+			file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/" + filepath + fileName);
+			if (!file.exists())
+				return false;
+			else
+				return true;
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Couldn't access cache because SD Card is not accessible. (" + fileName + ")");
+			return false;
+		}
+	}
+
+	public static boolean copyPageToUserFolder(String fileName, String destination)
+	{
+		fileName = Integer.toHexString(fileName.hashCode());
+
+		destination.replace("/", "_");
+		destination.replace("\\", "_");
+
+		String state = Environment.getExternalStorageState();
+		if (Environment.MEDIA_MOUNTED.equals(state))
+		{
+			File file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/page/");
+			InputStream in = null;
+			OutputStream out = null;
+
+			try
+			{
+				file.mkdirs();
+				file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/page/" + fileName);
+				if (!file.exists())
+					throw new IOException("File does not exist.");
+
+				in = new FileInputStream(file);
+
+				file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/user/" + destination);
+				file.mkdirs();
+				if (file.exists())
+					file.delete();
+				file.createNewFile();
+
+				out = new FileOutputStream(file);
+
+				byte[] buffer = new byte[1024];
+
+				PocketManga.Log("Copying file...");
+				int len;
+				while ((len = in.read(buffer)) > 0)
+				{
+					out.write(buffer, 0, len);
+				}
+				PocketManga.Log("File copied.");
+
+			}
+			catch (IOException ioe)
+			{
+				PocketManga.Log("PomaCache", "IOException when writing to cache! (" + String.valueOf(file.getAbsolutePath()) + ", " + fileName + ", " + ioe.getMessage() + ")");
+				return false;
+			}
+			finally
+			{
+				try
+				{
+					if (in != null)
+						in.close();
+					in = null;
+					if (out != null)
+						out.close();
+					out = null;
+				}
+				catch (IOException e)
+				{
+
+				}
+			}
+		}
+		else
+		{
+			return false;
+		}
+		return true;
+	}
+
+	public static void writeDataToCache(String data, String fileName)
+	{
+		fileName = Integer.toHexString(fileName.hashCode());
+
+		String state = Environment.getExternalStorageState();
+		if (Environment.MEDIA_MOUNTED.equals(state))
+		{
+			File file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/");
+			BufferedWriter out = null;
+
+			try
+			{
+				file.mkdirs();
+				file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/" + fileName);
+				if (file.exists())
+					file.delete();
+				file.createNewFile();
+				out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
+				out.write(data);
+			}
+			catch (IOException ioe)
+			{
+				PocketManga.Log("PomaCache", "IOException when writing to cache! (" + String.valueOf(file.getAbsolutePath()) + ", " + fileName + ", " + ioe.getMessage() + ")");
+			}
+			finally
+			{
+				try
+				{
+					if (out != null)
+						out.close();
+					out = null;
+				}
+				catch (IOException e)
+				{
+
+				}
+			}
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Could not write " + fileName + " to cache because external media is not available for writing.");
+		}
+	}
+
+	public static void writeEncodedImageToCache(byte[] img, String filepath, String fileName)
+	{
+		fileName = Integer.toHexString(fileName.hashCode());
+
+		String state = Environment.getExternalStorageState();
+		if (Environment.MEDIA_MOUNTED.equals(state))
+		{
+			File file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/" + filepath);
+			FileOutputStream out = null;
+			try
+			{
+				file.mkdirs();
+				file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/" + filepath + fileName + "_temp");
+				if (file.exists())
+					file.delete();
+				file.createNewFile();
+				out = new FileOutputStream(file);
+				long time = System.currentTimeMillis();
+				out.write(img);
+				PocketManga.Log("PomaCache", "Wrote byte array to disk in " + String.valueOf(System.currentTimeMillis() - time) + "ms. (" + fileName + ")");
+				file.renameTo(new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/" + filepath + fileName));
+			}
+			catch (IOException ioe)
+			{
+				PocketManga.Log("PomaCache", "IOException when writing byte array to cache! (" + String.valueOf(file.getAbsolutePath()) + ", " + fileName + ", " + ioe.getMessage() + ")");
+			}
+			finally
+			{
+				try
+				{
+					if (out != null)
+						out.close();
+					out = null;
+				}
+				catch (IOException e)
+				{
+
+				}
+			}
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Could not write " + fileName + " to cache because external media is not available for writing.");
+		}
+	}
+
+	public static void writeImageToCache(Bitmap img, String filepath, String fileName)
+	{
+		fileName = Integer.toHexString(fileName.hashCode());
+
+		String state = Environment.getExternalStorageState();
+		if (Environment.MEDIA_MOUNTED.equals(state))
+		{
+			File file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/" + filepath);
+			FileOutputStream out = null;
+			try
+			{
+				file.mkdirs();
+				file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/" + filepath + fileName + "_temp");
+				if (file.exists())
+					file.delete();
+				file.createNewFile();
+				out = new FileOutputStream(file);
+				long time = System.currentTimeMillis();
+				img.compress(CompressFormat.JPEG, 100, out);
+				PocketManga.Log("PomaCache", "Wrote image to disk in " + String.valueOf(System.currentTimeMillis() - time) + "ms. (" + fileName + ")");
+				file.renameTo(new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/" + filepath + fileName));
+			}
+			catch (IOException ioe)
+			{
+				PocketManga.Log("PomaCache", "IOException when writing to cache! (" + String.valueOf(file.getAbsolutePath()) + ", " + fileName + ", " + ioe.getMessage() + ")");
+			}
+			finally
+			{
+				try
+				{
+					if (out != null)
+						out.close();
+					out = null;
+				}
+				catch (IOException e)
+				{
+
+				}
+			}
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Could not write " + fileName + " to cache because external media is not available for writing.");
+		}
+	}
+
+	public static String readDataFromCache(String fileName)
+	{
+		fileName = Integer.toHexString(fileName.hashCode());
+
+		String state = Environment.getExternalStorageState();
+		if (state.startsWith(Environment.MEDIA_MOUNTED))
+		{
+			File file;
+			BufferedReader br = null;
+			try
+			{				
+				file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/" + fileName);
+				if (!file.exists())
+					return null;
+				br = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+				StringBuilder builder = new StringBuilder();
+				char[] buffer = new char[8192];
+				int charsRead = 0;
+				while ((charsRead = br.read(buffer)) > 0)
+				{
+					builder.append(buffer, 0, charsRead);
+					buffer = new char[8192];
+				}
+				return builder.toString();
+			}
+			catch (IOException ioe)
+			{
+				PocketManga.Log("PomaCache", "IOException when reading from cache! (" + fileName + ", " + ioe.getMessage() + ")");
+			}
+			catch (OutOfMemoryError oom)
+			{
+				PocketManga.Log("PocketManga ran out of memory while trying to load cache data into StringBuilder!");
+				System.gc();
+				return "PocketManga ran out of memory.  Try going to Settings and Help >> Advanced Options >> Restart App.";
+			}
+			finally
+			{
+				try
+				{
+					if (br != null)
+						br.close();
+					br = null;
+				}
+				catch (IOException e)
+				{
+
+				}
+			}
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Could not read " + fileName + " from cache because external media is not available for reading.");
+		}
+		return null;
+	}
+
+	public static Bitmap readBitmapFromCache(String filepath, String fileName, int sampleSize)
+	{
+		String hashedFilename = Integer.toHexString(fileName.hashCode());
+
+		String state = Environment.getExternalStorageState();
+		if (state.startsWith(Environment.MEDIA_MOUNTED))
+		{
+			File file;
+			try
+			{
+				file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/img/" + filepath + hashedFilename);
+				if (!file.exists())
+					throw new Exception("File does not exist (" + file.getAbsolutePath() + ")");
+				// long time = System.currentTimeMillis();
+				BitmapFactory.Options options = new BitmapFactory.Options();
+				options.inSampleSize = sampleSize;
+
+				Bitmap bm = BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+				if (bm == null)
+					throw new Exception("(" + file.getAbsolutePath() + " is not a valid bitmap or file couldn't be accessed)");
+				return bm;
+			}
+			catch (Exception ioe)
+			{
+				PocketManga.Log("PomaCache", "Exception when reading bitmap from cache! " + ioe.getMessage() + ")");
+			}
+			catch (OutOfMemoryError oom)
+			{
+				if (sampleSize > 3)
+				{
+					PocketManga.Log("PocketManga went /oom while decoding bitmap. Blame the tank :'(");
+					PocketManga.Log("Device heap size is " + (java.lang.Runtime.getRuntime().maxMemory() / 1024 / 1024) + "MB");
+					PocketManga.Log("Returning null.");
+					return null;
+				}
+				else
+				{
+					PocketManga.Log("Downsampling image because there is not enough memory. (" + hashedFilename + ")");
+					return PomaCache.readBitmapFromCache(filepath, fileName, sampleSize + 1);
+				}
+			}
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Could not read " + hashedFilename + " from cache because external media is not available for reading.");
+		}
+		return BitmapFactory.decodeResource(PocketManga.CONTEXT.getResources(), R.drawable.img_decodefailure);
+	}
+	
+	public static Bitmap readCustomCoverArt(String fileName, int sampleSize)
+	{
+		String state = Environment.getExternalStorageState();
+		fileName = fileName.substring(fileName.indexOf("@", 6) + 1);
+		if (state.startsWith(Environment.MEDIA_MOUNTED))
+		{
+			File file;
+			try
+			{
+				file = new File(fileName);
+				if (!file.exists())
+					return BitmapFactory.decodeResource(PocketManga.CONTEXT.getResources(), R.drawable.placeholder_error);
+				BitmapFactory.Options options = new BitmapFactory.Options();
+				options.inSampleSize = sampleSize;
+
+				Bitmap bm = BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+				if (bm == null)
+					return BitmapFactory.decodeResource(PocketManga.CONTEXT.getResources(), R.drawable.placeholder_error);
+				return bm;
+			}
+			catch (Exception ioe)
+			{
+				PocketManga.Log("PomaCache", "Exception when reading custom cover art! " + ioe.getMessage() + ")");
+			}
+			catch (OutOfMemoryError oom)
+			{
+				if (sampleSize > 3)
+				{
+					PocketManga.Log("PocketManga went /oom while decoding bitmap. Blame the tank :'(");
+					PocketManga.Log("Device heap size is " + (java.lang.Runtime.getRuntime().maxMemory() / 1024 / 1024) + "MB");
+					PocketManga.Log("Returning null.");
+					return Bitmap.createBitmap(1, 1, Bitmap.Config.RGB_565);
+				}
+				else
+				{
+					PocketManga.Log("Downsampling image because there is not enough memory. (" + fileName + ")");
+					return PomaCache.readCustomCoverArt(fileName, sampleSize + 1);
+				}
+			}
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Could not read " + fileName + " because media is not available for reading.");
+		}
+		return BitmapFactory.decodeResource(PocketManga.CONTEXT.getResources(), R.drawable.img_decodefailure);
+	}
+
+	public static boolean checkCacheForData(String fileName)
+	{
+		fileName = Integer.toHexString(fileName.hashCode());
+
+		String state = Environment.getExternalStorageState();
+		if (state.startsWith(Environment.MEDIA_MOUNTED))
+		{
+			File file;
+			file = new File(PocketManga.getPomaDataDirectory() + "/PocketManga/cache/" + fileName);
+			if (!file.exists())
+			{
+				return false;
+			}
+			else
+			{
+				return true;
+			}
+		}
+		else
+		{
+			PocketManga.Log("PomaCache", "Couldn't access cache because SD Card is not accessible. (" + fileName + ")");
+			return false;
+		}
+	}
+}

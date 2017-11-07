@@ -1,0 +1,17 @@
+package com.ls.manga;
+
+import java.io.Serializable;
+
+public class LibraryChapter implements Serializable
+{
+	// public Bookmark data;
+
+	public Manga   manga   = new Manga();
+	public Chapter chapter = new Chapter();
+	public int     chapterIndex;
+	public int     chapterCount;
+
+	public int     siteId;
+	public String  path;
+	public long    rowId;
+}

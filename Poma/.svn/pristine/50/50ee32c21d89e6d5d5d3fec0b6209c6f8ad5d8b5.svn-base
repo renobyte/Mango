@@ -1,0 +1,865 @@
+package com.ls.manga.activities;
+
+import java.io.StringReader;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Random;
+import java.util.Set;
+
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import com.ls.manga.Artist;
+import com.ls.manga.Favorite;
+import com.ls.manga.Genre;
+import com.ls.manga.Manga;
+import com.ls.manga.PocketManga;
+import com.ls.manga.PomaActivity;
+import com.ls.manga.PomaHttp;
+import com.ls.manga.PomaSqlite;
+import com.ls.manga.ui.PomaAdWrapperView;
+import com.ls.manga.R;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
+
+import android.app.Activity;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.database.SQLException;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.View.OnClickListener;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.SectionIndexer;
+import android.widget.TextView;
+import android.widget.AdapterView.OnItemClickListener;
+
+public class FilteredMangaActivity extends PomaActivity
+{
+	private Manga[]              mMangaList;
+	private boolean              mGotData     = false;
+	private XmlDownloader        mDownloadTask;
+	private XmlParser            mParserTask;
+
+	private EditText             mFindTextbox;
+	private ListView             mListview;
+	private TextWatcher          mTextfilter;
+	private TextView             mExtraTextView;
+	private FilteredMangaAdapter mAdapter;
+
+	private boolean              mSkipRestore;
+
+	private int                  mMode;
+	private String               mScreenTitle;
+	private String               mExtraText   = "";
+	private String[]             mViewCount   = new String[0];
+	private Object               mArgument;
+
+	final static int             MODE_GENRE   = 0;
+	final static int             MODE_ARTIST  = 1;
+	final static int             MODE_POPULAR = 2;
+	final static int             MODE_SEARCH  = 3;
+
+	private class InstanceBundle
+	{
+		private Manga[]       mangaList;
+		private boolean       gotData;
+		private XmlDownloader downloadTask;
+		private XmlParser     parserTask;
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		this.setTitle("Filtered Manga List (uninitialized)");
+		inflateLayoutManager(this, R.layout.list_with_find);
+		mListview = (ListView) findViewById(R.id.FindList);
+		mFindTextbox = (EditText) findViewById(R.id.FindText);
+		mFindTextbox.setSingleLine();
+		super.setJpVerticalOffsetView(mFindTextbox);
+		super.setAdLayout((PomaAdWrapperView) findViewById(R.id.listAdLayout));
+		mTextfilter = new TextWatcher()
+		{
+
+			@Override
+			public void onTextChanged(CharSequence s, int start, int before, int count)
+			{
+				String findString = s.toString().toLowerCase();
+				ListView lfReference = FilteredMangaActivity.this.mListview;
+
+				if (!mGotData || lfReference.getAdapter() == null)
+					return;
+				for (int i = 0; i < lfReference.getAdapter().getCount() - 1; i++)
+				{
+					if (getManga(i).title.toLowerCase().startsWith(findString))
+					{
+						lfReference.setSelection(i + 1);
+						return;
+					}
+				}
+			}
+
+			@Override
+			public void afterTextChanged(Editable s)
+			{}
+
+			@Override
+			public void beforeTextChanged(CharSequence s, int start, int count, int after)
+			{}
+		};
+
+		mFindTextbox.addTextChangedListener(mTextfilter);
+		if (mMode != MODE_POPULAR)
+			mListview.setFastScrollEnabled(true);
+
+		Bundle arguments = getIntent().getExtras();
+		mMode = arguments.getInt("mode");
+		mArgument = arguments.getSerializable("argument");
+
+		if (mMode == MODE_GENRE)
+		{
+			mScreenTitle = ((Genre) mArgument).name;
+			super.setJpBackground(R.drawable.jp_bg_genre);
+		}
+		else if (mMode == MODE_ARTIST)
+		{
+			mScreenTitle = "Manga by " + ((Artist) mArgument).name;
+			super.setJpBackground(R.drawable.jp_bg_artist);
+		}
+		else if (mMode == MODE_POPULAR)
+		{
+			super.logEvent("Browse by Popularity", null);
+			mScreenTitle = "Manga by Popularity";
+			super.setJpBackground(R.drawable.jp_bg_popular);
+		}
+
+		this.setTitle(mScreenTitle);
+
+		mExtraTextView = new TextView(this);
+		mExtraTextView.setText(mExtraText);
+		mExtraTextView.setClickable(true);
+		mExtraTextView.setVisibility(View.GONE);
+		mListview.addHeaderView(mExtraTextView);
+
+		if (getLastCustomNonConfigurationInstance() != null && ((InstanceBundle) getLastCustomNonConfigurationInstance()).mangaList != null)
+		{
+			mSkipRestore = true;
+			InstanceBundle save = (InstanceBundle) getLastCustomNonConfigurationInstance();
+			mMangaList = save.mangaList;
+			mDownloadTask = save.downloadTask;
+			mParserTask = save.parserTask;
+			if (mDownloadTask != null)
+				mDownloadTask.attach(this);
+			if (mParserTask != null)
+				mParserTask.attach(this);
+			mGotData = save.gotData;
+			save = null;
+			if (mMangaList == null || mMangaList.length == 0)
+				return;
+			mAdapter = new FilteredMangaAdapter(this);
+			mListview.setAdapter(mAdapter);
+			mListview.setOnItemClickListener(new FilteredMangaOnClickListener());
+			return;
+		}
+
+		if (mMode == MODE_GENRE)
+			initializeMangaByGenreList((Genre) mArgument);
+		else if (mMode == MODE_ARTIST)
+			initializeMangaByArtistList((Artist) mArgument);
+		else if (mMode == MODE_POPULAR)
+			initializeMangaByPopularity();
+	}
+
+	private void initializeMangaByGenreList(Genre genre)
+	{
+		showDialog(0);
+		mMangaList = new Manga[0];
+		mDownloadTask = new XmlDownloader(this);
+		mDownloadTask.execute("http://%SERVER_URL%/getseriesbygenre.aspx?pin=" + PocketManga.getPin() + "&genre=" + genre.id + "&site=" + PocketManga.getSiteId());
+	}
+
+	private void initializeMangaByArtistList(Artist artist)
+	{
+		showDialog(0);
+		mMangaList = new Manga[0];
+		mDownloadTask = new XmlDownloader(this);
+		mDownloadTask.execute("http://%SERVER_URL%/getseriesbygenre.aspx?pin=" + PocketManga.getPin() + "&isartist=1&genre=" + artist.id + "&site=" + PocketManga.getSiteId());
+	}
+
+	private void initializeMangaByPopularity()
+	{
+		showDialog(0);
+		mMangaList = new Manga[0];
+		mDownloadTask = new XmlDownloader(this);
+		mDownloadTask.execute("http://%SERVER_URL%/getseriesbypopularity.aspx?pin=" + PocketManga.getPin() + "&site=" + PocketManga.getSiteId());
+	}
+
+	@Override
+	public Object onRetainCustomNonConfigurationInstance()
+	{
+		InstanceBundle save = new InstanceBundle();
+		save.mangaList = mMangaList;
+		save.downloadTask = mDownloadTask;
+		save.parserTask = mParserTask;
+		if (mDownloadTask != null)
+			mDownloadTask.detach();
+		if (mParserTask != null)
+			mParserTask.detach();
+		save.gotData = mGotData;
+		mMangaList = null;
+		return save;
+	}
+
+	@Override
+	public void onSaveInstanceState(Bundle save)
+	{
+		super.onSaveInstanceState(save);
+		save.putBoolean("gotdata", mGotData);
+	}
+
+	@Override
+	public void onRestoreInstanceState(Bundle savedInstanceState)
+	{
+		super.onRestoreInstanceState(savedInstanceState);
+		if (mSkipRestore)
+			return;
+		mGotData = savedInstanceState.getBoolean("gotdata");
+		mMangaList = (Manga[]) savedInstanceState.get("mangalist");
+		if (mMangaList == null || mMangaList.length == 0)
+		{
+			if (mGotData)
+			{
+				showDialog(0);
+				callback("", true);
+				return;
+			}
+			else
+				return;
+		}
+		mAdapter = new FilteredMangaAdapter(this);
+		mListview.setAdapter(mAdapter);
+		mListview.setOnItemClickListener(new FilteredMangaOnClickListener());
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		mFindTextbox.removeTextChangedListener(mTextfilter);
+		super.onDestroy();
+	}
+
+	@Override
+	public void onPause()
+	{
+		if (mDownloadTask != null)
+			mDownloadTask.detach();
+		if (mParserTask != null)
+			mParserTask.detach();
+		super.onPause();
+	}
+
+	@Override
+	protected Dialog onCreateDialog(int id)
+	{
+		if (PocketManga.DIALOG_DOWNLOADING != null)
+		{
+			PocketManga.DIALOG_DOWNLOADING.dismiss();
+			removeDialog(0);
+			removeDialog(1);
+		}
+
+		if (id == 0)
+		{
+			ProgressDialog dialog = new ProgressDialog(this);
+			dialog.setTitle("Downloading data...");
+			dialog.setMessage("Retrieving the manga list from the PocketManga Service...");
+			dialog.setIndeterminate(true);
+			dialog.setCancelable(true);
+			PocketManga.DIALOG_DOWNLOADING = dialog;
+			return dialog;
+		}
+		if (id == 1)
+		{
+			ProgressDialog dialog = new ProgressDialog(this);
+			dialog.setTitle("Processing data...");
+			dialog.setMessage("Hang tight for just a bit...");
+			dialog.setIndeterminate(true);
+			dialog.setCancelable(false);
+			PocketManga.DIALOG_DOWNLOADING = dialog;
+			return dialog;
+		}
+		return super.onCreateDialog(id);
+	}
+
+	private void callback(final String data, final boolean save)
+	{
+		if (data.startsWith("Exception"))
+		{
+			PocketManga.DIALOG_DOWNLOADING.dismiss();
+			removeDialog(0);
+			PocketManga.alert("Sorry, PocketManga wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data, "Connectivity Problem! T__T", this);
+			mListview.setAdapter(new ArrayAdapter<String>(FilteredMangaActivity.this, android.R.layout.simple_list_item_1, new String[] { "Download failed! Press the back key and try again." }));
+			return;
+		}
+		if (data.startsWith("error"))
+		{
+			PocketManga.DIALOG_DOWNLOADING.dismiss();
+			removeDialog(0);
+			PocketManga.alert("The PocketManga Service gave the following error:\n\n" + data, "Problem! T__T", this);
+			mListview.setAdapter(new ArrayAdapter<String>(FilteredMangaActivity.this, android.R.layout.simple_list_item_1, new String[] { "Download failed! Press the back key and try again." }));
+			return;
+		}
+		showDialog(1);
+		mParserTask = new XmlParser(this);
+		mParserTask.execute(new String[] { data,
+		        String.valueOf(save) });
+	}
+
+	private void parseCallback(Object data)
+	{
+		if (data != null && data.toString().contains("Exception"))
+		{
+			PocketManga.Log("parsecallback error (" + data.toString() + ")");
+			if (data.getClass().equals(SQLException.class))
+			{
+				PocketManga.alert("getMangaBookmarkIds SQLite routine just exploded. This is rather undesirable, so please let us know.\n\n" + ((SQLException) data).toString(), "SQL handler is borked!",
+				        this);
+				mListview.setAdapter(new ArrayAdapter<String>(FilteredMangaActivity.this, android.R.layout.simple_list_item_1, new String[] { "Download failed! Press the back key and try again." }));
+				return;
+			}
+			else if (data.toString().contains("NullPointer"))
+			{
+				PocketManga.alert("PocketManga wasn't able to load the requested data for the following reason:\n\n" + data, "Unable to load data", this);
+				mListview.setAdapter(new ArrayAdapter<String>(FilteredMangaActivity.this, android.R.layout.simple_list_item_1, new String[] { "Download failed! Press the back key and try again." }));
+				return;
+			}
+			else if (data.toString().contains("Exception"))
+			{
+				PocketManga.alert("The server returned bad xml data which could not be parsed. If this occurs repeatedly, send us the information below!\n\n" + ((Exception) data).toString(),
+				        "Malformed XML! :'(", this);
+				mListview.setAdapter(new ArrayAdapter<String>(FilteredMangaActivity.this, android.R.layout.simple_list_item_1, new String[] { "Download failed! Press the back key and try again." }));
+				return;
+			}
+		}
+		if (mMode == MODE_GENRE)
+			this.setTitle(((Genre) mArgument).name + " (" + (mMangaList.length - 1) + " titles)");
+		if (mMode == MODE_ARTIST)
+			this.setTitle("Manga by " + ((Artist) mArgument).name + " (" + (mMangaList.length - 1) + " titles)");
+		if (mExtraText.length() > 0)
+		{
+			mExtraTextView.setText(mExtraText);
+			mExtraTextView.setVisibility(View.VISIBLE);
+			mExtraTextView.setTextSize(15);
+		}
+		mAdapter = new FilteredMangaAdapter(this);
+		mListview.setAdapter(mAdapter);
+		mListview.setOnItemClickListener(new FilteredMangaOnClickListener());
+		PocketManga.DIALOG_DOWNLOADING.dismiss();
+		removeDialog(1);
+	}
+
+	private Manga[] parseXml(String data) throws Exception
+	{
+		if (data == null)
+		{
+			throw new Exception("parseXml >> data argument is null! Press Back and try again.");
+		}
+		ArrayList<Manga> mangaArrayList = new ArrayList<Manga>();
+		Favorite[] f = new Favorite[0];
+		Manga random = new Manga();
+		random.id = "randommanga";
+		random.title = "Try a random manga from this list!";
+		random.completed = true;
+		mangaArrayList.add(random);
+
+		// connect to the database to set bookmarked status
+		PomaSqlite db = new PomaSqlite(this);
+		try
+		{
+			db.open();
+			f = db.getAllFavorites(null);
+
+			SAXParserFactory saxFactory = SAXParserFactory.newInstance();
+			SAXParser parser = saxFactory.newSAXParser();
+			XMLReader reader = parser.getXMLReader();
+			MangaSaxHandler handler = new MangaSaxHandler();
+			reader.setContentHandler(handler);
+			reader.parse(new InputSource(new StringReader(data)));
+			mangaArrayList.addAll(handler.getAllManga());
+			handler.getAllManga().get(0).title.toString();
+			if (handler.getText().length() > 0)
+				mExtraText = handler.getText();
+			if (handler.getViewCounts().size() > 0)
+			{
+				mViewCount = new String[handler.getViewCounts().size()];
+				handler.getViewCounts().toArray(mViewCount);
+			}
+		}
+		catch (SQLException ex)
+		{
+			throw ex;
+		}
+		catch (Exception ex)
+		{
+			if (!data.contains("mangalist"))
+				throw new NullPointerException(data);
+			throw ex;
+		}
+		finally
+		{
+			db.close();
+		}
+
+		for (int i = 1; i < mangaArrayList.size(); i++)
+		{
+			Manga m = mangaArrayList.get(i);
+			for (int j = 0; j < f.length; j++)
+			{
+				Favorite fav = f[j];
+				try
+				{
+					if (m.simpleName.equals(fav.mangaSimpleName))
+						m.bookmarked = true;
+					else if (m.id.equals(fav.mangaId))
+						m.bookmarked = true;
+					else if (m.title.equals(fav.mangaTitle))
+						m.bookmarked = true;
+				}
+				catch (Exception e)
+				{
+					PocketManga.Log(e.toString());
+					m.bookmarked = false;
+				}
+				if (m.bookmarked)
+				{
+					if (fav.coverArtUrl.length() < 15)
+					{
+						fav.coverArtUrl = m.coverart;
+						db.open();
+						db.updateFavorite(fav);
+						db.close();
+					}
+					m.favoriteRowId = fav.rowId;
+					break;
+				}
+			}
+		}
+
+		Manga[] ret = new Manga[mangaArrayList.size()];
+		mangaArrayList.toArray(ret);
+		mangaArrayList = null;
+		return ret;
+	}
+
+	public class MangaSaxHandler extends DefaultHandler
+	{
+		ArrayList<Manga>  allManga;
+		ArrayList<String> viewCounts;
+		Manga             currentManga;
+		String            extraText = "";
+
+		public ArrayList<Manga> getAllManga()
+		{
+			return this.allManga;
+		}
+
+		public ArrayList<String> getViewCounts()
+		{
+			return this.viewCounts;
+		}
+
+		public String getText()
+		{
+			if (mMode == MODE_POPULAR)
+				extraText = "This shows what other PocketManga users are reading.  Manga with less than 500 views are excluded.";
+			return extraText;
+		}
+
+		@Override
+		public void startDocument() throws SAXException
+		{
+			super.startDocument();
+			allManga = new ArrayList<Manga>();
+			viewCounts = new ArrayList<String>();
+			if (mMode == MODE_POPULAR)
+				viewCounts.add("");
+		}
+
+		@Override
+		public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException
+		{
+			super.startElement(uri, localName, name, attributes);
+			if (localName.equalsIgnoreCase("manga"))
+			{
+				this.currentManga = new Manga();
+			}
+			else if (localName.equalsIgnoreCase("title"))
+			{
+				currentManga.title = attributes.getValue(0);
+				currentManga.generateSimpleName();
+			}
+			else if (localName.equalsIgnoreCase("url"))
+			{
+				currentManga.id = attributes.getValue(0);
+			}
+			else if (localName.equalsIgnoreCase("completed"))
+			{
+				currentManga.completed = Boolean.parseBoolean(attributes.getValue(0));
+			}
+			else if (localName.equalsIgnoreCase("cover"))
+			{
+				currentManga.coverart = attributes.getValue(0);
+			}
+			else if (localName.equalsIgnoreCase("desc"))
+			{
+				extraText = attributes.getValue(0);
+			}
+			else if (localName.equalsIgnoreCase("views"))
+			{
+				int views = new Integer(attributes.getValue(0)).intValue();
+				String viewString = String.valueOf(views);
+				if (views >= 100000)
+				{
+					views *= 0.001;
+					viewString = views + "k";
+				}
+				else
+				{
+					viewString = new DecimalFormat().format(views);
+				}
+
+				viewCounts.add(viewString);
+			}
+		}
+
+		@Override
+		public void endElement(String uri, String localName, String name) throws SAXException
+		{
+			super.endElement(uri, localName, name);
+			if (this.currentManga != null)
+			{
+				if (localName.equalsIgnoreCase("manga"))
+				{
+					allManga.add(currentManga);
+				}
+			}
+		}
+	}
+
+	class FilteredMangaOnClickListener implements OnItemClickListener
+	{
+
+		@Override
+		public void onItemClick(AdapterView<?> parent, View v, final int position, long id)
+		{
+			if (!mGotData)
+				return;
+			if (getManga(position - 1).id.equals("randommanga"))
+			{
+				if (mMangaList.length <= 3)
+					return;
+				Random random = new Random(System.currentTimeMillis());
+				onItemClick(parent, v, random.nextInt(mListview.getAdapter().getCount() - 2) + 1, id);
+				return;
+			}
+			InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+			imm.hideSoftInputFromWindow(mFindTextbox.getWindowToken(), 0);
+
+			Intent chaptersIntent = new Intent();
+			chaptersIntent.setClassName("com.ls.manga", "com.ls.manga.activities.ChaptersActivity");
+			Manga argManga = new Manga();
+			argManga.bookmarked = getManga(position - 1).bookmarked;
+			argManga.id = getManga(position - 1).id;
+			argManga.title = getManga(position - 1).title;
+			chaptersIntent.putExtra("manga", argManga);
+			startActivity(chaptersIntent);
+			return;
+		}
+	}
+
+	private Manga getManga(int position)
+	{
+		return mAdapter.getItem(position);
+	}
+
+	class ViewHolder
+	{
+		TextView  text;
+		ImageView icon;
+		ImageView star;
+	}
+
+	class FilteredMangaAdapter extends ArrayAdapter<Manga> implements SectionIndexer
+	{
+		HashMap<String, Integer> mAlphaIndexer;
+		String[]                 mSections;
+		LayoutInflater           mInflater;
+		Bitmap                   mIcon;
+
+		public FilteredMangaAdapter(PomaActivity context)
+		{
+			super(context, R.layout.iconlistrow, mMangaList);
+			mInflater = context.getLayoutInflater();
+			mIcon = BitmapFactory.decodeResource(getResources(), R.drawable.icon_series);
+
+			if (mMode == MODE_POPULAR)
+			{
+				mSections = new String[0];
+				return;
+			}
+
+			mAlphaIndexer = new HashMap<String, Integer>();
+
+			int size = mMangaList.length;
+			for (int i = size - 1; i >= 0; i--)
+			{
+				String element = mMangaList[i].title;
+				mAlphaIndexer.put(element.substring(0, (element.length() > 1 ? 2 : 1)), i);
+			}
+
+			Set<String> keys = mAlphaIndexer.keySet();
+			Iterator<String> it = keys.iterator();
+			ArrayList<String> keyList = new ArrayList<String>();
+
+			while (it.hasNext())
+			{
+				String key = it.next();
+				keyList.add(key);
+			}
+
+			Collections.sort(keyList, String.CASE_INSENSITIVE_ORDER);
+
+			mSections = new String[keyList.size()];
+			keyList.toArray(mSections);
+
+		}
+
+		@Override
+		public View getView(final int position, View convertView, ViewGroup parent)
+		{
+			ViewHolder holder;
+			if (convertView == null)
+			{
+				convertView = mInflater.inflate(R.layout.iconlistrow, null);
+				holder = new ViewHolder();
+				holder.text = (TextView) convertView.findViewById(R.id.label);
+				holder.icon = (ImageView) convertView.findViewById(R.id.icon);
+				holder.star = (ImageView) convertView.findViewById(R.id.star);
+				holder.icon.setImageBitmap(mIcon);
+				convertView.setTag(holder);
+			}
+			else
+			{
+				holder = (ViewHolder) convertView.getTag();
+			}
+
+			holder.text.setText(getManga(position).title
+			        + ((mViewCount.length > 0) && !(getManga(position).id.equals("randommanga")) ? " (#" + position + ", " + mViewCount[position] + " views)" : ""));
+			final ViewHolder vh = holder;
+			holder.star.setOnClickListener(new OnClickListener()
+			{
+				@Override
+				public void onClick(View v)
+				{
+					PomaSqlite db = new PomaSqlite(FilteredMangaActivity.this);
+					try
+					{
+						db.open();
+						if (getManga(position).bookmarked)
+						{
+							db.deleteFavorite(db.getFavoriteForManga(getManga(position)).rowId);
+
+							if (!PocketManga.getSharedPreferences().getBoolean("popupFavoriteRemoved", false))
+								PocketManga.alert(getManga(position).title + " has been removed from your favorites.", "Favorite removed!", FilteredMangaActivity.this);
+							PocketManga.getSharedPreferences().edit().putBoolean("popupFavoriteRemoved", true).commit();
+							vh.star.setImageResource(android.R.drawable.btn_star_big_off);
+						}
+						else
+						{
+							Favorite f = new Favorite();
+							Manga m = getManga(position);
+							f.isOngoing = !m.completed;
+							f.mangaId = m.id;
+							f.mangaTitle = m.title;
+							f.mangaSimpleName = m.simpleName;
+							f.coverArtUrl = m.coverart;
+							f.notificationsEnabled = false;
+							f.siteId = PocketManga.getSiteId();
+							db.insertFavorite(f);
+
+							if (!PocketManga.getSharedPreferences().getBoolean("popupFavoriteAdded", false))
+								PocketManga.alert(getManga(position).title + " has been favorited! PocketManga will now track your reading progress in the Favorites screen.", "Favorite added!",
+								        FilteredMangaActivity.this);
+							PocketManga.getSharedPreferences().edit().putBoolean("popupFavoriteAdded", true).commit();
+							vh.star.setImageResource(android.R.drawable.btn_star_big_on);
+						}
+						getManga(position).bookmarked = !getManga(position).bookmarked;
+					}
+					catch (SQLException ex)
+					{
+
+					}
+					finally
+					{
+						db.close();
+					}
+				}
+			});
+			if (position == 0)
+				holder.star.setVisibility(View.INVISIBLE);
+			else
+				holder.star.setVisibility(View.VISIBLE);
+			if (getManga(position).bookmarked)
+				holder.star.setImageResource(android.R.drawable.btn_star_big_on);
+			else
+				holder.star.setImageResource(android.R.drawable.btn_star_big_off);
+			if (getManga(position).completed)
+				holder.icon.setImageResource(R.drawable.icon_series);
+			else
+				holder.icon.setImageResource(R.drawable.icon_browse);
+			return convertView;
+		}
+
+		public void showStar(ViewHolder holder)
+		{
+			holder.star.setImageResource(android.R.drawable.btn_star_big_on);
+		}
+
+		@Override
+		public int getPositionForSection(int section)
+		{
+			if (mSections == null || mSections.length == 0)
+				return 0;
+			String letter = mSections[section];
+			return mAlphaIndexer.get(letter);
+		}
+
+		@Override
+		public int getSectionForPosition(int position)
+		{
+			return 0;
+		}
+
+		@Override
+		public Object[] getSections()
+		{
+			return mSections;
+		}
+	}
+
+	private class XmlDownloader extends AsyncTask<String, Void, String>
+	{
+		FilteredMangaActivity activity = null;
+
+		public XmlDownloader(FilteredMangaActivity activity)
+		{
+			attach(activity);
+		}
+
+		@Override
+		protected String doInBackground(String... params)
+		{
+			return PomaHttp.downloadData(params[0], activity);
+		}
+
+		@Override
+		protected void onPostExecute(String data)
+		{
+			if (activity == null)
+			{
+				PocketManga.DIALOG_DOWNLOADING.dismiss();
+				PocketManga.Log("AsyncTask skipped onPostExecute because no activity is attached!");
+			}
+			else
+			{
+				activity.callback(data, false);
+			}
+		}
+
+		void detach()
+		{
+			activity = null;
+		}
+
+		void attach(FilteredMangaActivity activity)
+		{
+			this.activity = activity;
+		}
+	}
+
+	private class XmlParser extends AsyncTask<String, Void, Object>
+	{
+		FilteredMangaActivity activity = null;
+
+		public XmlParser(FilteredMangaActivity activity)
+		{
+			attach(activity);
+		}
+
+		@Override
+		protected Object doInBackground(String... params)
+		{
+			String data = params[0];
+			try
+			{
+				return parseXml(data);
+			}
+			catch (Exception ex)
+			{
+				return ex;
+			}
+		}
+
+		@Override
+		protected void onPostExecute(Object data)
+		{
+			if (activity == null)
+			{
+				PocketManga.DIALOG_DOWNLOADING.dismiss();
+				PocketManga.Log("AsyncTask skipped onPostExecute because no activity is attached!");
+			}
+			else
+			{
+				if (!data.getClass().toString().contains("Exception"))
+				{
+					activity.mGotData = true;
+					activity.mMangaList = (Manga[]) data;
+					activity.parseCallback(null);
+				}
+				activity.parseCallback(data);
+			}
+		}
+
+		void detach()
+		{
+			activity = null;
+		}
+
+		void attach(FilteredMangaActivity activity)
+		{
+			this.activity = activity;
+		}
+	}
+}

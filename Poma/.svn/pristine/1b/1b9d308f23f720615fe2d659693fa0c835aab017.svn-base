@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="gen"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Victor/Documents/Code/Android Workspaces/Mango/libs/GoogleAdMobAdsSdk-4.1.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/mobclix.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/FlurryAgent.jar"/>
+	<classpathentry kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
+	<classpathentry kind="output" path="bin/classes"/>
+</classpath>

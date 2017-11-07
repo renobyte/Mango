@@ -1,0 +1,25 @@
+package com.ls.manga.services;
+
+import com.ls.manga.Mango;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+
+public class BootReceiver extends BroadcastReceiver
+{
+	@Override
+	public void onReceive(Context context, Intent intent)
+	{
+		Mango.Log("BootReceiver", "onReceive! " + intent.getAction());
+
+		if (!Mango.getSharedPreferences().getBoolean("notifierEnabled", false))
+		{
+			Mango.Log("BootReceiver", "Exiting because notifier is disabled.");
+			System.exit(0);
+			return;
+		}
+
+		if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction()))
+			NotifierService.scheduleOnBoot(context);
+	}
+}

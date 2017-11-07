@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.ls.manga.ui.MangoLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<LinearLayout
+		android:id="@+id/searchButtonLayout"
+		android:layout_height="wrap_content"
+		android:layout_width="fill_parent"
+		android:layout_alignParentBottom="true"
+		android:orientation="vertical">
+		<Button
+			android:layout_height="wrap_content"
+			android:layout_width="fill_parent"
+			android:id="@+id/searchButton"
+			android:text="Search">
+		</Button>
+	</LinearLayout>
+	<LinearLayout
+		android:layout_above="@id/searchButtonLayout"
+		android:layout_width="wrap_content"
+		android:layout_height="fill_parent"
+		android:orientation="vertical">
+		<LinearLayout
+			android:layout_height="wrap_content"
+			android:layout_width="fill_parent"
+			android:layout_alignParentTop="true"
+			android:orientation="vertical">
+			<EditText
+				android:layout_height="wrap_content"
+				android:layout_width="fill_parent"
+				android:id="@+id/searchCriteria"
+				android:hint="Search title, artist, or keyword">
+			</EditText>
+			<CheckBox
+				android:layout_marginBottom="-7dp"
+				android:layout_marginTop="-14dp"
+				android:text="Search inside manga summaries"
+				android:id="@+id/searchSummaries"
+				android:layout_height="wrap_content"
+				android:layout_width="fill_parent"></CheckBox>
+			<TextView
+				android:text="Tap on one or more genres below to include, exclude, or ignore them. You can leave the criteria blank if you just want to see all manga in specific genres."
+				android:id="@+id/searchHelpLabel"
+				android:layout_height="wrap_content"
+				android:layout_width="fill_parent"></TextView>
+		</LinearLayout>
+		<View
+			android:layout_width="fill_parent"
+			android:layout_height="1dip"
+			android:background="#999999" />
+		<LinearLayout
+			android:layout_height="fill_parent"
+			android:layout_width="fill_parent">
+			<ListView
+				android:id="@+id/searchGenreList"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:drawSelectorOnTop="false"
+				android:background="@android:color/transparent"
+				android:cacheColorHint="#00000000"
+				android:fadingEdge="none"></ListView>
+		</LinearLayout>
+	</LinearLayout>
+</com.ls.manga.ui.MangoLayout>

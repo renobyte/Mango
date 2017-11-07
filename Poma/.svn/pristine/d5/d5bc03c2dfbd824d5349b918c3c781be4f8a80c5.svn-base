@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal" >
+
+    <ScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" >
+
+        <RelativeLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_gravity="center_horizontal"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp" >
+
+            <TextView
+                android:id="@+id/DetailsMangaTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_marginBottom="5px"
+                android:gravity="center_horizontal"
+                android:text="Placeholder Manga of Pure Win"
+                android:textSize="22sp"
+                android:textStyle="bold" >
+            </TextView>
+
+            <ImageView
+                android:id="@+id/DetailsCoverArt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsMangaTitle"
+                android:layout_centerHorizontal="true" >
+            </ImageView>
+
+            <TextView
+                android:id="@+id/DetailsArtistAuthor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsCoverArt"
+                android:text="Art and story by Nagi Senzenin"
+                android:textSize="15sp"
+                android:textStyle="italic" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/DetailsPopularityHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsArtistAuthor"
+                android:layout_marginTop="4dp"
+                android:text="Popularity/Views:"
+                android:textSize="18sp"
+                android:textStyle="bold" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/DetailsPopularity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsPopularityHeader"
+                android:layout_marginLeft="20dp"
+                android:text="1stndrdth (999,99,999 monthly views)"
+                android:textSize="15sp" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/DetailsGenreHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsPopularity"
+                android:layout_marginTop="4dp"
+                android:text="Genres:"
+                android:textSize="18sp"
+                android:textStyle="bold" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/DetailsGenre"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsGenreHeader"
+                android:layout_marginLeft="20dp"
+                android:text="lulz, win, epic"
+                android:textSize="15sp" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/DetailsChaptersHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsGenre"
+                android:layout_marginTop="4dp"
+                android:text="Chapters:"
+                android:textSize="18sp"
+                android:textStyle="bold" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/DetailsChapters"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsChaptersHeader"
+                android:layout_marginLeft="20dp"
+                android:text="9001"
+                android:textSize="15sp" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/DetailsSummaryHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsChapters"
+                android:layout_marginTop="4dp"
+                android:text="Summary:"
+                android:textSize="18sp"
+                android:textStyle="bold" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/DetailsSummary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/DetailsSummaryHeader"
+                android:layout_marginLeft="20dp"
+                android:text="If you can read this, some crazy shit went down."
+                android:textSize="15sp" >
+            </TextView>
+        </RelativeLayout>
+    </ScrollView>
+
+</LinearLayout>

@@ -1,0 +1,16 @@
+package com.ls.manga;
+
+import java.io.Serializable;
+import com.ls.manga.R;
+
+@SuppressWarnings("serial")
+public class MangaDetails implements Serializable
+{
+	public String	coverArtUrl;
+	public String	genres;
+	public String	rank;
+	public String	artist;
+	public String	author;
+	public String	schedule;
+	public String	summary;
+}

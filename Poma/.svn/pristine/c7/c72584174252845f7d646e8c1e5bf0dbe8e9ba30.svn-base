@@ -1,0 +1,345 @@
+/*
+ * Copyright (c) 2010, Sony Ericsson Mobile Communication AB. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification, 
+ * are permitted provided that the following conditions are met:
+ *
+ *    * Redistributions of source code must retain the above copyright notice, this 
+ *      list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *    * Neither the name of the Sony Ericsson Mobile Communication AB nor the names
+ *      of its contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package com.ls.manga.ui;
+
+import android.content.Context;
+import android.graphics.PointF;
+import android.os.SystemClock;
+import android.util.FloatMath;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.VelocityTracker;
+import android.view.View;
+import android.view.ViewConfiguration;
+import android.view.GestureDetector.SimpleOnGestureListener;
+
+/**
+ * Listener for controlling zoom state through touch events
+ */
+public class PageFieldTouchHandler extends SimpleOnGestureListener implements View.OnTouchListener
+{
+
+	/**
+	 * Enum defining listener modes. Before the view is touched the listener is in the UNDEFINED mode. Once touch starts
+	 * it can enter either one of the other two modes: If the user scrolls over the view the listener will enter PAN
+	 * mode, if the user lets his finger rest and makes a longpress the listener will enter ZOOM mode.
+	 */
+	public enum Mode
+	{
+		UNDEFINED, PAN, ZOOM
+	}
+
+	/** Current listener mode */
+	private Mode                        mMode         = Mode.UNDEFINED;
+	private boolean                     mIsMultitouch = false;
+
+	/** Zoom control to manipulate */
+	private PageFieldDynamicZoomControl mZoomControl;
+
+	/** X-coordinate of previously handled touch event */
+	private float                       mX;
+
+	/** Y-coordinate of previously handled touch event */
+	private float                       mY;
+
+	/** X-coordinate of latest down event */
+	private float                       mDownX;
+
+	/** Y-coordinate of latest down event */
+	private float                       mDownY;
+
+	/** Velocity tracker for touch events */
+	private VelocityTracker             mVelocityTracker;
+
+	/** Distance touch can wander before we think it's scrolling */
+	private final int                   mScaledTouchSlop;
+
+	/** Vibrator for tactile feedback */
+
+	/** Maximum velocity for fling */
+	private final int                   mScaledMaximumFlingVelocity;
+
+	// last touch UP event
+	private long                        mLastUp;
+
+	// callback upon tap (i.e. switch page)
+	private Runnable                    mTapCallback;
+	private Runnable                    mLeftFlingCallback;
+	private Runnable                    mRightFlingCallback;
+	private Runnable                    mLongPressCallback;
+	private GestureDetector             mGesture;
+
+	// used for multitouch
+	private float                       mFirstDistance;
+	private PointF                      mMidPoint     = new PointF();
+
+	/**
+	 * Creates a new instance
+	 * 
+	 * @param context
+	 *            Application context
+	 */
+	public PageFieldTouchHandler(Context context)
+	{
+		mScaledTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+		mScaledMaximumFlingVelocity = ViewConfiguration.get(context).getScaledMaximumFlingVelocity();
+		mGesture = new GestureDetector(this);
+	}
+
+	/**
+	 * Sets the zoom control to manipulate
+	 * 
+	 * @param control
+	 *            Zoom control
+	 */
+	public void setZoomControl(PageFieldDynamicZoomControl control)
+	{
+		mZoomControl = control;
+	}
+
+	// implements View.OnTouchListener
+	public boolean onTouch(View v, MotionEvent event)
+	{
+		final int action = event.getAction();
+		final float x = event.getX();
+		final float y = event.getY();
+
+		if (mVelocityTracker == null)
+		{
+			mVelocityTracker = VelocityTracker.obtain();
+		}
+		mVelocityTracker.addMovement(event);
+		if (mGesture.onTouchEvent(event))
+			return true;
+
+		switch (action)
+		{
+			case MotionEvent.ACTION_DOWN:
+				v.removeCallbacks(mTapCallback);
+				mZoomControl.stopFling();
+				if (SystemClock.uptimeMillis() - mLastUp > 150)
+					mMode = Mode.UNDEFINED;
+				mDownX = x;
+				mDownY = y;
+				mX = x;
+				mY = y;
+				break;
+
+			case MotionEvent.ACTION_MOVE:
+			{
+				final float dx = (x - mX) / v.getWidth();
+				final float dy = (y - mY) / v.getHeight();
+
+				if (mMode == Mode.ZOOM && !mIsMultitouch)
+				{
+					mZoomControl.zoom((float) Math.pow(20, -dy), mDownX / v.getWidth(), mDownY / v.getHeight());
+				}
+				else if (mMode == Mode.ZOOM && mIsMultitouch)
+				{
+					float currentDistance = getPointDistance(event);
+					if (currentDistance > 10f)
+					{
+						float newScale = (currentDistance / mFirstDistance) - 1;
+						mZoomControl.zoom2(newScale * 2, mMidPoint.x / v.getWidth(), mMidPoint.y / v.getHeight());
+						mFirstDistance = currentDistance;
+					}
+				}
+				else if (mMode == Mode.PAN)
+				{
+					mZoomControl.pan(-dx, -dy);
+				}
+				else
+				{
+					final float scrollX = mDownX - x;
+					final float scrollY = mDownY - y;
+
+					final float dist = (float) Math.sqrt(scrollX * scrollX + scrollY * scrollY);
+
+					if (dist >= mScaledTouchSlop)
+					{
+						v.removeCallbacks(mTapCallback);
+						mMode = Mode.PAN;
+					}
+				}
+
+				mX = x;
+				mY = y;
+				break;
+			}
+
+			case MotionEvent.ACTION_UP:
+				mLastUp = SystemClock.uptimeMillis();
+				if (mMode == Mode.PAN)
+				{
+					mVelocityTracker.computeCurrentVelocity(1000, mScaledMaximumFlingVelocity);
+					float xVelo, yVelo;
+					xVelo = -mVelocityTracker.getXVelocity() / v.getWidth();
+					yVelo = -mVelocityTracker.getYVelocity() / v.getHeight();
+					if (mZoomControl.getZoomState().getZoom() == 1f)
+						xVelo = 0;
+					
+					//Don't start a fling if we're at the edge of the image
+					if (mZoomControl.getZoomState().getPanX() - mZoomControl.getMinPanX() < (0.05 * mZoomControl.getMaxPanX()))
+						xVelo = 0;
+					if (mZoomControl.getMaxPanX() - mZoomControl.getZoomState().getPanX() < (0.05 * mZoomControl.getMaxPanX()))
+						xVelo = 0;
+					if (mZoomControl.getZoomState().getPanY() - mZoomControl.getMinPanY() < (0.05 * mZoomControl.getMaxPanY()))
+						yVelo = 0;
+					if (mZoomControl.getMaxPanY() - mZoomControl.getZoomState().getPanY() < (0.05 * mZoomControl.getMaxPanY()))
+						yVelo = 0;
+					
+					mZoomControl.startFling(xVelo, yVelo);
+				}
+				else
+				{
+					mZoomControl.startFling(0, 0);
+				}
+				mVelocityTracker.recycle();
+				mVelocityTracker = null;
+				break;
+
+			case MotionEvent.ACTION_POINTER_2_DOWN:
+			case MotionEvent.ACTION_POINTER_DOWN:
+				mFirstDistance = getPointDistance(event);
+				if (mFirstDistance > 10f)
+				{
+					mMode = Mode.ZOOM;
+					midPoint(mMidPoint, event);
+					mIsMultitouch = true;
+				}
+				break;
+
+			default:
+				mVelocityTracker.recycle();
+				mVelocityTracker = null;
+				v.removeCallbacks(mTapCallback);
+				mIsMultitouch = false;
+				mMode = Mode.UNDEFINED;
+				break;
+
+		}
+		return true;
+	}
+
+	private float getPointDistance(MotionEvent event)
+	{
+		float x = event.getX(0) - event.getX(1);
+		float y = event.getY(0) - event.getY(1);
+		return FloatMath.sqrt(x * x + y * y);
+	}
+
+	private void midPoint(PointF point, MotionEvent event)
+	{
+		float x = event.getX(0) + event.getX(1);
+		float y = event.getY(0) + event.getY(1);
+		point.set(x / 2, y / 2);
+	}
+
+	public Mode getMode()
+	{
+		return mMode;
+	}
+
+	public void setMode(Mode mode)
+	{
+		mMode = mode;
+	}
+
+	public void setOnTapCallback(Runnable run)
+	{
+		mTapCallback = run;
+	}
+
+	public void setOnLeftFlingCallback(Runnable run)
+	{
+		mLeftFlingCallback = run;
+	}
+
+	public void setOnRightFlingCallback(Runnable run)
+	{
+		mRightFlingCallback = run;
+	}
+
+	public void setOnLongPressCallback(Runnable run)
+	{
+		mLongPressCallback = run;
+	}
+
+	@Override
+	public boolean onDoubleTap(MotionEvent event)
+	{
+		// mMode = Mode.ZOOM;
+		return false;
+	}
+
+	@Override
+	public boolean onSingleTapUp(MotionEvent event)
+	{
+		if (mTapCallback != null)
+			mTapCallback.run();
+		return false;
+	}
+
+	@Override
+	public void onLongPress(MotionEvent event)
+	{
+		if (mMode != Mode.ZOOM && mLongPressCallback != null)
+			mLongPressCallback.run();
+	}
+
+	@Override
+	public boolean onFling(MotionEvent event, MotionEvent event2, float velocityX, float velocityY)
+	{
+		if (Math.abs(velocityY) > Math.abs(velocityX))
+			return false;
+		if (mLeftFlingCallback != null && mZoomControl.getZoomState().getZoom() == 1f && Math.abs(velocityX) > 1100 && Math.abs(velocityY) < 1400)
+		{
+			if (velocityX > 0) 
+			{
+				mMode = Mode.UNDEFINED;
+				mZoomControl.stopFling();
+				mRightFlingCallback.run();
+			}
+			else
+			{
+				mMode = Mode.UNDEFINED;
+				mZoomControl.stopFling();
+				mLeftFlingCallback.run();
+			}
+		}
+		return false;
+	}
+
+	public void unregisterCallbacks()
+	{
+		mTapCallback = null;
+		mRightFlingCallback = null;
+		mLeftFlingCallback = null;
+		mLongPressCallback = null;
+	}
+}

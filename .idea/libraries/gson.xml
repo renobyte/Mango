@@ -1,0 +1,15 @@
+<component name="libraryTable">
+  <library name="gson">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../Libraries/gson" />
+      <root url="file://$PROJECT_DIR$/../Libraries/gson" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../Libraries/gson" />
+      <root url="file://$PROJECT_DIR$/../Libraries/gson" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/../Libraries/gson" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/../Libraries/gson" recursive="false" type="SOURCES" />
+  </library>
+</component>

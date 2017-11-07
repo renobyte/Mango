@@ -1,0 +1,145 @@
+package com.ls.manga.activities;
+
+import com.ls.manga.PocketManga;
+import com.ls.manga.PomaHttp;
+import com.ls.manga.R;
+import android.app.Activity;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.os.AsyncTask;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.TextView;
+
+public class TermsDialog extends Dialog
+{
+	private Button          mAgreeButton;
+	private Button          mDisagreeButton;
+	private TextView        mTermsTextView;
+
+	private Activity        mBaseActivity;
+
+	private TermsDownloader mDownloader;
+
+	private ProgressDialog  mDialog;
+
+	public TermsDialog(Context context)
+	{
+		super(context);
+		Window window = this.getWindow();
+		window.requestFeature(Window.FEATURE_NO_TITLE);
+		this.setContentView(getLayoutInflater().inflate(R.layout.termsofservice, null));
+		mAgreeButton = (Button) this.findViewById(R.id.TermsAgreeButton);
+		mDisagreeButton = (Button) this.findViewById(R.id.TermsDisagreeButton);
+		mTermsTextView = (TextView) this.findViewById(R.id.TermsText);
+		mAgreeButton.setOnClickListener(new View.OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				PocketManga.getSharedPreferences().edit().putBoolean("termsRead", true).commit();
+				TermsDialog.this.dismiss();
+				if (PocketManga.getSiteId() == -1)
+				{
+					PocketManga.getSharedPreferences().edit().putInt("mangaSite", 2).commit();
+				}
+			}
+		});
+		mDisagreeButton.setOnClickListener(new View.OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				mBaseActivity.finish();
+			}
+		});
+		mAgreeButton.setEnabled(false);
+		mDisagreeButton.setEnabled(false);
+	}
+
+	public void startDownloadingTerms(Activity activity)
+	{
+		mBaseActivity = activity;
+		mDownloader = new TermsDownloader(this);
+		mDownloader.execute("http://%SERVER_URL%/MangoTerms.txt");
+		mDialog = new ProgressDialog(this.getContext());
+		mDialog.setTitle("Downloading data...");
+		mDialog.setMessage("wall of text crits you for over 9000.");
+		mDialog.setIndeterminate(true);
+		mDialog.setCancelable(true);
+		PocketManga.DIALOG_DOWNLOADING = mDialog;
+		mDialog.show();
+	}
+
+	public void callback(String data)
+	{
+		try
+		{
+			mDialog.dismiss();
+		}
+		catch (Exception e) {
+			PocketManga.Log("Couldn't dismiss dialog (" + e.toString() + ")");
+		}
+		mTermsTextView.setText(data);
+		if (data.startsWith("Exception"))
+		{
+			mTermsTextView.setText("PocketManga was unable to download the Terms of Service.\n\nBy clicking I Agree below, you agree to the terms as outlined at the following web page:\nhttp://pocketmanga.leetsoft.net/terms.php\n\n(" + data + ")");
+		}
+		mAgreeButton.setEnabled(true);
+		mDisagreeButton.setEnabled(true);
+	}
+
+	@Override
+    public boolean onKeyDown(int keyCode, KeyEvent event)
+	{
+		if (keyCode == KeyEvent.KEYCODE_BACK)
+		{
+			mBaseActivity.finish();
+			return false;
+		}
+		else
+			return super.onKeyDown(keyCode, event);
+	}
+
+	private class TermsDownloader extends AsyncTask<String, Void, String>
+	{
+		TermsDialog dialog = null;
+
+		public TermsDownloader(TermsDialog dialog)
+		{
+			attach(dialog);
+		}
+
+		@Override
+		protected String doInBackground(String... params)
+		{
+			return PomaHttp.downloadData(params[0], dialog.getContext());
+		}
+
+		@Override
+		protected void onPostExecute(String data)
+		{
+			if (dialog == null)
+			{
+				PocketManga.Log("AsyncTask skipped onPostExecute because no activity is attached!");
+			}
+			else
+			{
+				dialog.callback(data);
+			}
+		}
+
+		void detach()
+		{
+			dialog = null;
+		}
+
+		void attach(TermsDialog dialog)
+		{
+			this.dialog = dialog;
+		}
+	}
+}

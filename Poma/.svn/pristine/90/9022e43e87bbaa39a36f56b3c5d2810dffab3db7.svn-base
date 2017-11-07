@@ -1,0 +1,296 @@
+package com.ls.manga;
+
+import android.os.Environment;
+import android.util.Log;
+
+import java.io.*;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+
+public class SyncManager
+{
+    public static final int CHANGE_ADD = 0;
+    public static final int CHANGE_REMOVE = 1;
+    public static final int CHANGE_UPDATE = 2;
+    public static final int CHANGE_READ = 3;
+
+    public static String generateFullStringForFavorite(int changeType, Favorite f)
+    {
+        String addUpdate = "ADD";
+        if (changeType == CHANGE_UPDATE)
+            addUpdate = "UPDATE";
+        StringBuilder b = new StringBuilder();
+        b.append(addUpdate + " '" + f.mangaSimpleName + "' SET(");
+
+        b.append("'mangaTitle'=" + prepare(f.mangaTitle) + ",");
+        b.append("'mangaAltTitles'=" + prepare(f.mangaAltTitles) + ",");
+        b.append("'mangaSimpleName'=" + prepare(f.mangaSimpleName) + ",");
+        b.append("'mangaId'=" + prepare(f.mangaId) + ",");
+        b.append("'progressChapterId'=" + prepare(f.progressChapterId) + ",");
+        b.append("'progressChapterName'=" + prepare(f.progressChapterName) + ",");
+        b.append("'progressChapterUrl'=" + prepare(f.progressChapterUrl) + ",");
+        b.append("'progressChapterIndex'=" + prepare(f.progressChapterIndex) + ",");
+        b.append("'progressPageIndex'=" + prepare(f.progressPageIndex) + ",");
+        b.append("'readDate'=" + prepare(f.readDate) + ",");
+        b.append("'siteId'=" + prepare(f.siteId) + ",");
+        b.append("'tagId'=" + prepare(f.tagId) + ",");
+        b.append("'coverArtUrl'=" + prepare(f.coverArtUrl));
+
+        return b.toString();
+    }
+
+    public static SyncChange parseSyncQuerystring(String s) throws Exception
+    {
+        s = "1:UPDATE 'bleach' SET('mangaTitle'='Bleach','progressChapterIndex'='23','readDate'='" + System.currentTimeMillis() + "')";
+        Mango.log("Parsing changestring " + s);
+        try
+        {
+            SyncChange data = new SyncChange();
+            data.syncModifiedData = new HashMap<String, String>();
+
+            int parserIndex = 0;
+
+            // Format:
+            // 1:READ'simplename'SET('fieldName'='fieldValue','field2Name'='field2Value')
+
+            // Get the change index
+            parserIndex = s.indexOf(':');
+            data.syncIndex = Integer.parseInt(s.substring(0, parserIndex).trim());
+
+            // Get the change type
+            data.syncChangeType = -1;
+            String tempType = s.substring(parserIndex + 1, parserIndex = s.indexOf('\'', parserIndex)).trim();
+            if (tempType.equals("ADD"))
+                data.syncChangeType = CHANGE_ADD;
+            else if (tempType.equals("UPDATE"))
+                data.syncChangeType = CHANGE_UPDATE;
+            else if (tempType.equals("REMOVE"))
+                data.syncChangeType = CHANGE_REMOVE;
+            else if (tempType.equals("READ"))
+                data.syncChangeType = CHANGE_READ;
+            else
+                throw new Exception("Invalid change type. index=" + parserIndex + ", string=" + s);
+
+            // Get the favorite object
+            String tempSimpleName = s.substring(parserIndex + 1, parserIndex = s.indexOf('\'', parserIndex + 1));
+
+            if (data.syncChangeType != CHANGE_ADD)
+            {
+                MangoSqlite db = new MangoSqlite(Mango.CONTEXT);
+                try
+                {
+                    db.open();
+                    Manga m = new Manga();
+                    m.simpleName = tempSimpleName;
+                    m.id = tempSimpleName;
+                    m.title = tempSimpleName;
+                    data.syncFavorite = db.getFavoriteForManga(m);
+                } finally
+                {
+                    db.close();
+                }
+                if (data.syncFavorite == null)
+                    throw new Exception("Could not process " + tempType + " because " + tempSimpleName + " isn't favorited.");
+            }
+
+            if (data.syncChangeType != CHANGE_REMOVE)
+            {
+                parserIndex = s.indexOf("SET", parserIndex);
+                parserIndex = s.indexOf("(") + 1;
+                String setClause = s.substring(parserIndex, s.indexOf(")", parserIndex));
+                parseSyncSetClause(setClause, data);
+                if (data.syncModifiedData.size() == 0)
+                    throw new Exception("Empty or invalid SET clause. " + s);
+            }
+            Mango.log("Parsed changestring.  " + tempType + " change #" + data.syncIndex + " for " + tempSimpleName + " with " + data.syncModifiedData.size() + " parameters");
+            return data;
+        } catch (Exception e)
+        {
+            throw e;
+        }
+    }
+
+    public static void parseSyncSetClause(String s, SyncChange syncchange) throws Exception
+    {
+        int index = 0;
+        int index2 = 0;
+
+        int lastIndex = -1; // while failsafe
+        while (index != lastIndex)
+        {
+            lastIndex = index;
+            String key;
+            String value;
+            index = s.indexOf('\'', index);
+            if (index == -1)
+                break;
+            index2 = s.indexOf('\'', index + 1);
+            key = s.substring(index + 1, index2);
+            index = s.indexOf('=', index2);
+            if (index == -1)
+                throw new Exception("Bad keyvalue pair (missing '=') index=" + index + ", string=" + s);
+            index = s.indexOf('\'', index);
+            if (index == -1)
+                break;
+            index2 = s.indexOf('\'', index + 1);
+            value = s.substring(index + 1, index2);
+            index = s.indexOf(',', index);
+            syncchange.syncModifiedData.put(key, value);
+            if (index == -1)
+                break;
+        }
+    }
+
+    public static String prepare(Object o)
+    {
+        String str;
+        str = String.valueOf(o);
+        str = str.replace("'", "&apos;");
+        str = "'" + str + "'";
+        return str;
+    }
+
+    public static void processChange(SyncChange change) throws Exception
+    {
+        MangoSqlite db = new MangoSqlite(Mango.CONTEXT);
+        try
+        {
+            db.open();
+
+            switch (change.syncChangeType)
+            {
+                case CHANGE_ADD:
+
+                    break;
+
+                default:
+                    break;
+            }
+        } finally
+        {
+            db.close();
+        }
+    }
+
+    public static void reflectFavorite(Favorite f, SyncChange c)
+    {
+        if (c.syncModifiedData == null || c.syncModifiedData.size() == 0)
+            return;
+
+        Class<?> fClass = f.getClass();
+        Field fields[] = fClass.getDeclaredFields();
+
+        for (int i = 0; i < fields.length; i++)
+        {
+            if (c.syncModifiedData.containsKey(fields[i].getName()))
+            {
+                Field key = fields[i];
+                String val = c.syncModifiedData.get(key.getName());
+                try
+                {
+                    if (key.getType() == int.class)
+                        key.set(f, Integer.parseInt(val));
+                    else if (key.getType() == long.class)
+                        key.set(f, Long.parseLong(val));
+                    else if (key.getType() == boolean.class)
+                        key.set(f, Boolean.parseBoolean(val));
+                    else if (key.getType() == String.class)
+                        key.set(f, val);
+                    else
+                    {
+                        Mango.log("Unknown field type, cannot set field.");
+                        continue;
+                    }
+                    Mango.log("reflectFavorite: Set value " + key.get(f) + " (" + key.getType().getName() + ") to f." + key.getName());
+                } catch (Exception e)
+                {
+                    Mango.log("Reflection error: " + Log.getStackTraceString(e));
+                }
+            }
+        }
+    }
+
+    public static void saveSyncQueue(SyncQueue queue)
+    {
+        String state = Environment.getExternalStorageState();
+        if (!state.startsWith(Environment.MEDIA_MOUNTED))
+        {
+            return;
+        }
+
+        File file = new File(Mango.getDataDirectory() + "/Mango/user/");
+        ObjectOutputStream out = null;
+
+        try
+        {
+            Mango.log("SyncManager", "Writing sync queue to disk.");
+            file.mkdirs();
+            file = new File(Mango.getDataDirectory() + "/Mango/user/syncqueue.ser");
+            if (file.exists())
+                file.delete();
+            file.createNewFile();
+
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(queue);
+            out.flush();
+            Mango.log("SyncManager", "Done!");
+        } catch (Exception ioe)
+        {
+            Mango.log("SyncManager", "Sync queue was not able to be written to disk. " + Log.getStackTraceString(ioe));
+        } finally
+        {
+            try
+            {
+                if (out != null)
+                    out.close();
+                out = null;
+            } catch (IOException e)
+            {
+
+            }
+        }
+    }
+
+    public static SyncQueue readDownloadQueue()
+    {
+        String state = Environment.getExternalStorageState();
+        if (!state.startsWith(Environment.MEDIA_MOUNTED))
+        {
+            return null;
+        }
+
+        File file;
+        ObjectInputStream in = null;
+        try
+        {
+            Mango.log("SyncManager", "Loading sync queue from disk.");
+            file = new File(Mango.getDataDirectory() + "/Mango/user/syncqueue.ser");
+            if (!file.exists())
+            {
+                Mango.log("SyncManager", "file doesn't exist.");
+                return null;
+            }
+
+            in = new ObjectInputStream(new FileInputStream(file));
+            SyncQueue q = (SyncQueue) in.readObject();
+            in.close();
+
+            return q;
+        } catch (Exception e)
+        {
+            Mango.log("SyncManager", "Queue restore failed: " + e.toString());
+        } finally
+        {
+            try
+            {
+                if (in != null)
+                    in.close();
+                in = null;
+            } catch (IOException e)
+            {
+
+            }
+        }
+        return null;
+    }
+}

@@ -1,0 +1,142 @@
+package com.ls.manga;
+
+import java.io.Serializable;
+import java.util.HashMap;
+
+public class SyncQueue implements Serializable
+{
+	public static String generateAddStringForFavorite(Favorite f)
+	{
+		StringBuilder b = new StringBuilder();
+		b.append("ADD '" + f.mangaSimpleName + "' AT '" + System.currentTimeMillis() + "' SET(");
+
+		b.append("'mangaTitle'=" + prepare(f.mangaTitle) + ",");
+		b.append("'mangaAltTitles'=" + prepare(f.mangaAltTitles) + ",");
+		b.append("'mangaSimpleName'=" + prepare(f.mangaSimpleName) + ",");
+		b.append("'mangaId'=" + prepare(f.mangaId) + ",");
+		b.append("'progressChapterId'=" + prepare(f.progressChapterId) + ",");
+		b.append("'progressChapterName'=" + prepare(f.progressChapterName) + ",");
+		b.append("'progressChapterUrl'=" + prepare(f.progressChapterUrl) + ",");
+		b.append("'progressChapterIndex'=" + prepare(f.progressChapterIndex) + ",");
+		b.append("'progressPageIndex'=" + prepare(f.progressPageIndex) + ",");
+		b.append("'readDate'=" + prepare(f.readDate) + ",");
+		b.append("'siteId'=" + prepare(f.siteId) + ",");
+		b.append("'tagId'=" + prepare(f.tagId) + ",");
+		b.append("'coverArtUrl'=" + prepare(f.coverArtUrl) + ",");
+
+		return "";
+	}
+
+	public static SyncChange parseSyncQuerystring(String s) throws Exception
+	{
+		Mango.Log("Parsing changestring " + s);
+		try
+		{
+			SyncChange data = new SyncChange();
+			data.syncModifiedData = new HashMap<String, Object>();
+
+			int parserIndex = 0;
+
+			// Format:
+			// 1:READ'simplename'SET(params)
+
+			// Get the change index
+			parserIndex = s.indexOf(':');
+			data.syncIndex = Integer.parseInt(s.substring(0, parserIndex).trim());
+
+			// Get the change type
+			data.syncChangeType = -1;
+			String tempType = s.substring(parserIndex + 1, parserIndex = s.indexOf('\'', parserIndex)).trim();
+			if (tempType.equals("ADD"))
+				data.syncChangeType = SyncManager.CHANGE_ADD;
+			else if (tempType.equals("UPDATE"))
+				data.syncChangeType = SyncManager.CHANGE_UPDATE;
+			else if (tempType.equals("REMOVE"))
+				data.syncChangeType = SyncManager.CHANGE_REMOVE;
+			else if (tempType.equals("READ"))
+				data.syncChangeType = SyncManager.CHANGE_READ;
+			else
+				throw new Exception("Invalid change type. index=" + parserIndex + ", string=" + s);
+
+			// Get the favorite object
+			String tempSimpleName = s.substring(parserIndex + 1, parserIndex = s.indexOf('\'', parserIndex + 1));
+
+			if (data.syncChangeType != SyncManager.CHANGE_ADD)
+			{
+				MangoSqlite db = new MangoSqlite(Mango.CONTEXT);
+				try
+				{
+					db.open();
+					Manga m = new Manga();
+					m.simpleName = tempSimpleName;
+					m.id = tempSimpleName;
+					m.title = tempSimpleName;
+					data.syncFavorite = db.getFavoriteForManga(m);
+				}
+				finally
+				{
+					db.close();
+				}
+				if (data.syncFavorite == null)
+					throw new Exception("Could not process " + tempType + " because " + tempSimpleName + " isn't favorited.");
+			}
+
+			if (data.syncChangeType != SyncManager.CHANGE_REMOVE)
+			{
+				parserIndex = s.indexOf("SET", parserIndex);
+				parserIndex = s.indexOf("(") + 1;
+				String setClause = s.substring(parserIndex, s.indexOf(")", parserIndex));
+				parseSyncSetClause(setClause, data);
+				if (data.syncModifiedData.size() == 0)
+					throw new Exception("Empty or invalid SET clause. " + s);
+			}
+			Mango.Log("Parsed changestring.  " + tempType + " change #" + data.syncIndex + " for " + tempSimpleName + " with " + data.syncModifiedData.size() + " parameters");
+			return data;
+		}
+		catch (Exception e)
+		{
+			throw e;
+		}
+	}
+
+	public static void parseSyncSetClause(String s, SyncChange syncchange) throws Exception
+	{
+		int index = 0;
+		int index2 = 0;
+
+		int lastIndex = -1; // while failsafe
+		while (index != lastIndex)
+		{
+			lastIndex = index;
+			String key;
+			String value;
+			index = s.indexOf('\'', index);
+			if (index == -1)
+				break;
+			index2 = s.indexOf('\'', index + 1);
+			key = s.substring(index + 1, index2);
+			index = s.indexOf('=', index2);
+			if (index == -1)
+				throw new Exception("Bad keyvalue pair (missing '=') index=" + index + ", string=" + s);
+			index = s.indexOf('\'', index);
+			if (index == -1)
+				break;
+			index2 = s.indexOf('\'', index + 1);
+			value = s.substring(index + 1, index2);
+			Mango.Log("Adding keyvalue pair to fsd hashmap.  Key=" + key + ", Value=" + value);
+			index = s.indexOf(',', index);
+			syncchange.syncModifiedData.put(key, value);
+			if (index == -1)
+				break;
+		}
+	}
+
+	public static String prepare(Object o)
+	{
+		String str;
+		str = String.valueOf(o);
+		str = str.replace("'", "&apos;");
+		str = "'" + str + "'";
+		return str;
+	}
+}

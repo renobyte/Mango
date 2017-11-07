@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/favoritesRowLayout"
+    android:layout_width="fill_parent"
+    android:layout_height="84dp"
+    android:gravity="right"
+    android:minHeight="84dp" >
+
+    <ImageView
+        android:id="@+id/favoritesRowThumb"
+        android:layout_width="84dp"
+        android:layout_height="84dp"
+        android:layout_centerVertical="true"
+        android:paddingLeft="2dp"
+        android:paddingTop="2dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/coverart_overlay" />
+
+    <TextView
+        android:id="@+id/favoritesRowTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toLeftOf="@+id/favoritesRowIconLayout"
+        android:layout_toRightOf="@+id/favoritesRowThumb"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:paddingLeft="1dp"
+        android:singleLine="true"
+        android:text="Favorite Title"
+        android:textSize="20sp"
+        android:textStyle="bold" >
+    </TextView>
+
+    <TextView
+        android:id="@+id/favoritesRowProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/favoritesRowTitle"
+        android:layout_below="@+id/favoritesRowTitle"
+        android:layout_marginTop="-4dp"
+        android:layout_toLeftOf="@+id/favoritesRowIconLayout"
+        android:maxLines="1"
+        android:paddingLeft="1dp"
+        android:text="My Progress: v01/c001 page 1"
+        android:textSize="18sp" >
+    </TextView>
+
+    <TextView
+        android:id="@+id/favoritesRowUpdate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/favoritesRowTitle"
+        android:layout_below="@+id/favoritesRowProgress"
+        android:layout_marginTop="-2dp"
+        android:layout_toLeftOf="@+id/favoritesRowIconLayout"
+        android:maxLines="1"
+        android:paddingLeft="1dp"
+        android:text="Updated June 1 (v02/c004)"
+        android:textSize="18sp" >
+    </TextView>
+
+    <TextView
+        android:id="@+id/favoritesRowSite"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/favoritesRowTitle"
+        android:layout_below="@+id/favoritesRowUpdate"
+        android:layout_toLeftOf="@+id/favoritesRowIconLayout"
+        android:maxLines="1"
+        android:paddingLeft="2dp"
+        android:text="MangaFox"
+        android:textColor="#555555"
+        android:textSize="15sp" >
+    </TextView>
+
+    <LinearLayout
+        android:id="@+id/favoritesRowIconLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_gravity="bottom"
+        android:orientation="vertical" >
+
+        <ImageView
+            android:id="@+id/favoritesRowIconTag"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/tag_blue" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearLayout1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:paddingBottom="2dp"
+        android:paddingRight="2dp" >
+
+        <ImageView
+            android:id="@+id/favoritesRowIcon2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:maxHeight="30dp"
+            android:maxWidth="30dp"
+            android:paddingRight="2dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/ic_notifications" >
+        </ImageView>
+
+        <ImageView
+            android:id="@+id/favoritesRowIcon1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:maxHeight="30dp"
+            android:maxWidth="30dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/ic_libraryseries" >
+        </ImageView>
+    </LinearLayout>
+
+</RelativeLayout>

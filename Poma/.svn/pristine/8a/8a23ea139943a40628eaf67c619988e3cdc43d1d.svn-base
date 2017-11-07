@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/NotificationLayout"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="horizontal"
+    android:padding="3dp"
+    android:paddingLeft="3dp" >
+
+    <ImageView
+        android:id="@+id/NotificationLogo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="2dp"
+        android:adjustViewBounds="true"
+        android:maxHeight="35dp"
+        android:maxWidth="35dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/icon" />
+
+    <TextView
+        android:id="@+id/NotificationText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="-2sp"
+        android:layout_toRightOf="@+id/NotificationLogo"
+        android:text="History&apos;s Strongest Disciple Kenichi 43 (12 queued)"
+        android:textSize="14sp" />
+
+    <ProgressBar
+        android:id="@+id/NotificationProgress"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/NotificationLogo"
+        android:layout_marginBottom="2sp"
+        android:layout_marginTop="2sp"
+        android:indeterminateDrawable="@android:drawable/progress_indeterminate_horizontal"
+        android:indeterminateOnly="false"
+        android:maxHeight="20sp"
+        android:minHeight="20sp"
+        android:progressDrawable="@android:drawable/progress_horizontal" >
+    </ProgressBar>
+
+</RelativeLayout>

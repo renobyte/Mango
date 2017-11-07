@@ -1,0 +1,193 @@
+package com.ls.manga.activities;
+
+import com.ls.manga.Mango;
+import com.ls.manga.MangoActivity;
+import com.ls.manga.ui.MangoAdWrapperView;
+import com.ls.manga.ui.MangoTutorialHandler;
+import com.ls.manga.R;
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.View.OnClickListener;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.AdapterView.OnItemClickListener;
+
+public class SiteSelectorActivity extends MangoActivity
+{
+	private MenuChoice[] MENU_CHOICES = new MenuChoice[] { new MenuChoice("MangaHere", Mango.SITE_MANGAHERE),
+	        new MenuChoice("MangaFox", Mango.SITE_MANGAFOX),
+	        new MenuChoice("Mangable", Mango.SITE_MANGABLE),
+	        new MenuChoice("AnimeA", Mango.SITE_ANIMEA),
+	        new MenuChoice("MangaShare", Mango.SITE_MANGASHARE),
+	        new MenuChoice("MangaStream", Mango.SITE_MANGASTREAM),
+	        new MenuChoice("MangaReader", Mango.SITE_MANGAREADER),
+	        new MenuChoice("Submanga [Español]", Mango.SITE_SUBMANGA) };
+
+	// new MenuChoice("Test Site", PocketManga.SITE_TEST) };
+
+	class MenuChoice
+	{
+		String text;
+		int    id;
+
+		MenuChoice(String t, int siteId)
+		{
+			text = t;
+			id = siteId;
+		}
+	}
+
+	private ListView mListview;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		super.mTitleOverride = true;
+		setTitle("Choose a manga source...");
+		inflateLayoutManager(this, R.layout.siteselectionscreen);
+		super.setAdLayout((MangoAdWrapperView) findViewById(R.id.siteselectAdLayout));
+		super.setJpBackground(R.drawable.jp_bg_browseby);
+
+		mListview = (ListView) findViewById(R.id.siteselectList);
+		mListview.setAdapter(new SiteSelectorAdapter(this));
+		mListview.setOnItemClickListener(new OnItemClickListener()
+		{
+
+			@Override
+			public void onItemClick(AdapterView<?> parent, View v, int position, long id)
+			{
+				itemClicked(MENU_CHOICES[position].id);
+			}
+		});
+
+		if (!Mango.getSharedPreferences().getBoolean("tutorial" + MangoTutorialHandler.SITE_SELECTION + "Done", false))
+			MangoTutorialHandler.startTutorial(MangoTutorialHandler.SITE_SELECTION, this);
+	}
+
+	protected void itemClicked(int id)
+	{
+		if (id == Mango.SITE_MANGAREADER && !Mango.getSharedPreferences().getBoolean("popupWarnMangareader", false))
+		{
+			Mango.alert(
+			        "MangaReader blocks readers from the United States from reading many of their titles.  If you're in the US, you should use a different manga source.  Otherwise, tap on MangaReader again to confirm that you want to use this source.",
+			        "Warning!", this);
+			Mango.getSharedPreferences().edit().putBoolean("popupWarnMangareader", true).commit();
+			return;
+		}
+		Mango.getSharedPreferences().edit().putInt("mangaSite", id).commit();
+		Intent intent = new Intent();
+		intent.setClassName("com.ls.manga", "com.ls.manga.activities.BrowseByActivity");
+		startActivity(intent);
+	}
+
+	private void siteInfoClicked(int id)
+	{
+		SiteInfoDialog dialog = new SiteInfoDialog(SiteSelectorActivity.this);
+
+		String description = "";
+		int resId = 0;
+
+		switch (id)
+		{
+			case Mango.SITE_MANGAHERE:
+				description = "Over 8,000 titles, including nearly all popular manga. Fast releases, decent image quality.";
+				resId = R.drawable.logo_mangahere;
+				break;
+			case Mango.SITE_MANGAFOX:
+				description = "Over 7,000 titles, including lots of shoujo and yaoi manga. Some popular manga are not available due to copyright/legal concerns. Moderate image quality.";
+				resId = R.drawable.logo_mangafox_small;
+				break;
+			case Mango.SITE_MANGAREADER:
+				description = "Over 4,000 titles, including most popular manga. Fast releases, decent image quality.\n\nNOTE: MangaReader blocks IP addresses from the United States!  Use another source if you're reading from the US.";
+				resId = R.drawable.logo_mangareader_small;
+				break;
+			case Mango.SITE_MANGABLE:
+				description = "Over 2,000 titles, including nearly all popular manga, but can be slow during peak times. Decent image quality.";
+				resId = R.drawable.logo_mangable_small;
+				break;
+			case Mango.SITE_MANGASHARE:
+				description = "About 150 titles. Small library consisting mostly of popular manga, but high image quality and fast releases.";
+				resId = R.drawable.logo_mangashare_small;
+				break;
+			case Mango.SITE_ANIMEA:
+				description = "Over 6,000 titles, including nearly all popular manga. Usually good quality scans, but tends to have a lot of missing or broken pages.";
+				resId = R.drawable.logo_animea_small;
+				break;
+			case Mango.SITE_MANGASTREAM:
+				description = "About 30 titles. First site to upload the weekly Bleach/Naruto/One Piece, since they translate it themselves.\n\nIMPORTANT: MangaStream only allows you to read the last ~10 chapters. To read older chapters, use another manga source.";
+				resId = R.drawable.logo_mangastream_small;
+				break;
+			case Mango.SITE_SUBMANGA:
+				description = "Más de 2,000 titulos, incluidos casi todos manga populares. Los scanlations son de calidad medio-alta.";
+				resId = R.drawable.logo_submanga_small;
+				break;
+			default:
+				description = "Something didn't work right here! @_@";
+				resId = R.drawable.ic_error;
+		}
+
+		dialog.initializeInfoPopup(resId, description);
+		dialog.show();
+	}
+
+	class ViewHolder
+	{
+		TextView  text;
+		ImageView icon;
+		ImageView star;
+	}
+
+	class SiteSelectorAdapter extends ArrayAdapter<MenuChoice>
+	{
+		LayoutInflater mInflater = null;
+
+		int            mHelpIcon;
+
+		public SiteSelectorAdapter(Activity context)
+		{
+			super(context, R.layout.iconlistrow, MENU_CHOICES);
+			mInflater = context.getLayoutInflater();
+			mHelpIcon = R.drawable.ic_about;
+		}
+
+		@Override
+		public View getView(final int position, View convertView, ViewGroup parent)
+		{
+			ViewHolder holder;
+			if (convertView == null)
+			{
+				convertView = mInflater.inflate(R.layout.iconlistrow, null);
+				holder = new ViewHolder();
+				holder.text = (TextView) convertView.findViewById(R.id.label);
+				holder.icon = (ImageView) convertView.findViewById(R.id.icon);
+				holder.star = (ImageView) convertView.findViewById(R.id.star);
+				convertView.setTag(holder);
+			}
+			else
+			{
+				holder = (ViewHolder) convertView.getTag();
+			}
+			holder.text.setText(MENU_CHOICES[position].text);
+			holder.icon.setVisibility(View.GONE);
+			holder.star.setImageResource(mHelpIcon);
+			holder.star.setOnClickListener(new OnClickListener()
+			{
+
+				@Override
+				public void onClick(View v)
+				{
+					siteInfoClicked(MENU_CHOICES[position].id);
+				}
+			});
+			return convertView;
+		}
+	}
+}

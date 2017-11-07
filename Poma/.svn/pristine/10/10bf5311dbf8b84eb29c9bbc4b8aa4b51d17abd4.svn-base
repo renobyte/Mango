@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="StartupWelcomeToMango">Welcome to Mango!</string>
+    <string name="StartupConnectingToService">Connecting to the Mango Service...</string>
+    <string name="StartupConnectionFailed">Connection failed! :\'(</string>
+    <string name="StartupConnectionFailedError">Mango couldn\'t connect to the internet. Check your mobile data connectivity and try again.</string>
+    <string name="StartupDeviceBanned">Device is banned.</string>
+    <string name="StartupUnrecognizedVersion">Unrecognized version ID.</string>
+    <string name="StartupUnrecognizedVersionError">The Mango Service doesn\'t recognize this version. Please reinstall the newest version of Mango.
+        [Error 3]
+    </string>
+    <string name="StartupExpiredVersion">Outdated version!</string>
+    <string name="StartupExpiredVersionError">There is a new version of Mango available! This version no longer works, so please update Mango from the Android Market.
+        [Error 4]
+    </string>
+    <string name="StartupServiceOffline">Mango Service is temporarily offline!</string>
+    <string name="StartupServiceOfflineError">The Mango Service is temporarily offline for maintenance. Read the message below for more info.
+
+    </string>
+    <string name="StartupConnected">Connected!</string>
+    <string name="StartupUnexpectedResponse">Unexpected response!</string>
+    <string name="StartupUnexpectedResponseError">Mango received an unexpected response from the Mango Service. It may be experiencing server issues.
+
+    </string>
+    <string name="StartupOfflineModeHelp">Tap the globe icon at the top-right corner of the screen to enter Offline Mode.</string>
+
+    <string name="MainMenuBrowse">Browse Manga</string>
+    <string name="TitleMyLibrary">My Library</string>
+    <string name="TitleFavorites">Favorites</string>
+    <string name="TitleHistory">History</string>
+    <string name="TitleSettingsAndHelp">Settings and Help</string>
+    <string name="BankaiToastNag">Want to get rid of ads, and support Mango\'s developer at the same time? Tap here to upgrade to Mango Bankai!</string>
+    <string name="MainMenuUpdateToast">An update for Mango is available!</string>
+    <string name="MainMenuUpdateAvailable">Update available!</string>
+
+    <string name="ErrorCacheWriteLocked"><![CDATA[Mango cannot write to the cache folder!  It\'s possible that your SD card is full, mounted, or write-locked.  You will not be able to read manga until Mango can access the cache folder again.
+
+<strong>Possible Solutions:</strong>
+<small>-Unmount the SD card, if it is mounted
+-Unplug your device if it is plugged into a computer
+-Make sure the SD card isn\'t full
+-Restart your device</small>]]></string>
+    <string name="ErrorSDCardNearlyFull">Your external storage is almost full! (%dMB remaining)
+
+        If it becomes full, Mango probably won\'t function properly.
+
+        Try to delete some stuff from your external storage, such as camera photos, music, or My Library chapters until you\'re above 20MB of available space.
+    </string>
+    <string name="ErrorSDCardFull">Your external storage is full! Mango probably won\'t work properly.
+
+        Try deleting some stuff from your external storage, such as camera photos, music, or My Library chapters to free up space.
+    </string>
+
+    <string name="DialogFlurryTitle">Enable Analytics?</string>
+    <string name="DialogFlurryMessage">Would you like to enable Flurry Analytics?
+
+        This will help make Mango even more awesome in the future by anonymously sending usage statistics and crash reports. No information about the manga you read or
+        download is collected.
+
+        You can change this setting at any time from Preferences.
+    </string>
+
+    <string name="ButtonUpdateApp">Update</string>
+    <string name="ButtonOkay">Okay</string>
+    <string name="ButtonSure">Sure</string>
+    <string name="ButtonNah">Nah</string>
+
+    <string name="SiteSelectTitle">Choose a manga source...</string>
+    <string name="BrowseByAllManga">All Manga</string>
+    <string name="BrowseByGenre">Genre</string>
+    <string name="BrowseByPopularity">Popularity</string>
+    <string name="BrowseByLatestUpdates">Latest Updates</string>
+    <string name="BrowseByArtist">Artist</string>
+    <string name="BrowseByAdvancedSearch">Advanced Search</string>
+    <string name="BrowseByTitle">Browse by...</string>
+
+    <string name="TextDownloadingData">Downloading data...</string>
+    <string name="TextRetrievingFromService">Retrieving the manga list from the Mango Service...</string>
+    <string name="TextProcessingData">Processing data...</string>
+    <string name="TextHangTight">Hang tight for just a bit...</string>
+    <string name="TextError">Error</string>
+    <string name="TextWarning">Warning</string>
+
+    <string name="ErrorDownloadFailed">Sorry, Mango wasn\'t able to load the requested data. :\'(
+
+        Try again in a moment, or switch to another manga source.
+
+    </string>
+    <string name="ErrorDownloadFailedBack">Download failed! Press the back key and try again.</string>
+    <string name="ErrorTitleConnectivityProblem">Connectivity Problem! T__T</string>
+    <string name="ErrorTitleProblem">Problem! T__T</string>
+
+    <string name="DialogFavoriteRemoved">%s has been removed from your favorites.</string>
+    <string name="DialogTitleFavoriteRemoved">Favorite removed!</string>
+    <string name="DialogFavoriteAdded">%s has been favorited! Mango will now track your reading progress in the Favorites screen.</string>
+    <string name="DialogTitleFavoriteAdded">Favorite added!</string>
+    <string name="ArtistsTitle">Artists</string>
+    <string name="ErrorMangoServiceError">The Mango Service gave the following error:
+
+    </string>
+    <string name="BankaiScreenTitle">Mango Bankai (ad-free)</string>
+    <string name="BankaiScreenTypeOrderNumber">Type or paste order number here</string>
+    <string name="TextImportant">Important!</string>
+    <string name="BankaiScreenRegisterConfirm">Each order number can only be registered to one device. To re-register this order number later, you\'ll need to email us.
+        Are you sure you\'d like to associate this order number with the device you\'re using now?
+    </string>
+    <string name="ButtonYep">Yep</string>
+    <string name="BankaiScreenRegisterFailure">Mango wasn\'t able to activate your Bankai key for the following reason:
+
+    </string>
+    <string name="BankaiScreenRegisterSuccess">Mango Bankai has been successfully activated on this device! Ads should be gone once you reset the app.</string>
+    <string name="TextUhOh">Uh oh!</string>
+    <string name="TextSuccess">Success!</string>
+    <string name="ChapterListFindHint">Type a chapter number.</string>
+    <string name="ChapterListMenuSaveToLibrary">Download to My Library</string>
+    <string name="ChapterListMenuMarkUnread">Mark as Unread</string>
+    <string name="ChapterListMenuMarkRead">Mark as Read</string>
+    <string name="ChapterListMenuSetPreviousUnread">Set this and previous as unread</string>
+    <string name="ChapterListMenuSetPreviousRead">Set this and previous as read</string>
+    <string name="MenuAddFavorite">Add Favorite</string>
+    <string name="MenuRemoveFavorite">Remove Favorite</string>
+    <string name="TextCancel">Cancel</string>
+    <string name="MenuMultiSelectDownload">Download These</string>
+    <string name="MenuMultiSelectActivate">Multi-Select</string>
+    <string name="MultiSelectCancelled">Multi-select mode cancelled.</string>
+    <string name="MultiSelectDownloadHelp">Multi-select mode allows you to quickly queue a bunch of chapters to download.
+
+        Tap the first chapter you wish to download, then the last. Finally, press the check button. Press Back to cancel.
+    </string>
+    <string name="MultiSelectActivated">Multi-select mode activated.</string>
+    <string name="DialogTitleAddToQueue">Add to Queue</string>
+    <string name="DialogAddToQueueConfirm">Are you sure you want to add %d chapters to the download queue?</string>
+    <string name="ButtonNoCancel">No, cancel</string>
+    <string name="ButtonYes">Yes</string>
+    <string name="ChapterListErrorEmpty">The chapter list for this manga was empty. Try looking it up on another manga source.</string>
+    <string name="ChapterListErrorEmptyTitle">No Chapter List</string>
+    <string name="ChapterListArtAndStoryBy">Art and story by %s</string>
+    <string name="ChapterListArtistAuthor">%s and %s</string>
+    <string name="ChapterListResumeFrom">Resume from %s%s</string>
+    <string name="ChapterListItemPrefix">Chapter</string>
+    <string name="ChapterListWhatToDo">What do you want to do with this chapter?</string>
+    <string name="ButtonStartReading">Start Reading</string>
+    <string name="ButtonSaveToLibrary">Save to Library</string>
+    <string name="MultiSelectTip">Want to quickly add a bunch of chapters to your download queue? Just press your phone\'s Menu key and choose Multi-Select!</string>
+    <string name="TextTip">Tip</string>
+    <string name="ChapterListLengthSchedule">%d chapters (%s)</string>
+    <string name="ChapterListAddedDate">Added on %s</string>
+    <string name="ChapterListAddedDateScanlator">Added on %s by %s</string>
+    <string name="ChapterListAddedScanlator">Scanlated by %s</string>
+    <string name="FeedbackTitle">Send Feedback</string>
+    <string name="FeedbackAddMoreText">Please add a bit more text to your message!
+
+        Thanks. ^__^
+    </string>
+    <string name="FeedbackAddMoreBug">When reporting a bug, be as detailed as possible so I can track it down! Be sure to include the manga and chapter you were reading,
+        if applicable. Reports with very little or no detail will be deleted. :\'(
+
+        Thanks. ^__^
+    </string>
+    <string name="FeedbackAddMoreTitle">Please type more!</string>
+    <string name="FeedbackGreeting">Thanks for your interest in contacting Leetsoft! What\'s the nature of your feedback?</string>
+    <string name="FeedbackImHavingAnIssue">I\'m having an issue with the app.</string>
+    <string name="FeedbackIHaveASuggestion">I\'ve got a cool suggestion for you!</string>
+    <string name="FeedbackIFoundMissingPages">I found some missing pages or chapters.</string>
+    <string name="FeedbackSomethingElse">Something else (praise, other comments, or help)</string>
+    <string name="FeedbackReportAnIssue">Report an Issue</string>
+    <string name="FeedbackIssueSorry">Sorry that you\'re having a problem with Mango. Please choose the option below that describes your issue:</string>
+    <string name="FeedbackIssueNoPages">I can\'t view any pages at all.</string>
+    <string name="FeedbackIssueCrash">I\'m getting a \'Force Close\' crash repeatedly.</string>
+    <string name="FeedbackNoneOfTheAbove">None of the above</string>
+    <string name="FeedbackSuggestionTitle">Send a Suggestion</string>
+    <string name="FeedbackSuggestionGreeting">Have a suggestion to make Mango even better? Describe it below and we\'ll consider adding it!</string>
+    <string name="FeedbackMissingPagesTitle">Missing Pages</string>
+    <string name="FeedbackMissingPagesBody">If there are occasional missing pages or chapters in a manga, you will need to contact the manga source (such as MangaFox.com
+        or MangaReader.net) to ask them to fix them.
+
+        Please note that the developer of Mango does not actually upload or host any content; Mango is sort of like a search engine that directs you to the manga you want
+        to read. Unfortuantely this means that missing pages or chapters are not under our control.
+
+        Try reading the manga on a different manga source (for example, if you\'re using MangaFox, try MangaReader instead) and see if the missing pages appear.
+    </string>
+    <string name="FeedbackOtherTitle">Other Feedback</string>
+    <string name="FeedbackOtherGreeting">Have a random comment, or perhaps just some praise? Or maybe you need some general help with using the app? Let us know below!
+    </string>
+    <string name="FeedbackNoPagesTitle">Can\'t Read Anything</string>
+    <string name="FeedbackNoPagesGreeting">If *all* pages are failing to load (and you\'ve tried multiple manga sources), please let us know below. If you\'ve only tried
+        one manga source, try another one; the first one might be temporarily down.
+    </string>
+    <string name="FeedbackCrashesTitle">Force Close Crashes</string>
+    <string name="FeedbackCrashesGreeting">If Mango is force closing (displaying a popup that says \'Sorry! The application Mango has stopped unexpectedly\'), please
+        describe the circumstances below.
+    </string>
+    <string name="FeedbackOtherIssuesTitle">Other Issues</string>
+    <string name="FeedbackOtherIssuesGreeting">Having an issue with the app that wasn\'t listed? Please describe your issue below, as detailed as you possibly can.
+    </string>
+    <string name="FeedbackSendMessageIntent">Send message via...</string>
+    <string name="FeedbackStartingEmailApp">Starting email app, one sec...</string>
+    <string name="FeedbackThanks">Thanks for your feedback!
+
+        Please note that while I do read every message, I get almost 100 per day and sadly I can\'t respond to each one. If you really want a reply, posting on Mango\'s
+        Facebook page is a good idea.
+
+        www.facebook.com/MangoApp
+
+        Thanks again!
+    </string>
+    <string name="DownloadManagerTitle">Download Manager</string>
+    <string name="DownloadManagerAutoPaused">Mango has paused the download because there is no mobile data connectivity, or because you are on a phone call.
+
+        The download will automatically resume once Mango can connect again.
+    </string>
+    <string name="DownloadManagerButtonResume">Resume</string>
+    <string name="DownloadManagerButtonPause">Pause</string>
+    <string name="DownloadManagerReportTitle">Download Report</string>
+    <string name="DialogTitleAreYouSure">Are you sure?</string>
+    <string name="DownloadManagerDialogCancel">This will immediately stop the current download and drop the queue.</string>
+    <string name="DialogManagerButtonCancelQueue">Yes, cancel</string>
+    <string name="ButtonNoNeverMind">No, never mind</string>
+    <string name="DownloadManagerEmptyQueue">The download queue is empty!
+
+        To read downloaded chapters, go to the My Library screen.
+    </string>
+    <string name="DownloadManagerContinueTitle">Continue Downloading?</string>
+    <string name="DownloadManagerContinue">It seems like Mango shut down last time without finishing all of your downloads. Would you like to resume downloading them
+        now?
+    </string>
+    <string name="DownloadManagerMenuCancel">Cancel</string>
+    <string name="DownloadManagerMenuRemove">Remove</string>
+    <string name="DownloadManagerMenuUp">Move Up</string>
+    <string name="DownloadManagerMenuDown">Move Down</string>
+    <string name="DownloadManagerMenuTop">Move to Top</string>
+    <string name="DownloadManagerMenuBottom">Move to Bottom</string>
+    <string name="DownloadManagerErrorFirstItem">This is already the first item in the queue!</string>
+    <string name="DownloadManagerErrorAlreadyStarted">This item can\'t be moved because the one before it has already started downloading!</string>
+    <string name="DownloadManagerErrorLastItem">This is already the last item in the queue!</string>
+    <string name="DownloadManagerErrorLocked">This item can\'t be moved because it has already started downloading!</string>
+    <string name="DownloadManagerStatusAutoPaused">paused (no signal)</string>
+    <string name="DownloadManagerStatusPaused">paused</string>
+    <string name="DownloadManagerStatusCooldown">waiting for cooldown (%d seconds)</string>
+    <string name="DownloadManagerStatusQueued">queued</string>
+    <string name="FavoritesDownloadingData">Mango is downloading some more information about this favorite...</string>
+    <string name="FavoritesMenuCheckChaptersError">Before Mango can check for new chapters, you need to tell it which favorites you want it to check!
+
+        Press Menu, select Notifications, then mark favorites you want Mango to check by tapping on them!
+    </string>
+    <string name="FavoritesMenuCheckChaptersErrorTitle">No favorites to check!</string>
+    <string name="FavoritesToastNotificationDisabled">You\'re no longer in Notification Mode.</string>
+    <string name="FavoritesRememberToEnable"><![CDATA[Remember to go to Settings and Help >> Notification Preferences to enable notifications!]]></string>
+    <string name="FavoritesRememberToEnableTitle">Don\'t forget!</string>
+    <string name="FavoritesNotificationsDisabledTitle">Notifications are disabled!</string>
+    <string name="FavoritesNotificationsDisabled">Notications are not enabled. Do you want to go to the Notification Preferences screen now?</string>
+    <string name="ButtonNoDoItLater">No, later.</string>
+    <string name="FavoritesNotificationsLater">Okay. You can enable notifications later.
+
+    </string>
+    <string name="FavoritesToastNotificationEnabled">You\'re now in Notification Mode. Tap on a Favorite to toggle notifications for that Favorite.
+
+        Press Back when finished.
+    </string>
+    <string name="FavoritesToastTagDisabled">You\'re no longer in Tag Mode.</string>
+    <string name="FavoritesToastTagEnabled">You\'re now in Tag Mode. Tap on a favorite to quickly change its tag.
+
+        Press Back when finished.
+    </string>
+    <string name="FavoritesMenuResume">Resume Reading</string>
+    <string name="FavoritesMenuViewChapters">View Chapter List</string>
+    <string name="FavoritesMenuSetTag">Set Tag</string>
+    <string name="FavoritesMenuClearProgress">Clear Progress</string>
+    <string name="FavoritesMenuDelete">Delete Favorite</string>
+    <string name="FavoritesMenuSetCoverArt">Set Cover Art</string>
+    <string name="FavoritesMenuClearLatestChapter">Clear Latest Chapter</string>
+    <string name="FavoritesMenuMarkAsNewChapter">Mark as New Chapter</string>
+    <string name="FavoritesMenuUnmarkAsNewChapter">Unmark as New Chapter</string>
+    <string name="FavoritesSetTagForFavorite">Set tag for %s:</string>
+    <string name="FavoritesSetTagNone">None</string>
+    <string name="FavoritesSetTagGreen">[Green]</string>
+    <string name="FavoritesSetTagRed">[Red]</string>
+    <string name="FavoritesSetTagBlue">[Blue]</string>
+    <string name="FavoritesSetTagYellow">[Yellow]</string>
+    <string name="FavoritesSetTagPurple">[Purple]</string>
+    <string name="FavoritesSetTagGray">[Gray]</string>
+    <string name="FavoritesSetTagEdit">Which tag would you like to edit?</string>
+    <string name="FavoritesSetTagEditName">Edit Tag Name</string>
+    <string name="FavoritesSetTagEditText">Type a new name for the \'%s\' tag.</string>
+    <string name="FavoritesSetTagEditButtonRename">Rename!</string>
+    <string name="ButtonNeverMind">Never mind</string>
+    <string name="FavoritesSortTitle">Sort Order</string>
+    <string name="FavoritesSortAlpha">Alphabetically</string>
+    <string name="FavoritesSortLastViewed">By Last Viewed Date</string>
+    <string name="FavoritesSortTag">By Tag</string>
+    <string name="FavoritesSortSite">By Site</string>
+    <string name="FavoritesSortLastUpdated">By Last Updated Date</string>
+</resources>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ilr2RowHolder"
+    android:layout_width="fill_parent"
+    android:layout_height="68dp"
+    android:minHeight="68dp" >
+
+    <View
+        android:id="@+id/ilr2ReadTag"
+        android:layout_width="5dp"
+        android:layout_height="fill_parent"
+        android:background="#555555"
+        android:paddingRight="2dp" >
+    </View>
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" >
+
+        <ImageView
+            android:id="@+id/ilr2Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toRightOf="@+id/ilr2ReadTag"
+            android:adjustViewBounds="true"
+            android:maxHeight="48dp"
+            android:maxWidth="48dp"
+            android:paddingLeft="2dp"
+            android:paddingTop="2dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/ic_error" />
+
+        <TextView
+            android:id="@+id/ilr2Label"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_toRightOf="@+id/ilr2Icon"
+            android:maxLines="2"
+            android:paddingLeft="3dp"
+            android:paddingRight="3dp"
+            android:text="History&apos;s Strongest Disciple Kenichi: Chapter 251"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/ilr2Site"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/ilr2Label"
+            android:layout_below="@+id/ilr2Label"
+            android:maxLines="1"
+            android:paddingLeft="3dp"
+            android:text="MangaFox"
+            android:textColor="#666666"
+            android:textSize="17sp" >
+        </TextView>
+    </RelativeLayout>
+
+</LinearLayout>

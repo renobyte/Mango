@@ -1,0 +1,349 @@
+package com.ls.manga.activities;
+
+import java.io.File;
+import java.io.IOException;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.NotificationManager;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.ls.manga.Bookmark;
+import com.ls.manga.Mango;
+import com.ls.manga.MangoActivity;
+import com.ls.manga.MangoSqlite;
+import com.ls.manga.R;
+import com.ls.manga.ui.MangoAdWrapperView;
+
+public class SettingsMenuActivity extends MangoActivity
+{
+	private MenuChoice[]       mActiveMenu;
+
+	private final MenuChoice[] NORMAL_MENU   = new MenuChoice[] { new MenuChoice("Preferences", 1, R.drawable.ic_options),
+	        new MenuChoice("Notification Preferences", 2, R.drawable.ic_notifications),
+	        new MenuChoice("Activate PocketManga Bankai (ad-free)", 6, R.drawable.icon_bankai),
+	        new MenuChoice("Download Manager", 4, R.drawable.ic_network),
+	        new MenuChoice("Send Feedback", 3, R.drawable.ic_contact),
+	        new MenuChoice("Clear User Data", 5, R.drawable.ic_clear_data),
+	        new MenuChoice("Advanced Options", 7, R.drawable.ic_error) };
+
+	private final MenuChoice[] ADVANCED_MENU = new MenuChoice[] { new MenuChoice("Debug Log", 50, R.drawable.ic_error),
+	        new MenuChoice("SharedPreferences Editor", 51, R.drawable.ic_error),
+	        new MenuChoice("Force Stop", 52, R.drawable.ic_error),
+	        new MenuChoice("Set Tutorials As Finished", 54, R.drawable.ic_error), };
+
+	class MenuChoice
+	{
+		String text;
+		int    id;
+		int    icon;
+
+		MenuChoice(String t, int i, int iconId)
+		{
+			id = i;
+			text = t;
+			icon = iconId;
+		}
+	}
+
+	private ListView mSettingsMenu;
+	private int      mMenuLevel = 0;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setTitle("Settings and Help", null);
+		inflateLayoutManager(this, R.layout.mainmenu);
+		super.setAdLayout((MangoAdWrapperView) findViewById(R.id.mainmenuAdLayout));
+		super.setJpBackground(R.drawable.jp_bg_settings);
+
+		mSettingsMenu = (ListView) findViewById(R.id.MainMenuList);
+		mActiveMenu = NORMAL_MENU;
+		if (!Mango.DISABLE_ADS)
+			mActiveMenu[2].text = "Remove Ads with Bankai!";
+		else
+			mActiveMenu[2].text = "View Bankai License";
+		mSettingsMenu.setAdapter(new SettingsMenuAdapter(this));
+		mSettingsMenu.setOnItemClickListener(new OnItemClickListener()
+		{
+
+			@Override
+			public void onItemClick(AdapterView<?> parent, View v, int position, long id)
+			{
+				menuItemClicked(position);
+			}
+		});
+	}
+
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event)
+	{
+		if (keyCode == KeyEvent.KEYCODE_BACK && mMenuLevel != 0)
+		{
+			if (mMenuLevel == 1)
+			{
+				mActiveMenu = NORMAL_MENU;
+				mSettingsMenu.setAdapter(new SettingsMenuAdapter(this));
+
+			}
+
+			mMenuLevel--;
+			return true;
+		}
+		return super.onKeyDown(keyCode, event);
+	}
+
+	private void menuItemClicked(int position)
+	{
+		int itemId = mActiveMenu[position].id;
+		if (itemId == 1)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.PreferencesActivity");
+			startActivity(myIntent);
+		}
+		else if (itemId == 2)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.NotifierPrefsActivity");
+			startActivity(myIntent);
+		}
+		else if (itemId == 3)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.ContactActivity");
+			startActivity(myIntent);
+		}
+		else if (itemId == 4)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.DownloaderActivity");
+			startActivity(myIntent);
+		}
+		else if (itemId == 5)
+		{
+			clearUserDataPrompt();
+		}
+		else if (itemId == 6)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.BankaiActivity");
+			startActivity(myIntent);
+		}
+		else if (itemId == 7)
+		{
+			mMenuLevel = 1;
+			mActiveMenu = ADVANCED_MENU;
+			mSettingsMenu.setAdapter(new SettingsMenuAdapter(SettingsMenuActivity.this));
+		}
+		else if (itemId == 50)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.LogcatActivity");
+			startActivity(myIntent);
+		}
+		else if (itemId == 51)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.SharedPrefsActivity");
+			startActivity(myIntent);
+		}
+		else if (itemId == 52)
+		{
+			NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+			manager.cancelAll();
+			android.os.Process.killProcess(android.os.Process.myPid());
+		}
+		else if (itemId == 53)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.BookmarksActivity");
+			startActivity(myIntent);
+		}
+		else if (itemId == 54)
+		{
+			for (int i = 0; i < 10; i++)
+			{
+				Mango.getSharedPreferences().edit().putBoolean("tutorial" + i + "Done", true).commit();
+			}
+			File f = new File(Mango.getPomaDataDirectory() + "/PocketManga/notutorials.txt");
+			try
+			{
+				f.createNewFile();
+			}
+			catch (IOException e)
+			{
+				Toast.makeText(this, "Unable to create 'notutorials.txt' file!", Toast.LENGTH_LONG).show();
+				return;
+			}
+			Toast.makeText(this, "Tutorials will be suppressed as long as the notutorials.txt file exists on the SD card.", Toast.LENGTH_LONG).show();
+		}
+		else
+		{
+			Mango.alert("Not yet implemented", SettingsMenuActivity.this);
+		}
+	}
+
+	private void clearUserDataPrompt()
+	{
+		AlertDialog.Builder a = new AlertDialog.Builder(this);
+		a.setTitle("Select data to clear:");
+		String[] options = new String[] { "SharedPreferences",
+		        "Favorites Database",
+		        "History Database",
+		        "Library Database" };
+		final boolean[] selection = new boolean[] { false,
+		        false,
+		        false,
+		        false };
+		a.setCancelable(true);
+		a.setMultiChoiceItems(options, selection, new DialogInterface.OnMultiChoiceClickListener()
+		{
+
+			@Override
+			public void onClick(DialogInterface dialog, int which, boolean isChecked)
+			{
+				selection[which] = isChecked;
+			}
+		});
+		a.setPositiveButton("Okay", new OnClickListener()
+		{
+
+			@Override
+			public void onClick(DialogInterface dialog, int which)
+			{
+				dialog.dismiss();
+				AlertDialog alert = new AlertDialog.Builder(SettingsMenuActivity.this).create();
+				alert.setTitle("Clear User Data");
+				alert.setMessage("The selected data will be permanently erased.\n\nWARNING: This action cannot be reversed! Are you certain?");
+				alert.setButton(-1, "Yes!", new DialogInterface.OnClickListener()
+				{
+					public void onClick(DialogInterface dialog, int which)
+					{
+						wipeData(selection);
+					}
+				});
+				alert.setButton(-3, "No, cancel!", new DialogInterface.OnClickListener()
+				{
+					public void onClick(DialogInterface dialog, int which)
+					{}
+				});
+				alert.show();
+			}
+		});
+		a.setNegativeButton("Never mind", new OnClickListener()
+		{
+
+			@Override
+			public void onClick(DialogInterface dialog, int which)
+			{}
+		});
+		a.show();
+	}
+
+	private void wipeData(boolean[] args)
+	{
+		String report = "The following data were cleared:\n";
+		MangoSqlite db = new MangoSqlite(this);
+		db.open();
+		if (args[0])
+		{
+			report += "SharedPreferences\n";
+			Mango.getSharedPreferences().edit().clear().commit();
+		}
+		if (args[1])
+		{
+			report += "Favorites Database\n";
+			db.db.execSQL("DROP TABLE IF EXISTS tFavorites");
+			db.db.execSQL(MangoSqlite.DATABASE_CREATE_FAVORITES);
+		}
+		if (args[2])
+		{
+			report += "History Database\n";
+			db.db.execSQL("DELETE FROM tBookmarks WHERE bookmarkType = " + Bookmark.RECENT);
+		}
+		if (args[3])
+		{
+			report += "Library Database\n";
+			db.db.execSQL("DROP TABLE IF EXISTS tLibrary");
+			db.db.execSQL(MangoSqlite.DATABASE_CREATE_LIBRARY);
+		}
+		db.close();
+		report += "\n";
+
+		Mango.initializeApp(SettingsMenuActivity.this);
+		Mango.alert(report + "PocketManga will restart in three seconds. Here's to a fresh start!", SettingsMenuActivity.this);
+
+		mSettingsMenu.postDelayed(new Runnable()
+		{
+
+			@Override
+			public void run()
+			{
+				Intent myIntent = new Intent();
+				myIntent.putExtra("updateavailable", false);
+				myIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+				myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.MainMenuActivity");
+				startActivity(myIntent);
+				// finish();
+				overridePendingTransition(R.anim.fadein, R.anim.dummy_vis);
+			}
+		}, 3000);
+	}
+
+	class ViewHolder
+	{
+		TextView  text;
+		ImageView icon;
+		ImageView star;
+	}
+
+	class SettingsMenuAdapter extends ArrayAdapter<MenuChoice>
+	{
+		LayoutInflater mInflater = null;
+
+		public SettingsMenuAdapter(Activity context)
+		{
+			super(context, R.layout.iconlistrow, mActiveMenu);
+			mInflater = context.getLayoutInflater();
+		}
+
+		@Override
+		public View getView(final int position, View convertView, ViewGroup parent)
+		{
+			ViewHolder holder;
+			if (convertView == null)
+			{
+				convertView = mInflater.inflate(R.layout.iconlistrow, null);
+				holder = new ViewHolder();
+				holder.text = (TextView) convertView.findViewById(R.id.label);
+				holder.icon = (ImageView) convertView.findViewById(R.id.icon);
+				holder.star = (ImageView) convertView.findViewById(R.id.star);
+				convertView.setTag(holder);
+			}
+			else
+			{
+				holder = (ViewHolder) convertView.getTag();
+			}
+			holder.text.setText(mActiveMenu[position].text);
+			holder.icon.setImageResource(mActiveMenu[position].icon);
+			holder.star.setVisibility(View.INVISIBLE);
+			return convertView;
+		}
+	}
+}

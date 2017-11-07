@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_height="fill_parent"
+	android:layout_width="fill_parent"
+	android:layout_gravity="center_horizontal">
+	<ScrollView
+		android:layout_height="fill_parent"
+		android:layout_width="fill_parent"
+		android:fillViewport="true">
+		<LinearLayout
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:orientation="vertical">
+			<TextView
+				android:text="Send Feedback"
+				android:layout_width="wrap_content"
+				android:id="@+id/feedbackHeader"
+				android:textSize="25sp"
+				android:layout_height="wrap_content"
+				android:textStyle="bold"
+				android:layout_gravity="center_horizontal"></TextView>
+			<View
+				android:layout_height="1sp"
+				android:background="#999999"
+				android:layout_width="fill_parent"
+				android:id="@+id/feedbackDivider"></View>
+			<TextView
+				android:text="Have a comment, bug report, or suggestion? Please describe it below!"
+				android:id="@+id/feedbackHelpText"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"></TextView>
+			<EditText
+				android:id="@+id/feedbackTextbox"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:minLines="2"></EditText>
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:id="@+id/linearLayout1"
+				android:layout_height="wrap_content"
+				android:orientation="vertical">
+				<Button
+					android:id="@+id/feedbackSubmit"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:text="Send"
+					android:layout_weight="1"></Button>
+			</LinearLayout>
+
+		</LinearLayout>
+	</ScrollView>
+
+</LinearLayout>

@@ -1,0 +1,54 @@
+package com.ls.manga;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.util.Map;
+
+import org.apache.http.util.ByteArrayBuffer;
+
+import android.content.SharedPreferences;
+import com.ls.manga.R;
+
+public class PreferencesHandler
+{
+	private Map     mSpeMap;
+	private boolean mUseDisk;
+	private String  mPrefsFile;
+
+	public PreferencesHandler()
+	{
+		mPrefsFile = PocketManga.CONTEXT.getFilesDir() + "/diskprefs.dat";
+		File f = new File(mPrefsFile);
+		if (f.exists())
+			mUseDisk = true;
+	}
+
+	private void loadPreferencesFromDisk()
+	{
+		File f = new File(mPrefsFile);
+		try
+		{
+			BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
+			StringBuilder s = new StringBuilder();
+			char[] b = new char[1024];
+			int c = 0;
+			while((c = r.read(b)) > 0)
+			{
+				s.append(b);
+				b = new char[1024];
+			}
+			
+			SharedPreferences sp = PocketManga.getSharedPreferences();
+			String key, value;
+			
+			
+		}
+		catch (Exception e)
+		{
+			// TODO: handle exception
+		}
+	}
+
+}

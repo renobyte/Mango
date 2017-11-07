@@ -1,0 +1,440 @@
+package com.ls.manga.activities;
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
+
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.SectionIndexer;
+import android.widget.TextView;
+
+import com.ls.manga.Artist;
+import com.ls.manga.Mango;
+import com.ls.manga.MangoActivity;
+import com.ls.manga.MangoHttp;
+import com.ls.manga.ui.MangoAdWrapperView;
+import com.ls.manga.R;
+public class ArtistActivity extends MangoActivity
+{
+	private Artist[]      mArtistList;
+	private boolean       mGotData = false;
+	private XmlDownloader mDownloadTask;
+
+	private EditText      mFindTextbox;
+	private ListView      mListview;
+	private TextWatcher   mTextfilter;
+	private ArtistAdapter mAdapter;
+
+	private class InstanceBundle
+	{
+		private Artist[]      artistList;
+		private boolean       gotData;
+		private XmlDownloader downloadTask;
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		this.setTitle("Artists", Mango.getSiteName(Mango.getSiteId()));
+		inflateLayoutManager(this, R.layout.list_with_find);
+		mListview = (ListView) findViewById(R.id.FindList);
+		mFindTextbox = (EditText) findViewById(R.id.FindText);
+		mFindTextbox.setSingleLine();
+		super.setJpVerticalOffsetView(mFindTextbox);
+		super.setAdLayout((MangoAdWrapperView)findViewById(R.id.listAdLayout));
+		mTextfilter = new TextWatcher()
+		{
+
+			@Override
+			public void onTextChanged(CharSequence s, int start, int before, int count)
+			{
+				String findString = s.toString().toLowerCase();
+				ListView lfReference = ArtistActivity.this.mListview;
+
+				if (!mGotData || lfReference.getAdapter() == null)
+					return;
+				for (int i = 0; i < lfReference.getAdapter().getCount() - 1; i++)
+				{
+					if (getArtist(i).name.toLowerCase().startsWith(findString))
+					{
+						lfReference.setSelection(i + 1);
+						return;
+					}
+				}
+			}
+
+			@Override
+			public void afterTextChanged(Editable s)
+			{
+			}
+
+			@Override
+			public void beforeTextChanged(CharSequence s, int start, int count, int after)
+			{
+			}
+
+		};
+		mFindTextbox.addTextChangedListener(mTextfilter);
+		mListview.setFastScrollEnabled(true);
+
+		super.setJpBackground(R.drawable.jp_bg_artist);
+		
+		if (getLastCustomNonConfigurationInstance() != null && ((InstanceBundle) getLastCustomNonConfigurationInstance()).artistList != null)
+		{
+			InstanceBundle save = (InstanceBundle) getLastCustomNonConfigurationInstance();
+			mArtistList = save.artistList;
+			mDownloadTask = save.downloadTask;
+			if (mDownloadTask != null)
+				mDownloadTask.attach(this);
+			mGotData = save.gotData;
+			save = null;
+			if (mArtistList == null || mArtistList.length == 0)
+				return;
+			mAdapter = new ArtistAdapter(this);
+			mListview.setAdapter(mAdapter);
+			mListview.setOnItemClickListener(new ArtistOnClickListener());
+			return;
+		}
+		
+		super.logEvent("Browse By Artist", null);
+
+		initializeArtistList();
+	}
+
+	@Override
+	protected Dialog onCreateDialog(int id)
+	{
+		if (Mango.DIALOG_DOWNLOADING != null)
+		{
+			Mango.DIALOG_DOWNLOADING.dismiss();
+			removeDialog(0);
+		}
+		if (id == 0)
+		{
+			ProgressDialog dialog = new ProgressDialog(this);
+			dialog.setTitle("Downloading data...");
+			dialog.setMessage("Retrieving the artist list from the PocketManga Service...");
+			dialog.setIndeterminate(true);
+			dialog.setCancelable(true);
+			Mango.DIALOG_DOWNLOADING = dialog;
+			return dialog;
+		}
+		return super.onCreateDialog(id);
+	}
+
+	@Override
+	public Object onRetainCustomNonConfigurationInstance()
+	{
+		InstanceBundle save = new InstanceBundle();
+		save.artistList = mArtistList;
+		save.gotData = mGotData;
+		save.downloadTask = mDownloadTask;
+		if (mDownloadTask != null)
+			mDownloadTask.detach();
+		return save;
+	}
+
+	public void initializeArtistList()
+	{
+		showDialog(0);
+		mArtistList = new Artist[0];
+		mDownloadTask = new XmlDownloader(this);
+		mDownloadTask.execute("http://%SERVER_URL%/getartistlist.aspx?pin=" + Mango.getPin() + "&site=" + Mango.getSiteId());
+	}
+
+	private void callback(final String data, final boolean save)
+	{
+		Mango.DIALOG_DOWNLOADING.dismiss();
+		removeDialog(0);
+		if (data.startsWith("Exception"))
+		{
+			Mango.alert("Sorry, PocketManga wasn't able to load the requested data.  :'(\n\nTry again in a moment, or switch to another manga source.\n\n" + data, "Connectivity Problem! T__T", this);
+			mListview.setAdapter(new ArrayAdapter<String>(ArtistActivity.this, android.R.layout.simple_list_item_1, new String[] { "Download failed! Press the back key and try again." }));
+			return;
+		}
+		if (data.startsWith("error"))
+		{
+			Mango.alert("The PocketManga Service gave the following error:\n\n" + data, "Problem! T__T", this);
+			mListview.setAdapter(new ArrayAdapter<String>(ArtistActivity.this, android.R.layout.simple_list_item_1, new String[] { "Download failed! Press the back key and try again." }));
+			return;
+		}
+		parseXml(data);
+	}
+
+	private void parseXml(String data)
+	{
+		ArrayList<Artist> artistArrayList = new ArrayList<Artist>();
+
+		try
+		{
+			SAXParserFactory saxFactory = SAXParserFactory.newInstance();
+			SAXParser parser = saxFactory.newSAXParser();
+			XMLReader reader = parser.getXMLReader();
+			ArtistSaxHandler handler = new ArtistSaxHandler();
+			reader.setContentHandler(handler);
+			reader.parse(new InputSource(new StringReader(data)));
+			artistArrayList.addAll(handler.getAllArtists());
+		}
+		catch (SAXException ex)
+		{
+			Mango.alert("PocketManga wasn't able process the XML for the following reason:\n\n" + ex.toString() + "\n\n" + data, "Malformed XML! :'(", this);
+			return;
+		}
+		catch (NullPointerException ex)
+		{
+			Mango.alert("PocketManga wasn't able to load the requested data for the following reason:\n\n" + data, "Unable to load data", this);
+			return;
+		}
+		catch (ParserConfigurationException e)
+		{
+		}
+		catch (IOException e)
+		{
+		}
+
+		mGotData = true;
+
+		mArtistList = new Artist[artistArrayList.size()];
+		artistArrayList.toArray(mArtistList);
+		artistArrayList = null;
+
+		mAdapter = new ArtistAdapter(this);
+		mListview.setAdapter(mAdapter);
+		mListview.setOnItemClickListener(new ArtistOnClickListener());
+	}
+
+	public class ArtistSaxHandler extends DefaultHandler
+	{
+		ArrayList<Artist> allArtists;
+		Artist            currentArtist;
+
+		public ArrayList<Artist> getAllArtists()
+		{
+			return this.allArtists;
+		}
+
+		@Override
+		public void startDocument() throws SAXException
+		{
+			super.startDocument();
+			allArtists = new ArrayList<Artist>();
+		}
+
+		@Override
+		public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException
+		{
+			super.startElement(uri, localName, name, attributes);
+			if (localName.equalsIgnoreCase("artist"))
+			{
+				this.currentArtist = new Artist();
+			}
+			else if (localName.equalsIgnoreCase("url"))
+			{
+				currentArtist.id = attributes.getValue(0);
+			}
+			else if (localName.equalsIgnoreCase("name"))
+			{
+				currentArtist.name = attributes.getValue(0);
+			}
+		}
+
+		@Override
+		public void endElement(String uri, String localName, String name) throws SAXException
+		{
+			super.endElement(uri, localName, name);
+			if (this.currentArtist != null)
+			{
+				if (localName.equalsIgnoreCase("artist"))
+				{
+					allArtists.add(currentArtist);
+				}
+			}
+		}
+	}
+
+	class ArtistOnClickListener implements OnItemClickListener
+	{
+
+		@Override
+		public void onItemClick(AdapterView<?> parent, View v, final int position, long id)
+		{
+			if (!mGotData)
+				return;
+
+			Intent mangaByArtistIntent = new Intent();
+			mangaByArtistIntent.setClassName("com.ls.manga", "com.ls.manga.activities.FilteredMangaActivity");
+			Artist argArtist = new Artist();
+			argArtist.id = getArtist(position).id;
+			argArtist.name = getArtist(position).name;
+			mangaByArtistIntent.putExtra("mode", FilteredMangaActivity.MODE_ARTIST);
+			mangaByArtistIntent.putExtra("argument", argArtist);
+			startActivity(mangaByArtistIntent);
+			return;
+		}
+	}
+
+	private Artist getArtist(int position)
+	{
+		return ((ArtistAdapter) mListview.getAdapter()).getItem(position);
+	}
+
+	class ViewHolder
+	{
+		TextView  text;
+		ImageView icon;
+		ImageView star;
+	}
+
+	class ArtistAdapter extends ArrayAdapter<Artist> implements SectionIndexer
+	{
+		HashMap<String, Integer> mAlphaIndexer;
+		String[]                 mSections;
+		LayoutInflater           mInflater;
+		Bitmap                   mIcon;
+
+		public ArtistAdapter(FragmentActivity context)
+		{
+			super(context, R.layout.iconlistrow, mArtistList);
+			mInflater = context.getLayoutInflater();
+			mIcon = BitmapFactory.decodeResource(getResources(), R.drawable.ic_artist);
+			mAlphaIndexer = new HashMap<String, Integer>();
+
+			int size = mArtistList.length;
+			for (int i = size - 1; i >= 0; i--)
+			{
+				String element = mArtistList[i].name;
+				mAlphaIndexer.put(element.substring(0, 1), i);
+			}
+
+			Set<String> keys = mAlphaIndexer.keySet();
+			Iterator<String> it = keys.iterator();
+			ArrayList<String> keyList = new ArrayList<String>();
+
+			while (it.hasNext())
+			{
+				String key = it.next();
+				keyList.add(key);
+			}
+
+			Collections.sort(keyList, String.CASE_INSENSITIVE_ORDER);
+
+			mSections = new String[keyList.size()];
+			keyList.toArray(mSections);
+		}
+
+		@Override
+        public View getView(final int position, View convertView, ViewGroup parent)
+		{
+			ViewHolder holder;
+			if (convertView == null)
+			{
+				convertView = mInflater.inflate(R.layout.iconlistrow, null);
+				holder = new ViewHolder();
+				holder.text = (TextView) convertView.findViewById(R.id.label);
+				holder.icon = (ImageView) convertView.findViewById(R.id.icon);
+				holder.star = (ImageView) convertView.findViewById(R.id.star);
+				holder.icon.setImageBitmap(mIcon);
+				holder.star.setVisibility(View.GONE);
+				convertView.setTag(holder);
+			}
+			else
+			{
+				holder = (ViewHolder) convertView.getTag();
+			}
+
+			holder.text.setText(getArtist(position).name);
+			return convertView;
+		}
+		
+		@Override
+		public int getPositionForSection(int section)
+		{
+			String letter = mSections[section];
+			return mAlphaIndexer.get(letter);
+		}
+
+		@Override
+		public int getSectionForPosition(int position)
+		{
+			return 0;
+		}
+
+		@Override
+		public Object[] getSections()
+		{
+			return mSections;
+		}
+	}
+
+	private class XmlDownloader extends AsyncTask<String, Void, String>
+	{
+		ArtistActivity activity = null;
+
+		public XmlDownloader(ArtistActivity activity)
+		{
+			attach(activity);
+		}
+
+		@Override
+		protected String doInBackground(String... params)
+		{
+			return MangoHttp.downloadData(params[0], activity);
+		}
+
+		@Override
+		protected void onPostExecute(String data)
+		{
+			if (activity == null)
+			{
+				Mango.DIALOG_DOWNLOADING.dismiss();
+				Mango.Log("AsyncTask skipped onPostExecute because no activity is attached!");
+			}
+			else
+			{
+				activity.callback(data, false);
+			}
+		}
+
+		void detach()
+		{
+			activity = null;
+		}
+
+		void attach(ArtistActivity activity)
+		{
+			this.activity = activity;
+		}
+	}
+}

@@ -1,0 +1,187 @@
+package com.ls.manga.activities;
+
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuItem;
+import android.app.Dialog;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Paint.Align;
+import android.graphics.Typeface;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.BaseAdapter;
+import android.widget.Gallery;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.ls.manga.Mango;
+import com.ls.manga.MangoCache;
+import com.ls.manga.MangoLibraryIO;
+import com.ls.manga.Page;
+import com.ls.manga.R;
+
+public class JumpToPageDialog extends Dialog
+{
+	private Gallery            mGallery;
+	private Paint              mPaint;
+	private JumpToPageListener mListener;
+
+	private boolean            mOffline;
+	private boolean            mFilesystemChapter;
+
+	private String             mMangaId;
+	private String             mChapterId;
+	private Page[]             mPages;
+
+	public JumpToPageDialog(Context context, JumpToPageListener listener)
+	{
+		super(context);
+		Window window = this.getWindow();
+		window.requestFeature(Window.FEATURE_NO_TITLE);
+		this.setContentView(getLayoutInflater().inflate(R.layout.jumptopage, null));
+		mGallery = (Gallery) findViewById(R.id.JumpToPageGallery);
+		mGallery.setOnItemClickListener(new OnItemClickListener()
+		{
+			public void onItemClick(AdapterView<?> parent, View v, int position, long id)
+			{
+				if (mListener != null)
+					mListener.jumpToPageCallback(position);
+				JumpToPageDialog.this.dismiss();
+				mGallery = null;
+			}
+		});
+		mListener = listener;
+		Paint p = new Paint();
+		p.setTextSize(75f);
+		p.setColor(Color.GRAY);
+		p.setFlags(Paint.ANTI_ALIAS_FLAG);
+		p.setTextAlign(Align.CENTER);
+		p.setTypeface(Typeface.DEFAULT_BOLD);
+		mPaint = p;
+	}
+
+	@Override
+	protected void onStop()
+	{
+		Mango.Log("JumpToPageDialog is being dismissed.");
+		mListener = null;
+		System.gc();
+		super.onStop();
+	}
+
+	public void initializeAdapter(String mangaId, String chapterId, Page[] pages, int currentPage, boolean offline, boolean filesystemChapter)
+	{
+		mMangaId = mangaId;
+		mChapterId = chapterId;
+		mPages = pages;
+		mOffline = offline;
+		mFilesystemChapter = filesystemChapter;
+
+		// mPages = new Bitmap[mPageObjects.length];
+		// // 180 * 260
+		mGallery.setAdapter(new JumpToPageAdapter(this.getContext()));
+		mGallery.setSelection(currentPage);
+	}
+
+	private Bitmap getThumbnailBitmap(int index)
+	{
+		if (mGallery == null)
+			return null;
+
+		if (mFilesystemChapter)
+		{
+			Bitmap bm = MangoLibraryIO.readBitmapFromDisk(mMangaId, mPages[index].url, 7, false);
+			if (bm != null)
+				return Bitmap.createScaledBitmap(bm, 180, 260, false);			
+		}
+		else if (mOffline)
+		{
+			Bitmap bm = MangoLibraryIO.readBitmapFromDisk("/PocketManga/library/" + mMangaId + "/" + mChapterId + "/", mPages[index].id, 7, true);
+			if (bm != null)
+				return Bitmap.createScaledBitmap(bm, 180, 260, false);
+		}
+		else if (MangoCache.checkCacheForImage("page/", Mango.getSiteId() + mMangaId + mChapterId + mPages[index].id))
+		{
+			return Bitmap.createScaledBitmap(MangoCache.readBitmapFromCache("page/", Mango.getSiteId() + mMangaId + mChapterId + mPages[index].id, 7), 180, 260, false);
+		}
+
+		Bitmap bm = Bitmap.createBitmap(180, 260, Config.RGB_565);
+		Canvas c = new Canvas(bm);
+		c.drawARGB(255, 255, 255, 255);
+		c.drawText(String.valueOf(mPages[index].id), bm.getWidth() / 2, (bm.getHeight() / 2) + (mPaint.getTextSize() / 4), mPaint);
+		return bm;
+	}
+
+	public class JumpToPageAdapter extends BaseAdapter
+	{
+		int                    mGalleryItemBackground;
+		private Context        mContext;
+		private LayoutInflater mInflater;
+
+		public JumpToPageAdapter(Context c)
+		{
+			mContext = c;
+			mInflater = JumpToPageDialog.this.getLayoutInflater();
+			// TypedArray a = obtainStyledAttributes(android.R.style.Theme);
+			// mGalleryItemBackground = a.getResourceId(android.R.style.theme.Theme_galleryItemBackground, 0);
+			// a.recycle();
+
+		}
+
+		public int getCount()
+		{
+			if (mPages == null)
+				return 0;
+			return mPages.length;
+		}
+
+		public Object getItem(int position)
+		{
+			return position;
+		}
+
+		public long getItemId(int position)
+		{
+			return position;
+		}
+
+		public View getView(int position, View convertView, ViewGroup parent)
+		{
+			if (convertView == null)
+				convertView = mInflater.inflate(R.layout.jtplayout, null);
+			else
+			{
+				// Gallery is broken and never uses convertView, so this doesn't work.
+				((ImageView) convertView.findViewById(R.id.JumpToPageThumbnail)).getDrawable().setCallback(null);
+				((ImageView) convertView.findViewById(R.id.JumpToPageThumbnail)).setImageBitmap(null);
+			}
+
+			ImageView iv = (ImageView) convertView.findViewById(R.id.JumpToPageThumbnail);
+			TextView tv = (TextView) convertView.findViewById(R.id.JumpToPageNumber);
+
+			if (mGallery == null)
+				return convertView;
+
+			iv.setBackgroundColor(Color.BLACK);
+			iv.setImageBitmap(getThumbnailBitmap(position));
+			iv.setScaleType(ImageView.ScaleType.CENTER);
+			tv.setText(String.valueOf(mPages[position].id));
+
+			return convertView;
+		}
+	}
+
+	// step 1 - to return values from dialog
+	public interface JumpToPageListener
+	{
+		public void jumpToPageCallback(int selection);
+	}
+}

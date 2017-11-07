@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Reading" >
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="leftRightReading"
+            android:summary="Inverts the direction of fling gestures and page turn animations"
+            android:title="Left-to-Right Reading" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="keepScreenOn"
+            android:summary="Causes your device&apos;s screen to never shut off while you&apos;re reading"
+            android:title="Keep Screen On" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="reducedMomentum"
+            android:summary="Pages will stop moving immediately after you lift your finger"
+            android:title="Reduce Scrolling Momentum" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="stickyZoom"
+            android:summary="Retains zoom level when advancing pages (starts zoomed-in at top-right corner)"
+            android:title="Sticky Zoom" />
+
+        <ListPreference
+            android:dialogTitle="Screen Orientation"
+            android:entries="@array/orientations"
+            android:entryValues="@array/orientations_values"
+            android:key="pagereaderOrientation"
+            android:summary="Sets the screen orientation while in the pagereader"
+            android:title="Screen Orientation" >
+        </ListPreference>
+
+        <ListPreference
+            android:dialogTitle="Preloading"
+            android:entries="@array/preloads"
+            android:entryValues="@array/preloads_values"
+            android:key="preloaders"
+            android:summary="Sets how far in advance of your reading PocketManga downloads pages"
+            android:title="Preloading" >
+        </ListPreference>
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Controls" >
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="volumeRockerControls"
+            android:summary="Allows you to use the volume buttons to change pages (Volume up = next, volume down = previous)"
+            android:title="Enable Volume Rocker Controls" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="disableSwipeControls"
+            android:summary="Turns off swipe gestures for going back and forward between pages"
+            android:title="Disable Swipe Controls" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="disableTapToAdvance"
+            android:summary="Turns off tapping on the screen to go to the next page"
+            android:title="Disable Tap-to-Advance" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Appearance" >
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="fullscreenReading"
+            android:summary="Hides the Android notification bar in the Pagereader"
+            android:title="Full-screen Reading" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="disablePageBar"
+            android:summary="Stops the page number bar from appearing when switching pages"
+            android:title="Disable Page Number Bar" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="disableAnimation"
+            android:summary="Disables animations in the Pagereader, resulting in faster page changes and less memory usage"
+            android:title="Disable Page Animations" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="disableBackgrounds"
+            android:summary="Skips menu background compositing, making menus load slightly faster. But then you&apos;ll have ugly menus. :&apos;("
+            android:title="Disable Menu Backgrounds" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="invertTheme"
+            android:summary="Inverts the color scheme of PocketManga&apos;s menus (white text, black background). Backgrounds will be disabled. (Experimental)"
+            android:title="White-on-Black Menus (beta)" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Other" >
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="reverseChapterList"
+            android:summary="The chapter list will be ordered from newest to oldest instead of oldest to newest"
+            android:title="Reverse Chapter Listing" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="disableHistory"
+            android:summary="Stops PocketManga from keeping a history of chapters you open"
+            android:title="Disable History" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="invertManga"
+            android:summary="Inverts page color (white-on-black instead of black-on-white) (Experimental)"
+            android:title="Inverted Color Mode (beta)" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="analyticsEnabled"
+            android:summary="Helps make PocketManga even better by anonymously sending usage stats and crash information to Leetsoft"
+            android:title="Enable Flurry Analytics" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Advanced" >
+
+        <ListPreference
+            android:dialogTitle="Cache Wipe Threshold"
+            android:entries="@array/cachewipe"
+            android:entryValues="@array/cachewipe_values"
+            android:key="cacheWipeThreshold"
+            android:summary="Sets how often PocketManga clears the downloaded pages cache"
+            android:title="Cache Wipe Threshold" >
+        </ListPreference>
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="useCustomDataFolder"
+            android:summary="Allows you to override the default location for PocketManga&apos;s data folder (where downloads and the cache are stored)"
+            android:title="Override Default Data Folder" />
+
+        <EditTextPreference
+            android:key="customDataFolder"
+            android:summary="Specify the overridden location for the PocketManga data folder (must check the above box)"
+            android:title="Set Data Folder Location" >
+        </EditTextPreference>
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="forceSoftMenuButton"
+            android:summary="Forces the Pagereader to display an on-screen menu button (for devices without a menu key)"
+            android:title="Force On-Screen Menu Button" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="disableFavoritesMenuCovers"
+            android:summary="Disables cover art loading in the Favorites Menu to reduce jerkiness on slower devices"
+            android:title="Disable Favorites Cover Art" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="disableGpuAcceleration"
+            android:summary="Turns off GPU hardware acceleration on Honeycomb if it causes problems\nWill reduce performance and increase battery usage"
+            android:title="Disable Hardware Acceleration" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="showFps"
+            android:summary="Displays frames-per-second screen redraw rate.  Does not work on Honeycomb."
+            android:title="Show FPS" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

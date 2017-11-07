@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/prAdOverlayLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#88000000"
+    android:clickable="true"
+    android:gravity="center" >
+
+    <LinearLayout
+        android:id="@+id/prAdBanner"
+        android:layout_width="300dip"
+        android:layout_height="250dip"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="5dp" >
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/prAdExplainText"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/prAdBanner"
+        android:layout_toRightOf="@+id/prAdBanner"
+        android:clickable="true"
+        android:gravity="center"
+        android:paddingTop="20dp"
+        android:text="Uwaa!!  Why&apos;s there an ad here??"
+        android:textSize="12dp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/prAdTextview"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_toRightOf="@+id/prAdBanner"
+        android:gravity="center"
+        android:text="Loading chapter..."
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+</RelativeLayout>

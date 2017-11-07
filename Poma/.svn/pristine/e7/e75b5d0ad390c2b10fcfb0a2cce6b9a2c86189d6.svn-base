@@ -1,0 +1,1573 @@
+package com.ls.manga.activities;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Date;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
+
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.database.SQLException;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.Bitmap.Config;
+import android.os.BatteryManager;
+import android.os.Bundle;
+import android.os.Environment;
+import android.os.Vibrator;
+import android.support.v4.view.Menu;
+import android.support.v4.view.MenuItem;
+import android.text.format.DateFormat;
+import android.view.KeyEvent;
+import android.view.MenuInflater;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.View.OnClickListener;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+
+import com.ls.manga.Bookmark;
+import com.ls.manga.Favorite;
+import com.ls.manga.LibraryChapter;
+import com.ls.manga.Manga;
+import com.ls.manga.Page;
+import com.ls.manga.PocketManga;
+import com.ls.manga.PomaActivity;
+import com.ls.manga.PomaHttp;
+import com.ls.manga.PomaLibraryIO;
+import com.ls.manga.PomaSqlite;
+import com.ls.manga.R;
+import com.ls.manga.activities.JumpToPageDialog.JumpToPageListener;
+import com.ls.manga.ui.PageFieldDynamicZoomControl;
+import com.ls.manga.ui.PageFieldTouchHandler;
+import com.ls.manga.ui.PageFieldZoomView;
+import com.ls.manga.ui.PomaTutorialHandler;
+import com.ls.manga.ui.PageFieldTouchHandler.Mode;
+
+public class OfflinePagereaderActivity extends PomaActivity
+{
+	// UX components and views
+	private PageFieldZoomView           mPageField;
+	private PageFieldDynamicZoomControl mZoomControl;
+	private PageFieldTouchHandler       mZoomListener;
+	private LinearLayout                mStatusbar;
+	private TextView                    mStatusText;
+	private RelativeLayout              mTitlebar;
+	private TextView                    mTitleText;
+	private ImageView                   mAnimatorView;
+	private ImageView                   mStaticView;
+	private TextView                    mTitleStatusText;
+	private ImageView                   mMenuButton;
+
+	// misc helper variables (don't need to be persisted)
+	private AnimationSet                mPulseAnimation;
+	private AnimationSet                mSlideInAnimation;
+	private AnimationSet                mSlideOffAnimation;
+	private boolean                     mAnimatePage;
+	private boolean                     mAnimateSlideIn;
+	private long                        mLastSetTitle;
+	private boolean                     mSkipRestore;
+
+	// state variables (must be persisted)
+	private LibraryChapter              mActiveLibraryChapter;
+	private int                         mPageIndex;
+	private int                         mChapterIndex;        // don't save this!!! use ID instead! (ie. bookmarks)
+	private String                      mChapterId;
+	private int                         mInitialPage;
+	private boolean                     mInstantiated;
+	private String                      mTitlebarText;
+	private boolean                     mBusy;
+	private Page[]                      mPages;
+	private int                         mTrackReadingProgress;
+	private String                      mSubstringAltStart;
+	private String                      mSubstringStart;
+	private String                      mUrlPrefix;
+
+	// when rotating, pack anything important in the class below and pass it
+	// along to the new activity
+	private class InstanceBundle
+	{
+		private LibraryChapter activeLibraryChapter;
+		private Page[]         pages;
+		private int            pageIndex;
+		private int            chapterIndex;
+		private String         chapterId;
+		private int            initialPage;
+		private boolean        instantiated;
+		private String         titlebarText;
+		private boolean        busy;
+		private String         statusText;
+		private int            trackReadingProgress;
+		private String         substringAltStart;
+		private String         substringStart;
+		private String         urlPrefix;
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		mTitleOverride = true;
+
+		// Start the long and arduous task of initializing the pagereader!
+		PocketManga.Log("Creating a new instance of OfflinePagereaderActivity!");
+
+		// Clear the menu background image cache to free up some memory
+		PocketManga.recycleMenuBackgrounds();
+
+		// Apply some user prefs that must be set prior to adding UI elements
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		if (PocketManga.getSharedPreferences().getBoolean("fullscreenReading", false))
+			getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		if (PocketManga.getSharedPreferences().getString("pagereaderOrientation", "-1").equals("1"))
+			this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+		else if (PocketManga.getSharedPreferences().getString("pagereaderOrientation", "-1").equals("2"))
+			this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+		// Assign UI member variables to their respective views
+		inflateLayoutManager(this, R.layout.pagereader);
+		if (PocketManga.getSharedPreferences().getBoolean("fullscreenReading", false))
+			this.getSupportActionBar().hide();
+		else
+			this.getSupportActionBar().show();
+		super.setNoBackground(true);
+		mPageField = (PageFieldZoomView) findViewById(R.id.prPagefield);
+		mStatusbar = (LinearLayout) findViewById(R.id.prStatusbar);
+		mStatusText = (TextView) findViewById(R.id.prStatusText);
+		mTitlebar = (RelativeLayout) findViewById(R.id.prTitlebar);
+		mTitleText = (TextView) findViewById(R.id.prTitleText);
+		mAnimatorView = (ImageView) findViewById(R.id.prAnimationView);
+		mStaticView = (ImageView) findViewById(R.id.prAnimationStaticView);
+		mTitleStatusText = (TextView) findViewById(R.id.prTitleSystemText);
+		mMenuButton = (ImageView) findViewById(R.id.prMenuSoftButton);
+		mMenuButton.bringToFront();
+		if (!PocketManga.getSharedPreferences().getBoolean("forceSoftMenuButton", false))
+			mMenuButton.setVisibility(View.GONE);
+		mMenuButton.setOnClickListener(new OnClickListener()
+		{
+
+			@Override
+			public void onClick(View v)
+			{
+				OfflinePagereaderActivity.this.openOptionsMenu();
+			}
+		});
+
+		if (PocketManga.getSharedPreferences().getBoolean("fullscreenReading", false))
+		{
+			this.getSupportActionBar().hide();
+			if ((this.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) > Configuration.SCREENLAYOUT_SIZE_LARGE)
+				mMenuButton.setVisibility(View.VISIBLE);
+		}
+		else
+			this.getSupportActionBar().show();
+
+		// Title bar and status bar setup
+		mStatusbar.setVisibility(View.INVISIBLE);
+		mStatusbar.bringToFront();
+		mTitlebar.setVisibility(View.INVISIBLE);
+
+		// Set up animations and their respective views
+		mPulseAnimation = (AnimationSet) AnimationUtils.loadAnimation(this, R.anim.anim_pulse);
+		mPulseAnimation.setRepeatMode(Animation.REVERSE);
+		mPulseAnimation.setRepeatCount(Animation.INFINITE);
+		mSlideInAnimation = (AnimationSet) AnimationUtils.loadAnimation(this, R.anim.pageslidein);
+		mSlideOffAnimation = (AnimationSet) AnimationUtils.loadAnimation(this, R.anim.pageslideoff);
+		mAnimatorView.setVisibility(View.INVISIBLE);
+		mStaticView.setVisibility(View.INVISIBLE);
+		mAnimatorView.setAnimation(mSlideInAnimation);
+
+		// Initialize touchscreen control code
+		mZoomControl = new PageFieldDynamicZoomControl();
+		mZoomListener = new PageFieldTouchHandler(getApplicationContext());
+		mZoomListener.setZoomControl(mZoomControl);
+		mPageField.setZoomState(mZoomControl.getZoomState());
+		mPageField.setOnTouchListener(mZoomListener);
+		mZoomControl.setAspectQuotient(mPageField.getAspectQuotient());
+		setTouchControlCallbacks();
+
+		// Drawing cache setup
+		mPageField.setDrawingCacheEnabled(true);
+		mPageField.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_LOW);
+		mPageField.setDrawingCacheBackgroundColor(Color.RED);
+
+		// Set next page callback for animations and zoom initialization
+		mZoomControl.setUpdateCallback(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				newPageCallback();
+			}
+		});
+
+		// Show tutorial on first run
+		if (PocketManga.getSharedPreferences().getInt("pagereaderShowTutorial", 0) != 2)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.TutorialActivity");
+			startActivity(myIntent);
+		}
+
+		if (PocketManga.getSharedPreferences().getBoolean("keepScreenOn", false))
+		{
+			getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		}
+
+		// Apply some saved state variables in the case of a screen rotation
+		if (getLastCustomNonConfigurationInstance() != null)
+		{
+			mSkipRestore = true;
+			InstanceBundle save = (InstanceBundle) getLastCustomNonConfigurationInstance();
+			mActiveLibraryChapter = save.activeLibraryChapter;
+			mPages = save.pages;
+			mBusy = save.busy;
+			mChapterIndex = save.chapterIndex;
+			mChapterId = save.chapterId;
+			mInitialPage = save.initialPage;
+			mInstantiated = save.instantiated;
+			mPageIndex = save.pageIndex;
+			mTitlebarText = save.titlebarText;
+			mTrackReadingProgress = save.trackReadingProgress;
+			mSubstringStart = save.substringStart;
+			mSubstringAltStart = save.substringAltStart;
+			mUrlPrefix = save.urlPrefix;
+
+			checkReadingProgress();
+
+			if (save.statusText != null && save.statusText.length() > 0)
+				setStatus(save.statusText);
+
+			save = null;
+
+			mAnimatePage = false;
+
+			if (mInstantiated)
+			{
+				Bitmap bm = PomaLibraryIO.readBitmapFromDisk(mActiveLibraryChapter.path, mPages[mPageIndex].id, 1);
+				if (bm == null)
+				{
+					Intent intent = new Intent(getIntent());
+					intent.putExtra("initialpage", (mPageIndex == -1 ? mInitialPage : mPageIndex));
+					intent.putExtra("chapterid", mChapterId);
+					setIntent(intent);
+					restartApp();
+					return;
+				}
+				mPageField.setImage(bm);
+			}
+			return;
+		}
+
+		// Warn if cache is not accessible
+		String state = Environment.getExternalStorageState();
+		if (!state.startsWith(Environment.MEDIA_MOUNTED))
+		{
+			PocketManga.Log("SD card isn't available, cannot display any images. (state=" + state + ")");
+			PocketManga.alert(
+			        "PocketManga cannot access the SD card. This might be because you have connected your phone to a computer and turned on USB Mass Storage mode.\n\nPocketManga cannot display any pages until it can access the SD card again.",
+			        "Warning", this);
+		}
+
+		if (savedInstanceState != null)
+			return;
+
+		// Finally, open our chapter, but only if we are not initializing from a saved bundle
+		Bundle arguments = getIntent().getExtras();
+		LibraryChapter lc = new LibraryChapter();
+		lc.manga.id = arguments.getString("mangaId");
+		lc.manga.title = arguments.getString("mangaName");
+		lc.chapter.id = arguments.getString("chapterId");
+		lc.chapter.title = arguments.getString("chapterName");
+		lc.chapterIndex = arguments.getInt("chapterIndex");
+		lc.path = arguments.getString("path");
+		lc.siteId = arguments.getInt("siteid");
+		openChapter(lc, lc.path, arguments.getInt("initialpage"));
+		super.logEvent("Read Offline Chapter", null);
+	}
+
+	@Override
+	protected void onNewIntent(Intent intent)
+	{
+		setIntent(intent);
+		Bundle arguments = getIntent().getExtras();
+		LibraryChapter lc = new LibraryChapter();
+		lc.manga.id = arguments.getString("mangaId");
+		lc.manga.title = arguments.getString("mangaName");
+		lc.chapter.id = arguments.getString("chapterId");
+		lc.chapter.title = arguments.getString("chapterName");
+		lc.chapterIndex = arguments.getInt("chapterIndex");
+		lc.path = arguments.getString("path");
+		lc.siteId = arguments.getInt("siteid");
+		openChapter(lc, lc.path, arguments.getInt("initialpage"));
+	}
+
+	@Override
+	public Object onRetainCustomNonConfigurationInstance()
+	{
+		InstanceBundle save = new InstanceBundle();
+		save.activeLibraryChapter = mActiveLibraryChapter;
+		save.activeLibraryChapter.siteId = mActiveLibraryChapter.siteId;
+		save.activeLibraryChapter.manga = mActiveLibraryChapter.manga;
+		save.activeLibraryChapter.chapter = mActiveLibraryChapter.chapter;
+		save.pages = mPages;
+		save.busy = mBusy;
+		save.chapterIndex = mChapterIndex;
+		save.chapterId = mChapterId;
+		save.initialPage = mInitialPage;
+		save.instantiated = mInstantiated;
+		save.pageIndex = mPageIndex;
+		save.titlebarText = mTitlebarText;
+		save.trackReadingProgress = mTrackReadingProgress;
+		save.substringStart = mSubstringStart;
+		save.substringAltStart = mSubstringAltStart;
+		save.urlPrefix = mUrlPrefix;
+		if (mStatusbar.getVisibility() == View.VISIBLE)
+			save.statusText = (String) mStatusText.getText();
+		mActiveLibraryChapter = null;
+		return save;
+	}
+
+	@Override
+	public void onSaveInstanceState(Bundle save)
+	{
+		super.onSaveInstanceState(save);
+		save.putInt("chapterSiteId", mActiveLibraryChapter.siteId);
+		save.putString("mangaName", mActiveLibraryChapter.manga.title);
+		save.putString("mangaId", mActiveLibraryChapter.manga.id);
+		save.putString("chapterName", mActiveLibraryChapter.chapter.title);
+		save.putString("chapterId", mActiveLibraryChapter.chapter.id);
+		save.putInt("chapterIndex", mActiveLibraryChapter.chapterIndex);
+		save.putString("path", mActiveLibraryChapter.path);
+		save.putInt("page", mPageIndex);
+	}
+
+	@Override
+	public void onRestoreInstanceState(Bundle savedInstanceState)
+	{
+		super.onRestoreInstanceState(savedInstanceState);
+		if (mSkipRestore)
+			return;
+		LibraryChapter lc = new LibraryChapter();
+		lc.manga.id = savedInstanceState.getString("mangaId");
+		lc.manga.title = savedInstanceState.getString("mangaName");
+		lc.chapter.id = savedInstanceState.getString("chapterId");
+		lc.chapter.title = savedInstanceState.getString("chapterName");
+		lc.chapterIndex = savedInstanceState.getInt("chapterIndex");
+		lc.path = savedInstanceState.getString("path");
+		lc.siteId = savedInstanceState.getInt("chapterSiteId");
+		openChapter(lc, lc.path, savedInstanceState.getInt("page"));
+	}
+
+	private void openChapter(LibraryChapter lc, String path, int pageIndex)
+	{
+		try
+		{
+			mInitialPage = pageIndex;
+			mActiveLibraryChapter = lc;
+			if (mActiveLibraryChapter.path.startsWith("/Mango/"))
+				mActiveLibraryChapter.path = "/PocketManga/" + mActiveLibraryChapter.path.substring(7);
+			mChapterId = lc.chapter.id;
+			mChapterIndex = lc.chapterIndex;
+			mPageIndex = -1;
+			mPageField.setImage(Bitmap.createBitmap(1, 1, Config.RGB_565));
+			mPages = new Page[0];
+			addRecent();
+			checkReadingProgress();
+			mInstantiated = false;
+			clearStatus();
+			setTitlebarText(mActiveLibraryChapter.manga.title + " " + mActiveLibraryChapter.chapter.id, true);
+			System.gc();
+
+			parseXml(PomaLibraryIO.readIndexData(mActiveLibraryChapter.path));
+		}
+		catch (NullPointerException ex)
+		{
+			PocketManga.alert("The index for this chapter is missing! Please try re-downloading the chapter.", "Problem! T__T", this);
+			PocketManga.Log(ex.toString() + " in openChapter (offlinereader)");
+		}
+		catch (Exception ex)
+		{
+			PocketManga.Log(ex.toString() + " in openChapter (offlinereader)");
+		}
+	}
+
+	@Override
+	public void onPause()
+	{
+		super.onPause();
+	}
+
+	@Override
+	public void onResume()
+	{
+		super.onResume();
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		cleanup();
+		super.onDestroy();
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.offlinepagereadermenu, menu);
+		return super.onCreateOptionsMenu(menu);
+	}
+
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu)
+	{
+		if (mInstantiated)
+			setTitlebarText(mActiveLibraryChapter.manga.title + " " + mActiveLibraryChapter.chapter.id + " page " + mPages[mPageIndex].id + " (" + (mPageIndex + 1) + "/" + mPages.length + ")", true);
+		PomaSqlite db = new PomaSqlite(this);
+		db.open();
+		Favorite f = db.getFavoriteForManga(mActiveLibraryChapter.manga);
+		db.close();
+		if (mTrackReadingProgress == 3)
+		{
+			menu.getItem(0).setIcon(R.drawable.ic_addbookmark);
+			menu.getItem(0).setTitle("Add Favorite");
+			menu.getItem(0).setTitleCondensed("Add Favorite");
+		}
+		else if (mTrackReadingProgress == 2 || !isReadingProgressBehind(f))
+		{
+			menu.getItem(0).setIcon(R.drawable.ic_menu_revert);
+			menu.getItem(0).setTitle("Set Progress Here");
+			menu.getItem(0).setTitleCondensed("Reset Progress");
+		}
+		else if (mTrackReadingProgress == 1)
+		{
+			menu.getItem(0).setIcon(R.drawable.ic_menu_close_clear_cancel);
+			menu.getItem(0).setTitle("Remove Favorite");
+			menu.getItem(0).setTitleCondensed("Remove Favorite");
+		}
+		return super.onPrepareOptionsMenu(menu);
+	}
+
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		if (item.getItemId() == R.id.menuOfflineRedownloadPage)
+		{
+			AlertDialog alert = new AlertDialog.Builder(OfflinePagereaderActivity.this).create();
+			alert.setTitle("Repair this page?");
+			alert.setMessage("If this page is missing or damaged, you can have PocketManga attempt to repair it by re-downloading it.\n\nYou'll need to be connected to the internet for this to work.\n\nContinue?");
+			alert.setButton(Dialog.BUTTON_POSITIVE, "Yep", new DialogInterface.OnClickListener()
+			{
+				public void onClick(DialogInterface dialog, int which)
+				{
+					doRepairPage();
+				}
+			});
+			alert.setButton(Dialog.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener()
+			{
+				public void onClick(DialogInterface dialog, int which)
+				{}
+			});
+			alert.show();
+		}
+		if (item.getItemId() == R.id.menuOfflineChapterList)
+		{
+			Intent chaptersIntent = new Intent();
+			chaptersIntent.setClassName("com.ls.manga", LibraryBrowserActivity.class.getName());
+			Manga argManga = new Manga();
+			argManga.id = mActiveLibraryChapter.manga.id;
+			argManga.title = mActiveLibraryChapter.manga.title;
+			argManga.generateSimpleName();
+			chaptersIntent.putExtra("manga", argManga);
+			startActivity(chaptersIntent);
+		}
+		if (item.getItemId() == R.id.menuOfflineAddBookmark)
+		{
+			addRevertFavorite();
+			return true;
+		}
+		else if (item.getItemId() == R.id.menuOfflineJumpToPage)
+		{
+			super.logEvent("Jump-to-Page", null);
+			JumpToPageDialog jumptopage = new JumpToPageDialog(OfflinePagereaderActivity.this, new JumpToPageListener()
+			{
+				@Override
+				public void jumpToPageCallback(int selection)
+				{
+					OfflinePagereaderActivity.this.goToPage(selection);
+				}
+			});
+			jumptopage.show();
+			jumptopage.initializeAdapter(mActiveLibraryChapter.manga.id, mChapterId, mPages, mPageIndex, true);
+			return true;
+		}
+		else if (item.getItemId() == R.id.menuOfflineBookmarksLst)
+		{
+			Intent myIntent = new Intent();
+			myIntent.setClassName("com.ls.manga", "com.ls.manga.activities.FavoritesActivity");
+			myIntent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+			startActivity(myIntent);
+		}
+		else if (item.getItemId() == R.id.menuOfflineNextChapter)
+		{
+			LibraryChapter lc = getNextLibraryChapter();
+			if (lc == null)
+				return super.onOptionsItemSelected(item);
+			openChapter(lc, lc.path, 0);
+		}
+		else if (item.getItemId() == R.id.menuOfflinePreviousChapter)
+		{
+			LibraryChapter lc = getPreviousLibraryChapter();
+			if (lc == null)
+				return super.onOptionsItemSelected(item);
+			openChapter(lc, lc.path, 0);
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+	private void parseXml(String data)
+	{
+		ArrayList<Page> pageArrayList = new ArrayList<Page>();
+
+		try
+		{
+			SAXParserFactory saxFactory = SAXParserFactory.newInstance();
+			SAXParser parser = saxFactory.newSAXParser();
+			XMLReader reader = parser.getXMLReader();
+			PagelistSaxHandler handler = new PagelistSaxHandler();
+			reader.setContentHandler(handler);
+			reader.parse(new InputSource(new StringReader(data)));
+			pageArrayList.addAll(handler.getAllPages());
+			mSubstringStart = handler.getSubstringStart();
+			mSubstringAltStart = handler.getSubstringAltStart();
+			mUrlPrefix = handler.getImageUrlPrefix();
+		}
+		catch (SAXException ex)
+		{
+			PocketManga.alert("An error occurred while parsing the xml data. Please try re-downloading the chapter.\n\n" + ex.toString(), "Malformed XML! :'(", this);
+			return;
+		}
+		catch (ParserConfigurationException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		mPages = new Page[pageArrayList.size()];
+		pageArrayList.toArray(mPages);
+		pageArrayList = null;
+		if (mInitialPage > mPages.length)
+			mInitialPage = mPages.length - 1;
+
+		goToPage(mInitialPage);
+
+		if (!PocketManga.getSharedPreferences().getBoolean("tutorial" + PomaTutorialHandler.READER + "Done", false))
+			PomaTutorialHandler.startTutorial(PomaTutorialHandler.READER, this);
+	}
+
+	public class PagelistSaxHandler extends DefaultHandler
+	{
+		ArrayList<Page> allPages;
+		Page            currentPage;
+		String          baseUrl;
+		String          substringStart    = "";
+		String          substringAltStart = "";
+
+		public ArrayList<Page> getAllPages()
+		{
+			return this.allPages;
+		}
+
+		public String getImageUrlPrefix()
+		{
+			return baseUrl;
+		}
+
+		public String getSubstringStart()
+		{
+			return substringStart;
+		}
+
+		public String getSubstringAltStart()
+		{
+			return substringAltStart;
+		}
+
+		@Override
+		public void startDocument() throws SAXException
+		{
+			super.startDocument();
+			allPages = new ArrayList<Page>();
+		}
+
+		@Override
+		public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException
+		{
+			super.startElement(uri, localName, name, attributes);
+			if (localName.equalsIgnoreCase("page"))
+			{
+				currentPage = new Page();
+			}
+			else if (localName.equalsIgnoreCase("url"))
+			{
+				if (baseUrl == null)
+					baseUrl = attributes.getValue(0);
+				else
+					currentPage.id = attributes.getValue(0);
+			}
+			else if (localName.equalsIgnoreCase("alturl"))
+			{
+				currentPage.url = attributes.getValue(0);
+			}
+			else if (localName.equalsIgnoreCase("string"))
+			{
+				substringStart = attributes.getValue(0);
+			}
+			else if (localName.equalsIgnoreCase("string2"))
+			{
+				substringAltStart = attributes.getValue(0);
+			}
+		}
+
+		@Override
+		public void endElement(String uri, String localName, String name) throws SAXException
+		{
+			super.endElement(uri, localName, name);
+			if (currentPage != null)
+			{
+				if (localName.equalsIgnoreCase("page"))
+				{
+					allPages.add(currentPage);
+				}
+			}
+		}
+	}
+
+	public void cleanup()
+	{
+		mZoomListener.unregisterCallbacks();
+		mPageField.setOnCreateContextMenuListener(null);
+		mPageField.removeCallbacks(mTitlebarHideRunnable);
+		mTitlebarHideRunnable = null;
+		mPageField.setImage(null);
+		mZoomListener = null;
+		mZoomControl = null;
+		mPageField = null;
+		mBusy = false;
+		System.gc();
+	}
+
+	private LibraryChapter getNextLibraryChapter()
+	{
+		PomaSqlite db = new PomaSqlite(this);
+		int targetIndex = -1;
+		try
+		{
+			db.open();
+			LibraryChapter[] lcArray = db.getLibraryChaptersForManga(mActiveLibraryChapter.manga);
+			for (int i = 0; i < lcArray.length; i++)
+			{
+				LibraryChapter lc = lcArray[i];
+				if (lc.chapterIndex > mChapterIndex)
+				{
+					if (targetIndex == -1)
+						targetIndex = i;
+					else
+					{
+						if (lc.chapterIndex < lcArray[targetIndex].chapterIndex)
+							targetIndex = i;
+					}
+				}
+			}
+			if (targetIndex != -1)
+			{
+				LibraryChapter lc = lcArray[targetIndex];
+				if (lc.chapterIndex - mChapterIndex > 1)
+				{
+					PocketManga.alert("The next chapter isn't saved in your Library. PocketManga will instead jump to the nearest next chapter.", OfflinePagereaderActivity.this);
+				}
+				return lc;
+			}
+			else
+			{
+				PocketManga.alert("This is the last chapter of " + mActiveLibraryChapter.manga.title + " you have in your Library.", OfflinePagereaderActivity.this);
+				return null;
+			}
+		}
+		catch (Exception e)
+		{
+			PocketManga.alert("There was a problem scanning your Library for the next chapter.", OfflinePagereaderActivity.this);
+			return null;
+		}
+	}
+
+	private LibraryChapter getPreviousLibraryChapter()
+	{
+		PomaSqlite db = new PomaSqlite(this);
+		int targetIndex = -1;
+		try
+		{
+			db.open();
+			LibraryChapter[] lcArray = db.getLibraryChaptersForManga(mActiveLibraryChapter.manga);
+			for (int i = 0; i < lcArray.length; i++)
+			{
+				LibraryChapter lc = lcArray[i];
+				if (lc.chapterIndex < mChapterIndex)
+				{
+					if (targetIndex == -1)
+						targetIndex = i;
+					else
+					{
+						if (lc.chapterIndex > lcArray[targetIndex].chapterIndex)
+							targetIndex = i;
+					}
+				}
+			}
+			if (targetIndex != -1)
+			{
+				LibraryChapter lc = lcArray[targetIndex];
+				if (mChapterIndex - lc.chapterIndex > 1)
+				{
+					PocketManga.alert("The previous chapter isn't saved in your Library. PocketManga will instead jump to the nearest previous chapter.", OfflinePagereaderActivity.this);
+				}
+				return lc;
+			}
+			else
+			{
+				PocketManga.alert("This is the first chapter of " + mActiveLibraryChapter.manga.title + " you have in your Library.", OfflinePagereaderActivity.this);
+				return null;
+			}
+		}
+		catch (Exception e)
+		{
+			PocketManga.alert("There was a problem scanning your Library for the previous chapter.", OfflinePagereaderActivity.this);
+			return null;
+		}
+	}
+
+	private void showPreviousPage()
+	{
+		if (!mInstantiated)
+			return;
+		if (mPageIndex == 0)
+		{
+			LibraryChapter lc = getPreviousLibraryChapter();
+			if (lc == null)
+				return;
+			openChapter(lc, lc.path, 9999);
+		}
+		else
+			goToPage(mPageIndex - 1);
+	}
+
+	private void showNextPage()
+	{
+		if (!mInstantiated)
+			return;
+		if (mPageIndex == mPages.length - 1)
+		{
+			LibraryChapter lc = getNextLibraryChapter();
+			if (lc == null)
+				return;
+			openChapter(lc, lc.path, 0);
+		}
+		else
+			goToPage(mPageIndex + 1);
+	}
+
+	public void goToPage(int index)
+	{
+		if (mBusy)
+			return;
+		mBusy = true;
+
+		try
+		{
+			Bitmap bm = PomaLibraryIO.readBitmapFromDisk(mActiveLibraryChapter.path, mPages[index].id, 1);
+			if (bm == null)
+			{
+				Intent intent = new Intent(getIntent());
+				intent.putExtra("initialpage", (mPageIndex == -1 ? mInitialPage : mPageIndex));
+				intent.putExtra("chapterid", mChapterId);
+				setIntent(intent);
+				restartApp();
+				return;
+			}
+			displayImage(bm, index);
+		}
+		catch (Exception e)
+		{
+			PocketManga.alert("Exception in goToPage.  Try re-downloading the chapter.\n\n" + e.toString(), OfflinePagereaderActivity.this);
+		}
+	}
+
+	private void displayImage(Bitmap bitmap, int index)
+	{
+		if (bitmap == null)
+			bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.img_decodefailure);
+
+		if (index == mInitialPage)
+			mInstantiated = true;
+		mBusy = false;
+
+		if (index < mPageIndex)
+			mAnimateSlideIn = false;
+		else
+			mAnimateSlideIn = true;
+
+		if (PocketManga.getSharedPreferences().getBoolean("leftRightReading", false))
+			mAnimateSlideIn = !mAnimateSlideIn;
+
+		mPageIndex = index;
+
+		updateReadingProgress();
+		clearStatus();
+
+		try
+		{
+			setTitlebarText(mActiveLibraryChapter.manga.title + " " + mActiveLibraryChapter.chapter.id + " page " + mPages[index].id + " (" + (index + 1) + "/" + mPages.length + ")", false);
+		}
+		catch (NullPointerException ex)
+		{
+			PocketManga.Log("oops! Nullpointerexception at setTitlebarText in displayImage (offline). Killing activity.");
+			cleanup();
+			finish();
+		}
+
+		if (!PocketManga.getSharedPreferences().getBoolean("disableAnimation", false))
+		{
+			try
+			{
+				mPageField.buildDrawingCache();
+				if (mPageField.getDrawingCache() != null)
+				{
+					Bitmap bm = Bitmap.createBitmap(mPageField.getDrawingCache());
+					if (mAnimateSlideIn)
+						mStaticView.setImageBitmap(bm);
+					else
+						mAnimatorView.setImageBitmap(bm);
+					mPageField.destroyDrawingCache();
+					mStaticView.setVisibility(View.VISIBLE);
+					mAnimatePage = true;
+				}
+			}
+			catch (OutOfMemoryError oom)
+			{
+				PocketManga.Log("Skipping animation because we're out of memory. :>");
+			}
+			catch (NullPointerException ex)
+			{
+				PocketManga.Log("Pagefield is null, probably due to orientation change. Returning.");
+				return;
+			}
+		}
+
+		if (!PocketManga.getSharedPreferences().getBoolean("stickyZoom", false))
+			mZoomControl.getZoomState().setZoom(1f);
+
+		mPageField.setImage(bitmap);
+	}
+
+	public void setTitlebarText(CharSequence title, boolean override)
+	{
+		if (PocketManga.getSharedPreferences().getBoolean("disablePageBar", false) && !override)
+			return;
+
+		try
+		{
+			mTitlebar.bringToFront();
+			mLastSetTitle = System.currentTimeMillis();
+			mTitlebarText = (String) title;
+
+			if (PocketManga.getSharedPreferences().getBoolean("fullscreenReading", false))
+			{
+				Intent bat = OfflinePagereaderActivity.this.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+				int level = bat.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
+				int scale = bat.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+				String time = DateFormat.getTimeFormat(getApplicationContext()).format(new Date());
+				String battery = String.valueOf((level * 100 / scale));
+				mTitleStatusText.setText(battery + "%  " + time);
+			}
+
+			mTitlebar.bringToFront();
+			mTitleText.setText(title);
+			if (mTitlebar.getVisibility() != View.VISIBLE)
+			{
+				mPageField.postDelayed(mTitlebarHideRunnable, 4000);
+				mTitlebar.clearAnimation();
+				mTitlebar.startAnimation((AnimationSet) AnimationUtils.loadAnimation(this, R.anim.titlebarin));
+				mTitlebar.setVisibility(View.VISIBLE);
+			}
+		}
+		catch (Exception e)
+		{
+			String techdata = String.valueOf(mPageField) + ", " + String.valueOf(mTitlebarHideRunnable);
+			PocketManga.Log(e.toString() + " at setTitlebarText (" + techdata + ")");
+		}
+	}
+
+	private Runnable mTitlebarHideRunnable = new Runnable()
+	                                       {
+		                                       @Override
+		                                       public void run()
+		                                       {
+			                                       try
+			                                       {
+				                                       long elapsed = System.currentTimeMillis() - mLastSetTitle;
+				                                       if (elapsed < 4000)
+				                                       {
+					                                       mPageField.postDelayed(mTitlebarHideRunnable, 4000 - elapsed);
+					                                       return;
+				                                       }
+				                                       mTitlebar.bringToFront();
+				                                       mTitlebar.clearAnimation();
+				                                       mTitlebar.startAnimation(AnimationUtils.loadAnimation(OfflinePagereaderActivity.this, R.anim.titlebarout));
+				                                       mTitlebar.setVisibility(View.INVISIBLE);
+			                                       }
+			                                       catch (NullPointerException e)
+			                                       {
+				                                       // activity closed
+			                                       }
+		                                       }
+	                                       };
+
+	private void setStatus(String text)
+	{
+		mStatusText.setText(text);
+		if (mStatusbar.getVisibility() == View.INVISIBLE)
+		{
+			mStatusText.startAnimation(mPulseAnimation);
+		}
+		mStatusbar.setVisibility(View.VISIBLE);
+	}
+
+	private void clearStatus()
+	{
+		mStatusText.setText("");
+		mStatusText.clearAnimation();
+		mStatusbar.setVisibility(View.INVISIBLE);
+	}
+
+	private void addRevertFavorite()
+	{
+		PomaSqlite db = new PomaSqlite(this);
+		db.open();
+		Favorite f = db.getFavoriteForManga(mActiveLibraryChapter.manga);
+		if (f == null)
+		{
+			f = new Favorite();
+			f.coverArtUrl = mActiveLibraryChapter.manga.coverart;
+			f.isOngoing = !mActiveLibraryChapter.manga.completed;
+			f.mangaId = mActiveLibraryChapter.manga.id;
+			f.mangaTitle = mActiveLibraryChapter.manga.title;
+			f.generateSimpleName();
+			f.notificationsEnabled = false;
+			f.siteId = mActiveLibraryChapter.siteId;
+			db.insertFavorite(f);
+			mTrackReadingProgress = 0;
+			checkReadingProgress();
+			updateReadingProgress();
+			PocketManga.alert(
+			        f.mangaTitle
+			                + " has been added to your Favorites!\n\nPocketManga will keep track of your progress as you read. Later, you can quickly resume where you left off by going to the Favorites screen.",
+			        OfflinePagereaderActivity.this);
+		}
+		else
+		{
+			if (mTrackReadingProgress == 2 || !isReadingProgressBehind(f))
+			{
+				String reason = "oops, reason text is uninitialized! :o";
+				if (f.siteId != mActiveLibraryChapter.siteId)
+					reason = "PocketManga isn't updating your progress because you're reading on a different manga site.";
+				else if (isReadingProgressBehind(f))
+					reason = "PocketManga isn't updating your progress because you've skipped too far ahead of your saved progress.";
+				else if (!isReadingProgressBehind(f))
+					reason = "PocketManga isn't updating your progress because you're reading behind your saved progress.";
+				AlertDialog alert = new AlertDialog.Builder(OfflinePagereaderActivity.this).create();
+				alert.setTitle("Set Reading Progress Here?");
+				alert.setMessage(reason + "\n\nWould you like to manually set your reading progress to this page?");
+				alert.setButton(Dialog.BUTTON_POSITIVE, "Yes", new DialogInterface.OnClickListener()
+				{
+					public void onClick(DialogInterface dialog, int which)
+					{
+						updateReadingProgress(true);
+						mTrackReadingProgress = 0;
+						checkReadingProgress();
+					}
+				});
+				alert.setButton(Dialog.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener()
+				{
+					public void onClick(DialogInterface dialog, int which)
+					{}
+				});
+				alert.show();
+			}
+			else
+			{
+				AlertDialog alert = new AlertDialog.Builder(OfflinePagereaderActivity.this).create();
+				alert.setTitle("Remove Favorite?");
+				alert.setMessage("This manga will be deleted from your Favorites and PocketManga will stop tracking your reading progress.\n\nAre you certain you wish to delete this favorite?");
+				alert.setButton(Dialog.BUTTON_POSITIVE, "Yes, delete", new DialogInterface.OnClickListener()
+				{
+					public void onClick(DialogInterface dialog, int which)
+					{
+						PomaSqlite db = new PomaSqlite(OfflinePagereaderActivity.this);
+						db.open();
+						db.deleteFavorite(db.getFavoriteForManga(mActiveLibraryChapter.manga).rowId);
+						db.close();
+						PocketManga.alert("This manga has been removed from your favorites. PocketManga will not track your reading progress.", OfflinePagereaderActivity.this);
+						mTrackReadingProgress = 0;
+						checkReadingProgress();
+					}
+				});
+				alert.setButton(Dialog.BUTTON_NEGATIVE, "No, never mind!", new DialogInterface.OnClickListener()
+				{
+					public void onClick(DialogInterface dialog, int which)
+					{}
+				});
+				alert.show();
+			}
+		}
+		db.close();
+	}
+
+	private void checkReadingProgress()
+	{
+		if (mTrackReadingProgress > 1)
+			return;
+
+		try
+		{
+			PomaSqlite db = new PomaSqlite(this);
+			db.open();
+			final Favorite f = db.getFavoriteForManga(mActiveLibraryChapter.manga);
+			db.close();
+			if (f.siteId == mActiveLibraryChapter.siteId && f.progressChapterId != null)
+			{
+				if (f.progressChapterIndex < mChapterIndex - 1)
+				{
+					AlertDialog alert = new AlertDialog.Builder(OfflinePagereaderActivity.this).create();
+					alert.setTitle("Set Reading Progress Ahead?");
+					alert.setMessage("Your reading progress for this manga is Chapter " + f.progressChapterId
+					        + ", which is pretty far behind this chapter.\n\nDo you want to set your reading progress this far ahead?");
+					alert.setButton(Dialog.BUTTON_POSITIVE, "Yep", new DialogInterface.OnClickListener()
+					{
+						public void onClick(DialogInterface dialog, int which)
+						{
+							mTrackReadingProgress = 1;
+							updateReadingProgress(true);
+							PocketManga.alert("Okay. PocketManga has set your reading progress to this chapter.", OfflinePagereaderActivity.this);
+						}
+					});
+					alert.setButton(Dialog.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener()
+					{
+						public void onClick(DialogInterface dialog, int which)
+						{
+							mTrackReadingProgress = 2;
+							PocketManga.alert("Okay. PocketManga won't update your progress while you read ahead.", OfflinePagereaderActivity.this);
+						}
+					});
+					alert.show();
+				}
+				else
+					mTrackReadingProgress = 1;
+			}
+			else if (f.siteId == mActiveLibraryChapter.siteId && f.progressChapterId == null)
+			{
+				mTrackReadingProgress = 1;
+			}
+			else
+			{
+				AlertDialog alert = new AlertDialog.Builder(OfflinePagereaderActivity.this).create();
+				alert.setTitle("Track Reading Progress?");
+				alert.setMessage("You're already reading this manga on " + PocketManga.getSiteName(f.siteId) + ", but this chapter was downloaded from "
+				        + PocketManga.getSiteName(mActiveLibraryChapter.siteId)
+				        + ". PocketManga can only track your progress for one manga source at a time. Do you want to start tracking your reading progress for this manga on "
+				        + PocketManga.getSiteName(mActiveLibraryChapter.siteId) + " instead?");
+				alert.setButton(Dialog.BUTTON_POSITIVE, "Yes", new DialogInterface.OnClickListener()
+				{
+					public void onClick(DialogInterface dialog, int which)
+					{
+						mTrackReadingProgress = 1;
+						PomaSqlite db = new PomaSqlite(OfflinePagereaderActivity.this);
+						db.open();
+						db.clearFavoriteProgress(f.rowId);
+						db.close();
+						updateReadingProgress();
+						PocketManga.alert("Okay. PocketManga is now tracking your reading progress for this manga on " + PocketManga.getSiteName(mActiveLibraryChapter.siteId) + ".",
+						        OfflinePagereaderActivity.this);
+					}
+				});
+				alert.setButton(Dialog.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener()
+				{
+					public void onClick(DialogInterface dialog, int which)
+					{
+						mTrackReadingProgress = 2;
+						PocketManga.alert("Okay. PocketManga won't track your progress for this manga while you read on " + PocketManga.getSiteName(mActiveLibraryChapter.siteId),
+						        OfflinePagereaderActivity.this);
+					}
+				});
+				alert.show();
+			}
+		}
+		catch (Exception e)
+		{
+			PocketManga.Log("Manga is not favorited");
+			mTrackReadingProgress = 3;
+		}
+	}
+
+	private boolean isReadingProgressBehind(Favorite f)
+	{
+		try
+		{
+			if (mChapterIndex >= f.progressChapterIndex)
+			{
+				if ((mChapterIndex == f.progressChapterIndex && mPageIndex >= f.progressPageIndex) || mChapterIndex > f.progressChapterIndex)
+				{
+					return true;
+				}
+			}
+		}
+		catch (Exception e)
+		{
+		}
+		return false;
+	}
+
+	private void updateReadingProgress()
+	{
+		updateReadingProgress(false);
+	}
+
+	private void updateReadingProgress(boolean forceUpdate)
+	{
+		if (mTrackReadingProgress != 1 && !forceUpdate)
+			return;
+
+		PomaSqlite db = new PomaSqlite(OfflinePagereaderActivity.this);
+		try
+		{
+			db.open();
+			Favorite f = db.getFavoriteForManga(mActiveLibraryChapter.manga);
+			f.mangaId = mActiveLibraryChapter.manga.id;
+			f.siteId = mActiveLibraryChapter.siteId;
+
+			if (isReadingProgressBehind(f) || forceUpdate)
+			{
+				f.progressChapterId = mActiveLibraryChapter.chapter.id;
+				f.progressChapterIndex = mChapterIndex;
+				f.progressChapterName = mActiveLibraryChapter.chapter.title;
+				f.progressChapterUrl = mActiveLibraryChapter.chapter.url;
+				f.progressPageIndex = mPageIndex;
+				f.readDate = System.currentTimeMillis();
+			}
+			db.updateFavorite(f);
+		}
+		catch (Exception e)
+		{
+			return;
+		}
+		finally
+		{
+			db.close();
+		}
+	}
+
+	private void addRecent()
+	{
+		if (PocketManga.getSharedPreferences().getBoolean("disableHistory", false))
+			return;
+		ArrayList<Bookmark> recentArrayList = new ArrayList<Bookmark>();
+		PomaSqlite db = new PomaSqlite(OfflinePagereaderActivity.this);
+		long updateRecentRowId = -1;
+		try
+		{
+			db.open();
+			Bookmark[] bmarray = db.getAllHistoryArray(PomaSqlite.KEY_UPDATETIME + " ASC", PomaSqlite.KEY_MANGAID + " = '" + mActiveLibraryChapter.manga.id + "'", true);
+			for (int i = 0; i < bmarray.length; i++)
+			{
+				Bookmark bm = bmarray[i];
+				if (bm.bookmarkType == Bookmark.RECENT && bm.siteId == PocketManga.SITE_LOCAL)
+				{
+					recentArrayList.add(bm);
+					if (bm.mangaId.equals(mActiveLibraryChapter.manga.id) && bm.chapterIndex == mChapterIndex)
+						updateRecentRowId = bm.rowId;
+				}
+				if (recentArrayList.size() >= 10000 && updateRecentRowId == -1)
+				{
+					db.deleteBookmark(recentArrayList.get(0).rowId);
+					recentArrayList.remove(0);
+				}
+			}
+			if (updateRecentRowId != -1)
+				db.deleteBookmark(updateRecentRowId);
+			db.insertRecentBookmark(mActiveLibraryChapter.manga.id, mActiveLibraryChapter.manga.title, mChapterIndex, mActiveLibraryChapter.chapter.title, mActiveLibraryChapter.chapter.id,
+			        mActiveLibraryChapter.chapterCount, PocketManga.SITE_LOCAL, false);
+		}
+		catch (SQLException e)
+		{
+			PocketManga.alert("PocketManga encountered an error while trying to create a bookmark.\n\n" + e.toString(), OfflinePagereaderActivity.this);
+		}
+		finally
+		{
+			db.close();
+		}
+	}
+
+	@Override
+	public boolean dispatchKeyEvent(KeyEvent event)
+	{
+		if (!mInstantiated)
+			return super.dispatchKeyEvent(event);
+		// Sony Xperia PLAY L1 shoulder button
+		if (event.getKeyCode() == 102 && event.getAction() == KeyEvent.ACTION_UP)
+		{
+			if (PocketManga.getSharedPreferences().getBoolean("leftRightReading", false))
+				showPreviousPage();
+			else
+				showNextPage();
+			return true;
+		}
+		// Sony Xperia PLAY R1 shoulder button
+		if (event.getKeyCode() == 103 && event.getAction() == KeyEvent.ACTION_UP)
+		{
+			if (PocketManga.getSharedPreferences().getBoolean("leftRightReading", false))
+				showNextPage();
+			else
+				showPreviousPage();
+			return true;
+		}
+		// For volume rocker control, we need to consume both the up and down key events.
+		// But we only want to change pages once.
+		// Volume Up
+		if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP)
+		{
+			if (PocketManga.getSharedPreferences().getBoolean("volumeRockerControls", false))
+			{
+				if (event.getAction() == KeyEvent.ACTION_UP)
+				{
+					if (PocketManga.getSharedPreferences().getBoolean("leftRightReading", false))
+						showPreviousPage();
+					else
+						showNextPage();
+				}
+				return true;
+			}
+		}
+		// Volume down
+		if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN)
+		{
+			if (PocketManga.getSharedPreferences().getBoolean("volumeRockerControls", false))
+			{
+				if (event.getAction() == KeyEvent.ACTION_UP)
+				{
+					if (PocketManga.getSharedPreferences().getBoolean("leftRightReading", false))
+						showNextPage();
+					else
+						showPreviousPage();
+				}
+				return true;
+			}
+		}
+		// Enter or Dpad Center
+		if ((event.getKeyCode() == KeyEvent.KEYCODE_ENTER || event.getKeyCode() == KeyEvent.KEYCODE_DPAD_CENTER) && event.getAction() == KeyEvent.ACTION_UP)
+		{
+			showNextPage();
+			return true;
+		}
+		// Dpad down or S
+		if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN || event.getKeyCode() == KeyEvent.KEYCODE_S || event.getKeyCode() == KeyEvent.KEYCODE_SPACE
+		        && (event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.ACTION_MULTIPLE))
+		{
+			float velocity = 0.8f * (mZoomControl.getZoomState().getZoom() / 3f);
+			velocity = (velocity < 0.8f) ? 0.8f : velocity;
+			mZoomControl.startFling(0, velocity);
+		}
+		// Dpad up or W
+		if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP || event.getKeyCode() == KeyEvent.KEYCODE_W && (event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.ACTION_MULTIPLE))
+		{
+			float velocity = 0.8f * (mZoomControl.getZoomState().getZoom() / 3f);
+			velocity = (velocity < 0.8f) ? 0.8f : velocity;
+			mZoomControl.startFling(0, -1 * velocity);
+		}
+		// Dpad left or A
+		if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_LEFT || event.getKeyCode() == KeyEvent.KEYCODE_A
+		        && (event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.ACTION_MULTIPLE))
+		{
+			float velocity = 0.8f * (mZoomControl.getZoomState().getZoom() / 3f);
+			velocity = (velocity < 0.8f) ? 0.8f : velocity;
+			mZoomControl.startFling(-1 * velocity, 0);
+		}
+		// Dpad right or D
+		if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT || event.getKeyCode() == KeyEvent.KEYCODE_D
+		        && (event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.ACTION_MULTIPLE))
+		{
+			float velocity = 0.8f * (mZoomControl.getZoomState().getZoom() / 3f);
+			velocity = (velocity < 0.8f) ? 0.8f : velocity;
+			mZoomControl.startFling(velocity, 0);
+		}
+		return super.dispatchKeyEvent(event);
+	}
+
+	protected void newPageCallback()
+	{
+		if (mZoomListener.getMode() == Mode.ZOOM)
+			return;
+		mZoomControl.stopFling();
+		mZoomListener.setMode(Mode.UNDEFINED);
+		mZoomControl.getZoomState().setPanY(mZoomControl.getMinPanY());
+		if (PocketManga.getSharedPreferences().getBoolean("stickyZoom", false))
+			mZoomControl.getZoomState().setPanX(mZoomControl.getMaxPanX());
+		else
+			mZoomControl.getZoomState().setPanX(0.5f);
+
+		if (mPageField.getDrawingCache() == null || !mAnimatePage)
+			return;
+
+		mAnimatePage = false;
+		mPageField.buildDrawingCache();
+		mAnimatorView.setVisibility(View.VISIBLE);
+		Bitmap bm = Bitmap.createBitmap(mPageField.getDrawingCache());
+		if (mAnimateSlideIn)
+			mAnimatorView.setImageBitmap(bm);
+		else
+			mStaticView.setImageBitmap(bm);
+		mPageField.destroyDrawingCache();
+		mStaticView.bringToFront();
+		mAnimatorView.bringToFront();
+		mTitlebar.bringToFront();
+		mAnimatorView.clearAnimation();
+		if (mAnimateSlideIn)
+		{
+			mAnimatorView.setAnimation(mSlideInAnimation);
+			mSlideInAnimation.reset();
+			mSlideInAnimation.startNow();
+		}
+		else
+		{
+			mAnimatorView.setAnimation(mSlideOffAnimation);
+			mSlideOffAnimation.reset();
+			mSlideOffAnimation.startNow();
+		}
+		mPageField.postDelayed(new Runnable()
+		{
+
+			@Override
+			public void run()
+			{
+				// clean up and free resources used by animator
+				try
+				{
+					mPageField.bringToFront();
+					mAnimatorView.setVisibility(View.INVISIBLE);
+					mStaticView.setVisibility(View.INVISIBLE);
+					mAnimatorView.destroyDrawingCache();
+					mStaticView.destroyDrawingCache();
+
+					mPageField.postDelayed(new Runnable()
+					{
+
+						@Override
+						public void run()
+						{
+							if (mAnimateSlideIn)
+							{
+								if (mSlideInAnimation.hasEnded())
+								{
+									mAnimatorView.setImageBitmap(null);
+									mStaticView.setImageBitmap(null);
+								}
+							}
+							else
+							{
+								if (mSlideOffAnimation.hasEnded())
+								{
+									mAnimatorView.setImageBitmap(null);
+									mStaticView.setImageBitmap(null);
+								}
+							}
+						}
+					}, 500);
+				}
+				catch (NullPointerException e)
+				{
+					// cleanup() has already been called
+				}
+			}
+		}, 350);
+	}
+
+	protected void setTouchControlCallbacks()
+	{
+		mZoomListener.setOnTapCallback(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				if (PocketManga.getSharedPreferences().getBoolean("disableTapToAdvance", false))
+					return;
+				showNextPage();
+			}
+
+		});
+		mZoomListener.setOnLeftFlingCallback(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				if (PocketManga.getSharedPreferences().getBoolean("disableSwipeControls", false))
+					return;
+				if (PocketManga.getSharedPreferences().getBoolean("leftRightReading", false))
+					showNextPage();
+				else
+					showPreviousPage();
+			}
+
+		});
+		mZoomListener.setOnRightFlingCallback(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				if (PocketManga.getSharedPreferences().getBoolean("disableSwipeControls", false))
+					return;
+				if (PocketManga.getSharedPreferences().getBoolean("leftRightReading", false))
+					showPreviousPage();
+				else
+					showNextPage();
+			}
+
+		});
+		mZoomListener.setOnLongPressCallback(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				try
+				{
+					Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+					v.vibrate(50);
+				}
+				catch (Exception e)
+				{
+					// device doesnt support vibration
+				}
+				mZoomListener.setMode(Mode.ZOOM);
+			}
+
+		});
+	}
+
+	private void doRepairPage()
+	{
+		Thread t = new Thread(new Runnable()
+		{
+
+			@Override
+			public void run()
+			{
+				try
+				{
+					final boolean retval = downloadPage(mUrlPrefix + mPages[mPageIndex].id, mActiveLibraryChapter.path, mPages[mPageIndex]);
+					mPageField.post(new Runnable()
+					{
+
+						@Override
+						public void run()
+						{
+							if (retval)
+							{
+								PocketManga.alert("The page was successfully re-downloaded.  If the image still looks damaged to you, then the problem is with "
+								        + PocketManga.getSiteName(mActiveLibraryChapter.siteId) + ", not your phone or PocketManga.", OfflinePagereaderActivity.this);
+								Bitmap bm = PomaLibraryIO.readBitmapFromDisk(mActiveLibraryChapter.path, mPages[mPageIndex].id, 1);
+								displayImage(bm, mPageIndex);
+							}
+							else
+							{
+								PocketManga.alert("PocketManga wasn't able to re-download the page.  If your internet connection is fine, the page is probably just missing on "
+								        + PocketManga.getSiteName(mActiveLibraryChapter.siteId) + ".", OfflinePagereaderActivity.this);
+							}
+						}
+					});
+				}
+				catch (Exception e)
+				{
+					PocketManga.Log(e.toString() + " when trying to repair offline page.");
+				}
+			}
+		});
+		t.start();
+	}
+
+	private boolean downloadPage(String url, String path, Page page)
+	{
+		if (!mSubstringStart.equals(""))
+			url = mUrlPrefix + page.url;
+		else
+			url += ".jpg";
+
+		if (!url.toLowerCase().endsWith("jpg") && !url.toLowerCase().endsWith("png") && !url.toLowerCase().endsWith("gif"))
+		{
+			String html = PomaHttp.downloadData(url, this);
+			url = magic(html);
+
+			if (url.contains("Exception"))
+				return false;
+		}
+
+		PocketManga.Log(path + ", " + page.id);
+
+		if (PomaHttp.downloadEncodedImage(url, path, page.id, 1, this).equals("ok"))
+			return true;
+		return false;
+	}
+
+	private String magic(String data)
+	{
+		try
+		{
+			if (mSubstringAltStart.equals(""))
+			{
+				int srcStart = data.indexOf(mSubstringStart) + mSubstringStart.length();
+				int srcEnd = data.indexOf("\"", srcStart);
+				return data.substring(srcStart, srcEnd);
+			}
+			int substringOffset = data.indexOf(mSubstringAltStart) + mSubstringAltStart.length();
+			substringOffset -= 150; // lolmagic literal
+			int srcStart = data.indexOf(mSubstringStart, substringOffset) + mSubstringStart.length();
+			int srcEnd = data.indexOf("\"", srcStart);
+			return data.substring(srcStart, srcEnd);
+		}
+		catch (Exception ex)
+		{
+			return ex.getClass().getSimpleName();
+		}
+	}
+}

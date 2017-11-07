@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/menuLibraryMultiSelect"
+        android:icon="@drawable/ic_action_multiselect"
+        android:orderInCategory="1"
+        android:showAsAction="ifRoom"
+        android:title="Multi-Select"
+        android:titleCondensed="Multi-Select">
+    </item>
+    <item
+        android:id="@+id/menuLibraryDownloadMore"
+        android:icon="@drawable/ic_action_downloadmore"
+        android:orderInCategory="2"
+        android:showAsAction="ifRoom"
+        android:title="Download More"
+        android:titleCondensed="Download More">
+    </item>
+    <item
+        android:id="@+id/menuLibraryScan"
+        android:icon="@drawable/ic_action_repair"
+        android:orderInCategory="3"
+        android:showAsAction="always"
+        android:title="Repair Pages"
+        android:titleCondensed="Repair Pages">
+    </item>
+    <item
+        android:id="@+id/menuLibraryRestore"
+        android:icon="@drawable/ic_action_restore"
+        android:orderInCategory="4"
+        android:showAsAction="never"
+        android:title="Restore Database"
+        android:titleCondensed="Restore">
+    </item>
+
+</menu>

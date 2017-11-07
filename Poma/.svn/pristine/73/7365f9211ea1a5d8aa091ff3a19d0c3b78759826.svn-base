@@ -1,0 +1,649 @@
+package com.ls.manga;
+
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
+
+import android.app.AlertDialog;
+import android.app.Application;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.os.Environment;
+import android.preference.PreferenceManager;
+import android.provider.Settings.Secure;
+import android.telephony.TelephonyManager;
+import android.text.Html;
+import android.util.DisplayMetrics;
+import android.util.Log;
+
+import com.google.ads.AdRequest;
+import com.ls.manga.MangoImaging.sobel;
+import com.ls.manga.ui.MangoBackground;
+import com.ls.manga.ui.MangoDecorHandler;
+
+public class Mango extends Application
+{
+	// Build IDs
+	// pre-release alpha = Misa
+	// 1.0 (rev28) = Yoruichi
+	// 1.0.38 = Elric
+	// 1.0.45 = Rei
+	// 1.0.54 = Sasuke
+	// 1.1.64 = Lelouch
+	// 1.1.69 = Suzaku
+	// 1.2.94 = Shana
+	// 1.3 = Zangetsu
+	// 1.4 = Aizen
+	// 1.4.140 = Renji
+	// 1.5 = Orihime
+	// 1.6 = Rukia
+
+	// Versioning and identification
+	public static final String       VERSION_FULL      = "1.6.166";
+	public static final String       VERSION_BUILDID   = "Rukia";
+	public static final String       VERSION_NETID     = "android_pm_1.5.166";
+	public static final String       POMA_TAG          = "PocketManga";
+	public static final int          VERSION_REVISION  = 165;
+
+	// Site codes
+	public static final int          SITE_LOCAL        = 1;
+	public static final int          SITE_MANGAFOX     = 2;
+	public static final int          SITE_MANGAREADER  = 3;
+	public static final int          SITE_MANGABLE     = 4;
+	public static final int          SITE_SUBMANGA     = 5;
+	public static final int          SITE_MANGASTREAM  = 6;
+	public static final int          SITE_MANGASHARE   = 7;
+	public static final int          SITE_ANIMEA       = 8;
+	public static final int          SITE_MANGAHERE    = 9;
+	public static final int          SITE_MANGAPANDA   = 10;
+	public static final int          SITE_TEST         = 100;
+
+	// Menu background cache
+	public static Bitmap             MENUBG_PORTRAIT;
+	public static Bitmap             MENUBG_LANDSCAPE;
+	public static String             MENUBG_PORTRAITNAME;
+	public static String             MENUBG_LANDSCAPENAME;
+
+	// Global variables
+	public static ProgressDialog     DIALOG_DOWNLOADING;
+	public static boolean            MANGA_LIST_CACHED = false;
+	public static long               LAST_CACHE_UPDATE = 0;
+
+	private static SharedPreferences POMA_PREFERENCES;
+
+	public static Context            CONTEXT           = null;
+
+	public static boolean            INITIALIZED       = false;
+
+	public static boolean            DISABLE_ADS       = false;
+
+	public Mango()
+	{
+		CONTEXT = this;
+	}
+
+	public static void bankaiCheck()
+	{
+		DISABLE_ADS = Mango.getSharedPreferences().getBoolean("bankai", false);
+	}
+
+	public static void initializeApp(Context context)
+	{
+		bankaiCheck();
+
+		INITIALIZED = true;
+		Log.d(Mango.POMA_TAG, "PocketManga is initializing. (" + CONTEXT.toString() + ")");
+
+		POMA_PREFERENCES = PreferenceManager.getDefaultSharedPreferences(CONTEXT);
+
+		if (POMA_PREFERENCES.getLong("installDate", -1) == -1)
+			POMA_PREFERENCES.edit().putLong("installDate", System.currentTimeMillis()).commit();
+
+		if (POMA_PREFERENCES.getString("pagereaderOrientation", "-1").equals("-1"))
+			POMA_PREFERENCES.edit().putString("pagereaderOrientation", "0").commit();
+
+		if (POMA_PREFERENCES.getString("defaultScaleMode", "-1").equals("-1"))
+			POMA_PREFERENCES.edit().putString("defaultScaleMode", "0").commit();
+
+		if (POMA_PREFERENCES.getString("doubletapZoomFactor", "-1").equals("-1"))
+			POMA_PREFERENCES.edit().putString("doubletapZoomFactor", "1.5").commit();
+
+		if (POMA_PREFERENCES.getString("preloaders", "-1").equals("-1"))
+			POMA_PREFERENCES.edit().putString("preloaders", "3").commit();
+
+		if (POMA_PREFERENCES.getString("cacheWipeThreshold", "-1").equals("-1"))
+			POMA_PREFERENCES.edit().putString("cacheWipeThreshold", "20").commit();
+
+		if (POMA_PREFERENCES.getString("notifierInterval", "-1").equals("-1"))
+			POMA_PREFERENCES.edit().putString("notifierInterval", "6").commit();
+
+		if (!POMA_PREFERENCES.getBoolean("useCustomDataFolder", false))
+			POMA_PREFERENCES.edit().putString("customDataFolder", Mango.getPomaDataDirectory().getAbsolutePath()).commit();
+
+		LAST_CACHE_UPDATE = POMA_PREFERENCES.getLong("lastAllMangaCacheUpdate", 0);
+
+		if (java.lang.Runtime.getRuntime().maxMemory() < 24 * 1024 * 1024)
+		{
+			Mango.Log("DalvikVM heap size is < 24MB!  OutOfMemoryErrors may occur!");
+			POMA_PREFERENCES.edit().putBoolean("disableAnimation", true).commit();
+		}
+	}
+
+	public static int getSiteId()
+	{
+		int id = Mango.getSharedPreferences().getInt("mangaSite", -1);
+		if (id == -1)
+		{
+			Mango.getSharedPreferences().edit().putInt("mangaSite", Mango.SITE_MANGAFOX).commit();
+			id = Mango.SITE_MANGAFOX;
+		}
+		return id;
+	}
+
+	public static Drawable getTagDrawable(int tagId, boolean big)
+	{
+		if (big)
+		{
+			switch (tagId)
+			{
+				case 1:
+					return CONTEXT.getResources().getDrawable(R.drawable.tag_green);
+				case 2:
+					return CONTEXT.getResources().getDrawable(R.drawable.tag_red);
+				case 3:
+					return CONTEXT.getResources().getDrawable(R.drawable.tag_blue);
+				case 4:
+					return CONTEXT.getResources().getDrawable(R.drawable.tag_yellow);
+				case 5:
+					return CONTEXT.getResources().getDrawable(R.drawable.tag_purple);
+				case 6:
+					return CONTEXT.getResources().getDrawable(R.drawable.tag_gray);
+			}
+		}
+		else
+		{
+			switch (tagId)
+			{
+				case 1:
+					return CONTEXT.getResources().getDrawable(R.drawable.ic_tag_green);
+				case 2:
+					return CONTEXT.getResources().getDrawable(R.drawable.ic_tag_red);
+				case 3:
+					return CONTEXT.getResources().getDrawable(R.drawable.ic_tag_blue);
+				case 4:
+					return CONTEXT.getResources().getDrawable(R.drawable.ic_tag_yellow);
+				case 5:
+					return CONTEXT.getResources().getDrawable(R.drawable.ic_tag_purple);
+				case 6:
+					return CONTEXT.getResources().getDrawable(R.drawable.ic_tag_gray);
+			}
+		}
+		return null;
+	}
+
+	public static String getTagName(int tagId)
+	{
+		String tagName = Mango.getSharedPreferences().getString("tag" + tagId + "Name", "null");
+		if (tagName.equals("null"))
+		{
+			switch (tagId)
+			{
+				case 1:
+					Mango.getSharedPreferences().edit().putString("tag" + tagId + "Name", "Reading").commit();
+					break;
+				case 2:
+					Mango.getSharedPreferences().edit().putString("tag" + tagId + "Name", "Plan to Read").commit();
+					break;
+				case 3:
+					Mango.getSharedPreferences().edit().putString("tag" + tagId + "Name", "Finished Reading").commit();
+					break;
+				case 4:
+					Mango.getSharedPreferences().edit().putString("tag" + tagId + "Name", "Weekly Releases").commit();
+					break;
+				default:
+					Mango.getSharedPreferences().edit().putString("tag" + tagId + "Name", "Tag " + tagId).commit();
+					break;
+			}
+		}
+		return Mango.getSharedPreferences().getString("tag" + tagId + "Name", "null");
+	}
+
+	public static File getPomaDataDirectory()
+	{
+		File f;
+		if (Mango.getSharedPreferences().getBoolean("useCustomDataFolder", false))
+		{
+			f = new File(Mango.getSharedPreferences().getString("customDataFolder", "~"));
+			if (!f.canWrite())
+			{
+				Mango.Log("getPomaDataDirectory", "PocketManga wasn't able to write to the data directory! >" + f.getAbsolutePath());
+				Mango.Log("getPomaDataDirectory", "Falling back to the default.");
+				f = Environment.getExternalStorageDirectory();
+			}
+		}
+		else
+			f = Environment.getExternalStorageDirectory();
+		return f;
+	}
+
+	public static String getPin()
+	{
+		TelephonyManager mgr = (TelephonyManager) CONTEXT.getSystemService(Context.TELEPHONY_SERVICE);
+		if (mgr.getDeviceId() == null || mgr.getDeviceId().length() <= 1)
+		{
+			String serial = null;
+			try
+			{
+				Class<?> c = Class.forName("android.os.SystemProperties");
+				Method get = c.getMethod("get", String.class);
+				serial = (String) get.invoke(c, "ro.serialno");
+			}
+			catch (Exception ignored)
+			{
+			}
+			if (serial == null || serial.length() <= 5)
+			{
+				serial = Secure.getString(CONTEXT.getContentResolver(), Secure.ANDROID_ID);
+				if (serial == null || serial.length() <= 5)
+					return "12345";
+			}
+			return serial;
+		}
+		return mgr.getDeviceId();
+	}
+
+	public static SharedPreferences getSharedPreferences()
+	{
+		try
+		{
+			if (POMA_PREFERENCES == null)
+				POMA_PREFERENCES = PreferenceManager.getDefaultSharedPreferences(CONTEXT);
+			return POMA_PREFERENCES;
+		}
+		catch (NullPointerException ex)
+		{
+			Mango.Log("PreferenceManager.getDefaultSharedPreferences returned a null value, we're probably fucked.");
+			return null;
+		}
+	}
+
+	// Utility functions
+	public static void alert(String message, Context context)
+	{
+		Mango.alert(message, "PocketManga", context, new DialogInterface.OnClickListener()
+		{
+			public void onClick(DialogInterface dialog, int which)
+			{}
+		});
+	}
+
+	public static void alert(String message, String title, Context context)
+	{
+		Mango.alert(message, title, context, new DialogInterface.OnClickListener()
+		{
+			public void onClick(DialogInterface dialog, int which)
+			{}
+		});
+	}
+
+	public static void alert(String message, String title, Context context, DialogInterface.OnClickListener listener)
+	{
+		try
+		{
+			message = message.replace("\n", "<br>");
+
+			if (DIALOG_DOWNLOADING != null)
+				DIALOG_DOWNLOADING.dismiss();
+			AlertDialog alert = new AlertDialog.Builder(context).create();
+			alert.setTitle(title);
+			alert.setMessage(Html.fromHtml(message));
+			alert.setButton("Okay", listener);
+			alert.show();
+
+			/*
+			 * 			AlertDialog.Builder builder = new AlertDialog.Builder(context);
+			builder.setNeutralButton("Okay", listener);
+			builder.setTitle(title);
+			TextView tv = new TextView(context);
+			tv.setText(Html.fromHtml(message));
+			builder.setView(tv);
+			
+			AlertDialog alert = builder.create();
+			alert.show();
+			 */
+		}
+		catch (Exception e)
+		{
+			Mango.Log("PocketManga.alert encountered an exception: " + e.toString());
+		}
+	}
+
+	public static void Log(Object msg)
+	{
+		Log.d("PocketManga", String.valueOf(msg));
+	}
+
+	public static void Log(String tag, Object msg)
+	{
+		Log.d("PocketManga", tag + " >> " + String.valueOf(msg));
+	}
+
+	public static String getSiteName(int siteId)
+	{
+		String name = "";
+		switch (siteId)
+		{
+			case SITE_LOCAL:
+				name = "My Library";
+				break;
+			case SITE_MANGAFOX:
+				name = "MangaFox";
+				break;
+			case SITE_MANGAREADER:
+				name = "MangaReader";
+				break;
+			case SITE_MANGABLE:
+				name = "Mangable";
+				break;
+			case SITE_SUBMANGA:
+				name = "Submanga";
+				break;
+			case SITE_MANGASTREAM:
+				name = "MangaStream";
+				break;
+			case SITE_MANGASHARE:
+				name = "MangaShare";
+				break;
+			case SITE_ANIMEA:
+				name = "AnimeA";
+				break;
+			case SITE_MANGAHERE:
+				name = "MangaHere";
+				break;
+			case SITE_MANGAPANDA:
+				name = "MangaPanda";
+				break;
+			case SITE_TEST:
+				name = "Test Site";
+				break;
+			default:
+				name = "unknown source";
+				break;
+		}
+		return name;
+	}
+
+	public static Bitmap getMenuBackgroundLandscape()
+	{
+		try
+		{
+			if (Mango.MENUBG_LANDSCAPE == null)
+			{
+				Bitmap bg = null;
+
+				MangoDecorHandler handler = new MangoDecorHandler();
+				ArrayList<MangoBackground> list = handler.parseDecorXml(handler.readDecorXml());
+
+				boolean pickedBackground = false;
+				int failsafe = 0;
+				Random rand = new Random(System.currentTimeMillis());
+
+				while (!pickedBackground && failsafe < 20)
+				{
+					MangoBackground background = list.get(rand.nextInt(list.size()));
+					if (background.url.equals("local"))
+						break;
+					if (background.landscape && background.downloaded)
+					{
+						try
+						{
+							bg = MangoDecorHandler.readDecorBitmap(background.name).copy(Config.RGB_565, true);
+							MENUBG_LANDSCAPENAME = background.name;
+							pickedBackground = true;
+						}
+						catch (Exception e)
+						{
+							bg = null;
+						}
+					}
+					failsafe++;
+				}
+				if (bg == null)
+				{
+					bg = BitmapFactory.decodeResource(CONTEXT.getResources(), R.drawable.img_background_landscape).copy(Config.RGB_565, true);
+					MENUBG_LANDSCAPENAME = "local";
+				}
+
+				Canvas c = new Canvas(bg);
+				int alphaVal = 165;
+				c.drawARGB(alphaVal, 255, 255, 255);
+				Mango.MENUBG_LANDSCAPE = bg;
+			}
+		}
+		catch (NullPointerException e)
+		{
+			return null;
+		}
+		return Mango.MENUBG_LANDSCAPE;
+	}
+
+	public static Bitmap getMenuBackgroundPortrait()
+	{
+		try
+		{
+			if (Mango.MENUBG_PORTRAIT == null)
+			{
+				Bitmap bg = null;
+
+				MangoDecorHandler handler = new MangoDecorHandler();
+				ArrayList<MangoBackground> list = handler.parseDecorXml(handler.readDecorXml());
+
+				boolean pickedBackground = false;
+				int failsafe = 0;
+				Random rand = new Random(System.currentTimeMillis());
+
+				while (!pickedBackground && failsafe < 20)
+				{
+					MangoBackground background = list.get(rand.nextInt(list.size()));
+					if (background.url.equals("local"))
+						break;
+					if (!background.landscape && background.downloaded)
+					{
+						try
+						{
+							bg = MangoDecorHandler.readDecorBitmap(background.name).copy(Config.RGB_565, true);
+							MENUBG_PORTRAITNAME = background.name;
+							pickedBackground = true;
+						}
+						catch (Exception e)
+						{
+							bg = null;
+						}
+					}
+					failsafe++;
+				}
+
+				if (bg == null)
+				{
+					bg = BitmapFactory.decodeResource(CONTEXT.getResources(), R.drawable.img_background_portrait).copy(Config.RGB_565, true);
+					MENUBG_PORTRAITNAME = "local";
+				}
+
+				Canvas c = new Canvas(bg);
+				int alphaVal = 165;
+				c.drawARGB(alphaVal, 255, 255, 255);
+				Mango.MENUBG_PORTRAIT = bg;
+
+			}
+		}
+		catch (NullPointerException e)
+		{
+			return null;
+		}
+		return Mango.MENUBG_PORTRAIT;
+	}
+
+	public static void recycleMenuBackgrounds()
+	{
+		if (Mango.MENUBG_LANDSCAPE != null)
+		{
+			Mango.MENUBG_LANDSCAPE.recycle();
+			Mango.MENUBG_LANDSCAPE = null;
+		}
+		if (Mango.MENUBG_PORTRAIT != null)
+		{
+			Mango.MENUBG_PORTRAIT.recycle();
+			Mango.MENUBG_PORTRAIT = null;
+		}
+	}
+
+	public static AdRequest generateAdRequest()
+	{
+		AdRequest ar = new AdRequest();
+		ar.addTestDevice("FCAB0A4B5F9B394EC2F2EC49764E4D64");
+		Set<String> keywords = new HashSet<String>();
+		keywords.add("anime");
+		keywords.add("manga");
+		keywords.add("comics");
+		keywords.add("videogames");
+		keywords.add("games");
+		keywords.add("movies");
+		ar.setKeywords(keywords);
+		return ar;
+	}
+
+	public static int getPixelsForDip(int dip)
+	{
+		DisplayMetrics metrics = CONTEXT.getResources().getDisplayMetrics();
+		int pixels = (int) (metrics.density * dip + 0.5f);
+		return pixels;
+	}
+
+	public static void invertBitmap(Bitmap bitmap)
+	{
+		// to avoid having to keep two full copies of the bitmap in memory, which
+		// almost always leads to OOM crashes eventually, we'll take a "scanline"
+		// approach to the inversion, only loading a one-pixel tall line of the
+		// image at a time.
+
+		int runningSize = 0;
+		int size = bitmap.getWidth();
+
+		Mango.Log("Inverting " + bitmap.getWidth() + "x" + bitmap.getHeight() + " bitmap...");
+
+		long time = System.currentTimeMillis();
+		for (int i = 0; i < bitmap.getHeight(); i++)
+		{
+			// if (i % 5 != 0)
+			// continue;
+			int[] array = new int[size];
+			bitmap.getPixels(array, 0, bitmap.getWidth(), 0, i, bitmap.getWidth(), 1);
+			runningSize += size;
+
+			// boolean skip = false;
+
+			for (int j = 0; j < size; j++)
+			{
+				// skip = !skip;
+				// if (!skip)
+				array[j] = 0x00ffffff ^ array[j];
+			}
+			bitmap.setPixels(array, 0, bitmap.getWidth(), 0, i, bitmap.getWidth(), 1);
+		}
+
+		Mango.Log("Successfully inverted RGB data for " + bitmap.getHeight() + " rows (" + runningSize + " bytes) in " + (System.currentTimeMillis() - time) + "ms!");
+	}
+
+	public static void sobelFilter(Bitmap bitmap)
+	{
+		sobel s = new sobel();
+
+		int h = bitmap.getHeight();
+		int w = bitmap.getWidth();
+
+		int fullSize = bitmap.getHeight() * bitmap.getWidth();
+		int processed = 0;
+
+		int xStart = 0;
+		int yStart = 0;
+
+		final int maxBlockWidth = 200;
+		final int maxBlockHeight = 200;
+
+		int blockW = maxBlockWidth;
+		int blockH = maxBlockHeight;
+
+		long time = System.currentTimeMillis();
+
+		Mango.Log("Applying Sobel filter to " + bitmap.getWidth() + "x" + bitmap.getHeight() + " bitmap...");
+
+		while (processed < fullSize)
+		{
+			if (xStart + blockW > w)
+				blockW = w - xStart;
+			if (blockW == 0)
+				blockW = 1;
+			if (xStart >= w)
+			{
+				xStart = 0;
+				blockW = maxBlockWidth;
+				yStart += blockH;
+			}
+			if (yStart + blockH > h)
+				blockH = h - yStart;
+			if (blockH == 0)
+				blockH = 1;
+			if (yStart >= h)
+				break;
+
+			int[] in = new int[blockW * blockH];
+			int[] out = new int[blockW * blockH];
+
+			// PocketManga.Log("Processing... " + blockW + "x" + blockH + " :: x" + xStart + ", y" + yStart + ", P: " +
+			// processed + ", F:" + fullSize);
+
+			bitmap.getPixels(in, 0, blockW, xStart, yStart, blockW, blockH);
+			s.init(in, blockW, blockH);
+			out = s.process();
+			bitmap.setPixels(out, 0, blockW, xStart, yStart, blockW, blockH);
+			processed += in.length;
+			xStart += blockW;
+		}
+
+		Mango.Log("Completed sobel filter on image in " + (System.currentTimeMillis() - time) + "ms.");
+	}
+
+	public static boolean reflect(Object c, String method, Object... args)
+	{
+		try
+		{
+			Method m = c.getClass().getMethod("method", args.getClass());
+			m.invoke(c, false);
+		}
+		catch (NoSuchMethodException e)
+		{
+			// Too bad!
+		}
+		catch (IllegalArgumentException e)
+		{
+		}
+		catch (IllegalAccessException e)
+		{
+		}
+		catch (InvocationTargetException e)
+		{
+		}
+		return false;
+	}
+}

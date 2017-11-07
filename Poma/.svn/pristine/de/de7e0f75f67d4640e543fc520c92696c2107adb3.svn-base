@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="52dp"
+	android:minHeight="52dp"
+	android:id="@+id/rowHolder">
+	<ImageView
+		android:id="@+id/icon"
+		android:src="@drawable/icon_bankai"
+		android:layout_height="wrap_content"
+		android:paddingTop="2dp"
+		android:paddingLeft="2dp"
+		android:adjustViewBounds="true"
+		android:maxHeight="20dp"
+		android:maxWidth="20dp"
+		android:layout_width="wrap_content"
+		android:layout_centerVertical="true" />
+	<TextView
+		android:id="@+id/label"
+		android:layout_height="wrap_content"
+		android:layout_centerVertical="true"
+		android:layout_toRightOf="@+id/icon"
+		android:maxLines="2"
+		android:textSize="18sp"
+		android:layout_width="fill_parent"
+		android:paddingRight="20dp"
+		android:paddingLeft="3dp"
+		android:text="Text" />
+	<ImageView
+		android:id="@+id/star"
+		android:src="@drawable/icon_error"
+		android:paddingTop="2dp"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true"
+		android:layout_centerVertical="true"
+		android:clickable="true"
+		android:minWidth="60dp"
+		android:minHeight="50dp"
+		android:scaleType="center"
+		android:layout_marginRight="-15dp" />
+</RelativeLayout>

@@ -1,0 +1,519 @@
+package com.ls.manga.activities;
+
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuInflater;
+import com.actionbarsherlock.view.MenuItem;
+import java.io.File;
+import java.util.ArrayList;
+
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.ls.manga.LibraryChapter;
+import com.ls.manga.Mango;
+import com.ls.manga.MangoActivity;
+import com.ls.manga.MangoLibraryIO;
+import com.ls.manga.QueueItem;
+import com.ls.manga.services.DownloaderService;
+import com.ls.manga.services.DownloaderService.DownloaderBinder;
+import com.ls.manga.R;
+
+//DownloaderActivity is simply a UI for viewing the status of DownloaderService.
+
+public class DownloaderActivity extends MangoActivity
+{
+	private ListView          mQueueListUi;
+	private TextView          mEmptyView;
+
+	private QueueItem[]       mQueueArray;
+
+	private DownloaderService mService;
+	private boolean           mBound                    = false;
+	private ServiceConnection mConnection               = new ServiceConnection()
+	                                                    {
+
+		                                                    @Override
+		                                                    public void onServiceConnected(ComponentName className, IBinder service)
+		                                                    {
+			                                                    DownloaderBinder binder = (DownloaderBinder) service;
+			                                                    mService = binder.getService();
+			                                                    mBound = true;
+			                                                    initializeQueue();
+			                                                    mService.setPageCompletedCallback(mPageCompletedRunnable);
+			                                                    mService.setChapterCompletedCallback(mChapterCompletedRunnable);
+			                                                    mService.setMiscellaneousCallback(mMiscellaneousRunnable);
+		                                                    }
+
+		                                                    @Override
+		                                                    public void onServiceDisconnected(ComponentName arg0)
+		                                                    {
+			                                                    mBound = false;
+		                                                    }
+	                                                    };
+	private Runnable          mPageCompletedRunnable    = new Runnable()
+	                                                    {
+		                                                    @Override
+		                                                    public void run()
+		                                                    {
+			                                                    mQueueListUi.post(new Runnable()
+			                                                    {
+				                                                    @Override
+				                                                    public void run()
+				                                                    {
+					                                                    pageCompleted();
+				                                                    }
+			                                                    });
+		                                                    }
+	                                                    };
+	private Runnable          mChapterCompletedRunnable = new Runnable()
+	                                                    {
+		                                                    @Override
+		                                                    public void run()
+		                                                    {
+			                                                    mQueueListUi.post(new Runnable()
+			                                                    {
+				                                                    @Override
+				                                                    public void run()
+				                                                    {
+					                                                    chapterCompleted();
+				                                                    }
+			                                                    });
+		                                                    }
+	                                                    };
+	private Runnable          mMiscellaneousRunnable    = new Runnable()
+	                                                    {
+		                                                    @Override
+		                                                    public void run()
+		                                                    {
+			                                                    mQueueListUi.post(new Runnable()
+			                                                    {
+				                                                    @Override
+				                                                    public void run()
+				                                                    {
+					                                                    miscellaneousUpdate();
+				                                                    }
+			                                                    });
+		                                                    }
+	                                                    };
+
+	private class clickListener implements AdapterView.OnItemClickListener
+	{
+		@Override
+		public void onItemClick(AdapterView<?> parent, View v, final int position, long id)
+		{
+			itemClicked(position);
+		}
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		mTitleOverride = true;
+		setTitle("Download Manager");
+
+		if (getIntent().getExtras() != null)
+		{
+			Mango.Log("Resuming service because user tapped on notification!");
+			startService(new Intent(DownloaderActivity.this, DownloaderService.class));
+			finish();
+			return;
+		}
+
+		inflateLayoutManager(this, R.layout.queuescreen);
+		super.setJpBackground(R.drawable.jp_bg_downloader);
+
+		mQueueListUi = (ListView) findViewById(R.id.queueScreenList);
+		mEmptyView = (TextView) findViewById(R.id.queueScreenEmpty);
+		mQueueListUi.setOnItemClickListener(new clickListener());
+		refreshMenu();
+		super.logEvent("View Download Queue", null);
+	}
+
+	@Override
+	protected void onNewIntent(Intent intent)
+	{
+		if (getIntent().getExtras() != null)
+		{
+			Mango.Log("Resuming service because user tapped on notification! (onNewIntent)");
+			startService(new Intent(DownloaderActivity.this, DownloaderService.class));
+			finish();
+			return;
+		}
+		super.onNewIntent(intent);
+	}
+
+	@Override
+	protected void onStart()
+	{
+		super.onStart();
+		// Bind to the service
+		bindService(new Intent(DownloaderActivity.this, DownloaderService.class), mConnection, Context.BIND_AUTO_CREATE);
+	}
+
+	@Override
+	protected void onStop()
+	{
+		super.onStop();
+		// Unbind from the service
+		if (mBound)
+		{
+			mService.clearCallbacks();
+			unbindService(mConnection);
+			mBound = false;
+		}
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		MenuInflater inflater = getSupportMenuInflater();
+		inflater.inflate(R.menu.downloadmanagermenu, menu);
+		return super.onCreateOptionsMenu(menu);
+	}
+
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu)
+	{
+		if (menu == null)
+			return false;
+		menu.clear();
+		onCreateOptionsMenu(menu);
+		if (mQueueArray.length == 0)
+		{
+			menu.removeItem(R.id.menuCancelDownloads);
+			menu.removeItem(R.id.menuPauseResume);
+		}
+		else
+		{
+			menu.removeItem(R.id.menuViewReport);
+			if (mService.getPause())
+			{
+				menu.getItem(0).setTitle("Resume");
+				menu.getItem(0).setTitleCondensed("Resume");
+				menu.getItem(0).setIcon(getResources().getDrawable(R.drawable.ic_action_resume));
+			}
+			else
+			{
+				menu.getItem(0).setTitle("Pause");
+				menu.getItem(0).setTitleCondensed("Pause");
+				menu.getItem(0).setIcon(getResources().getDrawable(R.drawable.ic_action_pause));
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		if (item.getItemId() == R.id.menuPauseResume)
+		{
+			pauseResumeClicked();
+			return true;
+		}
+		else if (item.getItemId() == R.id.menuViewReport)
+		{
+			viewReportClicked();
+			return true;
+		}
+		else if (item.getItemId() == R.id.menuCancelDownloads)
+		{
+			cancelAllClicked();
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+	private void pauseResumeClicked()
+	{
+		if (mService.getForcePause())
+		{
+			Mango.alert(
+			        "PocketManga has paused the download because there is no mobile data connectivity, or because you are on a phone call.\n\nThe download will automatically resume once PocketManga can connect again.",
+			        DownloaderActivity.this);
+			return;
+		}
+		mService.setPause(!mService.getPause());
+		refreshMenu();
+	}
+
+	private void viewReportClicked()
+	{
+		Mango.alert(MangoLibraryIO.readReportData().trim(), "Download Report", DownloaderActivity.this);
+	}
+
+	private void cancelAllClicked()
+	{
+		AlertDialog alert = new AlertDialog.Builder(DownloaderActivity.this).create();
+		alert.setTitle("Are you sure?");
+		alert.setMessage("This will immediately stop the current download and drop the queue.");
+		alert.setButton(DialogInterface.BUTTON_POSITIVE, "Yes, cancel", new DialogInterface.OnClickListener()
+		{
+			public void onClick(DialogInterface dialog, int which)
+			{
+				mService.cancelAll();
+			}
+		});
+		alert.setButton(DialogInterface.BUTTON_NEGATIVE, "No, never mind", new DialogInterface.OnClickListener()
+		{
+			public void onClick(DialogInterface dialog, int which)
+			{}
+		});
+		alert.show();
+	}
+
+	private void initializeQueue()
+	{
+		mQueueArray = new QueueItem[getQueue().size()];
+		getQueue().toArray(mQueueArray);
+		mQueueListUi.setAdapter(new QueueListAdapter(DownloaderActivity.this));
+		if (mQueueArray.length == 0)
+		{
+			mEmptyView.setVisibility(View.VISIBLE);
+			mEmptyView.setText("The download queue is empty!\n\nTo read downloaded chapters, go to the My Library screen.");
+			checkForSavedQueue();
+		}
+		else
+			mEmptyView.setVisibility(View.GONE);
+		refreshMenu();
+	}
+
+	private void checkForSavedQueue()
+	{
+		File file = new File(Mango.getPomaDataDirectory() + "/PocketManga/cache/downloaderqueue.ser");
+		if (mQueueArray.length == 0 && file.exists())
+		{
+			AlertDialog alert = new AlertDialog.Builder(DownloaderActivity.this).create();
+			alert.setTitle("Continue Downloading?");
+			alert.setMessage("It seems like PocketManga shut down last time without finishing all of your downloads.  Would you like to resume downloading them now?");
+			alert.setButton(Dialog.BUTTON_POSITIVE, "Sure!", new DialogInterface.OnClickListener()
+			{
+				public void onClick(DialogInterface dialog, int which)
+				{
+					startService(new Intent(DownloaderActivity.this, DownloaderService.class));
+				}
+			});
+			alert.setButton(Dialog.BUTTON_NEGATIVE, "Nah", new DialogInterface.OnClickListener()
+			{
+				public void onClick(DialogInterface dialog, int which)
+				{}
+			});
+			alert.show();
+		}
+	}
+
+	private ArrayList<QueueItem> getQueue()
+	{
+		if (!mBound)
+		{
+			Toast.makeText(this, "Could not connect to service.", Toast.LENGTH_SHORT);
+			return new ArrayList<QueueItem>();
+		}
+		return mService.getQueue();
+	}
+
+	private void pageCompleted()
+	{
+		((BaseAdapter) mQueueListUi.getAdapter()).notifyDataSetChanged();
+	}
+
+	private void chapterCompleted()
+	{
+		initializeQueue();
+	}
+
+	private void miscellaneousUpdate()
+	{
+		((BaseAdapter) mQueueListUi.getAdapter()).notifyDataSetChanged();
+	}
+
+	private class ViewHolder
+	{
+		TextView    title;
+		TextView    status;
+		ProgressBar progress;
+	}
+
+	class QueueListAdapter extends ArrayAdapter<QueueItem>
+	{
+		LayoutInflater mInflater = null;
+
+		public QueueListAdapter(MangoActivity context)
+		{
+			super(context, R.layout.queuelistrow, mQueueArray);
+			mInflater = context.getLayoutInflater();
+		}
+
+		@Override
+		public View getView(final int position, View convertView, ViewGroup parent)
+		{
+			ViewHolder holder;
+			if (convertView == null)
+			{
+				convertView = mInflater.inflate(R.layout.queuelistrow, null);
+				holder = new ViewHolder();
+				holder.title = (TextView) convertView.findViewById(R.id.queueItemText);
+				holder.status = (TextView) convertView.findViewById(R.id.queueItemStatus);
+				holder.progress = (ProgressBar) convertView.findViewById(R.id.queueItemProgress);
+				convertView.setTag(holder);
+			}
+			else
+			{
+				holder = (ViewHolder) convertView.getTag();
+			}
+
+			if (getQueue().size() == 0)
+				return convertView;
+
+			LibraryChapter data = getQueue().get(position).chapterObj;
+
+			holder.title.setText(data.manga.title + " " + data.chapter.id);
+			holder.status.setText(getStatusString(getQueue().get(position).statusCode));
+			if (getQueue().get(position).statusCode == DownloaderService.STATUS_INPROGRESS)
+			{
+				holder.progress.setVisibility(View.VISIBLE);
+				holder.progress.setMax(mService.getChapterLength());
+				holder.progress.setProgress(mService.getCompletedPages());
+			}
+			else
+			{
+				holder.progress.setVisibility(View.INVISIBLE);
+			}
+
+			return convertView;
+		}
+	}
+
+	private void itemClicked(final int position)
+	{
+		AlertDialog.Builder a = new AlertDialog.Builder(this);
+		a.setTitle(getQueue().get(position).chapterObj.manga.title + " " + getQueue().get(position).chapterObj.chapter.id);
+		String[] options = new String[] { (position == 0 ? "Cancel" : "Remove"),
+		        "Move Up",
+		        "Move Down",
+		        "Move to Top",
+		        "Move to Bottom" };
+		a.setItems(options, new DialogInterface.OnClickListener()
+		{
+
+			@Override
+			public void onClick(DialogInterface dialog, int which)
+			{
+				switch (which)
+				{
+					case 0:
+						mService.removeFromQueue(position);
+						initializeQueue();
+						break;
+					case 1:
+						if (position == 0)
+						{
+							Mango.alert("This is already the first item in the queue!", DownloaderActivity.this);
+							return;
+						}
+						if (getQueue().get(position - 1).statusCode == 0)
+						{
+							Mango.alert("This item can't be moved because the one before it has already started downloading!", DownloaderActivity.this);
+							return;
+						}
+						mService.moveUp(position);
+						initializeQueue();
+						break;
+					case 2:
+						if (position == getQueue().size() - 1)
+						{
+							Mango.alert("This is already the last item in the queue!", DownloaderActivity.this);
+							return;
+						}
+						if (getQueue().get(position).statusCode == DownloaderService.STATUS_INPROGRESS)
+						{
+							Mango.alert("This item can't be moved because it has already started downloading!", DownloaderActivity.this);
+							return;
+						}
+						mService.moveDown(position);
+						initializeQueue();
+						break;
+					case 3:
+						if (position == 0)
+						{
+							Mango.alert("This is already the first item in the queue!", DownloaderActivity.this);
+							return;
+						}
+						if (getQueue().get(position - 1).statusCode == 0)
+						{
+							Mango.alert("This item can't be moved because the one before it has already started downloading!", DownloaderActivity.this);
+							return;
+						}
+						mService.moveToTop(position);
+						initializeQueue();
+						break;
+					case 4:
+						if (position == getQueue().size() - 1)
+						{
+							Mango.alert("This is already the last item in the queue!", DownloaderActivity.this);
+							return;
+						}
+						if (getQueue().get(position).statusCode == DownloaderService.STATUS_INPROGRESS)
+						{
+							Mango.alert("This item can't be moved because it has already started downloading!", DownloaderActivity.this);
+							return;
+						}
+						mService.moveToEnd(position);
+						initializeQueue();
+						break;
+
+				}
+			}
+		});
+		a.show();
+	}
+
+	private String getStatusString(int code)
+	{
+		if (code == 0)
+		{
+			if (mService.getPause())
+			{
+				if (mService.getForcePause())
+					return "paused (no signal)";
+				return "paused";
+			}
+			else
+				return mService.getStatus();
+		}
+		if (code == 1)
+		{
+			if (mService.getPause())
+			{
+				if (mService.getForcePause())
+					return "paused (no signal)";
+				return "paused";
+			}
+			else
+			{
+				long cooldown = Mango.getSharedPreferences().getLong("downloaderCooldown", 0);
+				return "waiting for cooldown (" + ((cooldown - System.currentTimeMillis()) / 1000) + " seconds)";
+			}
+		}
+		if (code == 2)
+			return "queued";
+		return "unknown";
+	}
+}

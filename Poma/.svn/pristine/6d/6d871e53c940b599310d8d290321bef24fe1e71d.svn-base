@@ -1,0 +1,65 @@
+package com.ls.manga;
+
+import java.lang.reflect.Field;
+import java.text.ParseException;
+import java.util.HashMap;
+
+public class FavoriteSyncData
+{
+	public static final int CHANGE_ADD    = 0; // New fav
+	public static final int CHANGE_UPDATE = 1; //
+	public static final int CHANGE_REMOVE = 2;
+
+	/*
+	public String           mangaTitle;
+	public String           mangaAltTitles;
+	public String           mangaSimpleName;
+	public String           mangaId;
+
+	public String           progressChapterId;
+	public String           progressChapterName;
+	public String           progressChapterUrl;
+	public int              progressChapterIndex;
+	public int              progressPageIndex;
+
+	public long             readDate;
+
+	public int              siteId;
+
+	public int              tagId;
+	public String           coverArtUrl   = "";
+	public boolean          isOngoing;
+	*/
+
+	String                  syncQueryString;
+
+	Favorite                syncFavorite;
+	long                    syncTimestamp;
+	int                     syncChangeType;
+	HashMap<Field, Object>  syncModifiedData;
+
+	public static String generateAddStringForFavorite(Favorite f)
+	{
+		StringBuilder b = new StringBuilder();
+		b.append("ADD '" + f.mangaSimpleName +"' AT '" + System.currentTimeMillis() + "' SET ");
+		
+		b.append("('mangaTitle' = " + prepare(f.mangaTitle) + ")");
+		
+
+		return "";
+	}
+
+	public static FavoriteSyncData parseSyncQuerystring() throws ParseException
+	{
+		FavoriteSyncData data = new FavoriteSyncData();
+
+		return data;
+	}
+
+	public static String prepare(String s)
+	{
+		s = s.replace("'", "&apos;");
+		s = "'" + s + "'";
+		return s;
+	}
+}

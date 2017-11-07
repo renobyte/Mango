@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="appbrain-sdk-android">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/Poma/libs/appbrain-sdk-android.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
